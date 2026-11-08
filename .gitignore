@@ -1,0 +1,50 @@
+.DS_Store
+.localized
+__MACOSX/
+.AppleDouble
+.LSOverride
+Icon[]
+# Reference app and logs: never tracked
+SteadyMount.app/
+*.md
+!README.md
+!LICENSE.md
+*.log
+# macOS / Xcode
+.DS_Store
+xcuserdata/
+*.xcuserstate
+DerivedData/
+docs/
+.claude/
+Scripts/
+Tools/
+# SwiftPM
+.build/
+.swiftpm/
+
+# Test server credentials
+Tools/test-webdav.env
+
+# Generated engine binaries (built by Engine/build.sh)
+Engine/build/
+Engine/engine
+Packages/CloudCore/Binaries/
+
+
+
+reports/
+research_notes/
+*.app/
+*.xcarchive
+*.ipa
+*.dmg
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile
+*.env
+*.pem
+id_rsa*
+id_ed25519*
+rclone.conf
