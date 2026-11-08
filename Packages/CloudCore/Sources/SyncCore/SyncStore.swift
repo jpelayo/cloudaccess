@@ -207,45 +207,61 @@ public struct SyncTransfer: Equatable, Sendable, Identifiable {
 /// Writes a transfer's progress down for the app to show. The engine reports far more often than
 /// anyone can read, and each write reaches the disk, so this keeps to about once a second. A write
 /// that fails only costs the display, so it never touches the transfer.
+///
+/// Nothing is written until the first report, because reports only come once the engine call is
+/// running. macOS hands over more files than may move at once, and one waiting its turn isn't
+/// moving: it once had its record cleared as a dead process's, and then moved unseen.
 public final class TransferReporter: @unchecked Sendable {
     private static let interval: TimeInterval = 1
 
     private let store: SyncStore
-    private let id: String?
+    private let id = UUID().uuidString
+    private let name: String
+    private let direction: SyncTransfer.Direction
+    private let total: Int64
     private let clock: @Sendable () -> Date
+    /// Held through each write, so a finish can't land between a report and its write and leave
+    /// the record behind.
     private let lock = NSLock()
-    private var lastWrite: Date
+    private var started: Date?
+    private var lastWrite: Date?
     private var highest: Int64 = 0
+    private var isFinished = false
 
     public init(
         store: SyncStore, name: String, direction: SyncTransfer.Direction, total: Int64,
         clock: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.store = store
+        self.name = name
+        self.direction = direction
+        self.total = total
         self.clock = clock
-        lastWrite = clock()
-        id = try? store.beginTransfer(name: name, direction: direction, total: total, now: lastWrite)
     }
 
     /// A save is several engine calls, and each counts from zero, so only the highest figure
     /// counts. Otherwise a bar would fall back to nothing as the upload ended.
     public func update(_ done: Int64) {
-        guard let id else { return }
         let now = clock()
-        let due: Int64? = lock.withLock {
+        lock.withLock {
+            guard !isFinished else { return }
             highest = max(highest, done)
-            guard now.timeIntervalSince(lastWrite) >= Self.interval else { return nil }
+            if let lastWrite, now.timeIntervalSince(lastWrite) < Self.interval { return }
+            let firstReport = started ?? now
+            started = firstReport
             lastWrite = now
-            return highest
-        }
-        if let due {
-            try? store.updateTransfer(id: id, done: due, now: now)
+            try? store.recordTransfer(
+                id: id, name: name, direction: direction, done: highest, total: total,
+                started: firstReport, now: now)
         }
     }
 
     public func finish() {
-        if let id {
-            try? store.finishTransfer(id: id)
+        lock.withLock {
+            isFinished = true
+            if started != nil {
+                try? store.finishTransfer(id: id)
+            }
         }
     }
 }
@@ -1538,11 +1554,12 @@ public final class SyncStore: Sendable {
     /// from looking busy.
     public static let transferSilence: TimeInterval = 90
 
-    @discardableResult
-    public func beginTransfer(
-        name: String, direction: SyncTransfer.Direction, total: Int64, now: Date = Date()
-    ) throws -> String {
-        let id = UUID().uuidString
+    /// Writes where a transfer has got to. A record that was cleared is put back, because a
+    /// transfer can wait between engine calls for longer than a dead process's record is kept.
+    public func recordTransfer(
+        id: String, name: String, direction: SyncTransfer.Direction, done: Int64, total: Int64,
+        started: Date, now: Date = Date()
+    ) throws {
         try database.transaction {
             // Only a process that died leaves one of these behind.
             try database.execute(
@@ -1551,18 +1568,12 @@ public final class SyncStore: Sendable {
             try database.execute(
                 """
                 INSERT INTO transfers(id, name, direction, done, total, started, updated)
-                VALUES (?, ?, ?, 0, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET done = excluded.done, updated = excluded.updated
                 """,
-                [.text(id), .text(name), .text(direction.rawValue), .integer(total),
-                 .real(now.timeIntervalSince1970), .real(now.timeIntervalSince1970)])
+                [.text(id), .text(name), .text(direction.rawValue), .integer(done), .integer(total),
+                 .real(started.timeIntervalSince1970), .real(now.timeIntervalSince1970)])
         }
-        return id
-    }
-
-    public func updateTransfer(id: String, done: Int64, now: Date = Date()) throws {
-        try database.execute(
-            "UPDATE transfers SET done = ?, updated = ? WHERE id = ?",
-            [.integer(done), .real(now.timeIntervalSince1970), .text(id)])
     }
 
     public func finishTransfer(id: String) throws {

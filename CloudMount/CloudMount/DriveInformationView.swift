@@ -81,7 +81,7 @@ struct DriveInformationView: View {
                 "These files are on this Mac and haven't reached the server. CloudMount won't send them until you press Try Again, or rename them.",
                 .orange)
         case .notMoving:
-            return ("exclamationmark.triangle.fill", "Nothing is moving", stuckReason, .orange)
+            return ("pause.circle.fill", "Uploads paused", stuckReason, .orange)
         case .connected:
             if report.isBeingChecked {
                 return ("hourglass", "macOS is checking this drive", "New files can wait until it finishes.", nil)
@@ -94,7 +94,10 @@ struct DriveInformationView: View {
         if (drives.retrying[connection.id] ?? 0) > 0 {
             return "These files keep failing. macOS tries them again by itself, and after 15 minutes of failures CloudMount stops trying and waits for you."
         }
-        return "macOS has these files waiting, and hasn't sent any for a while. Try Again asks it to start now."
+        let count = drives.waiting[connection.id] ?? 0
+        let files = count == 1 ? "1 file is waiting" : "\(count) files are waiting"
+        let minutes = Int(Drives.stallLimit / 60)
+        return "\(files), and none has moved for \(minutes) minutes. This usually clears by itself. Try Again asks macOS to carry on."
     }
 
     private var speed: String {

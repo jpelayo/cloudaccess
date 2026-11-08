@@ -124,7 +124,7 @@ final class Drives {
             switch self {
             case .connected: nil
             case .syncing(let count): "syncing \(count)"
-            case .notMoving(let count): count == 1 ? "1 file isn't moving" : "\(count) files aren't moving"
+            case .notMoving(let count): count == 1 ? "1 upload paused" : "\(count) uploads paused"
             case .needsAttention(let count):
                 count == 1 ? "1 file needs attention" : "\(count) files need attention"
             case .offline: "offline"
@@ -187,16 +187,23 @@ final class Drives {
     private(set) var problems: [UUID: RemoteError] = [:]
     /// Drives whose SFTP server now offers a different key, until someone reviews it.
     private(set) var changedHostKeys: Set<UUID> = []
-    /// How much is waiting to upload, for saying when that's more than the disk should hold.
+    /// How much is left to upload, from macOS's progress, which doesn't always know.
     private var waitingBytes: [UUID: Int64] = [:]
+    /// Whether the disk is below a drive's reserve. Files waiting to upload can't be removed to
+    /// make room, so that's worth saying while they wait.
+    private var isLowOnSpace = false
     /// What macOS's upload progress counts, which is only a hint that the list needs reading.
     private var reportedUploads: [UUID: Int] = [:]
     private var lastChecked: [UUID: Date] = [:]
-    /// The last proof of movement: a transfer reporting, a file finishing, or the list changing.
+    /// The last proof of movement: a transfer reporting, a file finishing, the list changing, or
+    /// macOS seeing upload bytes move.
     private var lastMoved: [UUID: Date] = [:]
     private var lastFinished: [UUID: Int] = [:]
     private var lastWaiting: [UUID: Set<String>] = [:]
     private var lastDownloaded: [UUID: (bytes: Int64, at: Date)] = [:]
+    /// When macOS last saw upload bytes move. It's a second proof beside our own records, so
+    /// bytes being sent are never called stopped.
+    private var lastUploaded: [UUID: (bytes: Int64, at: Date)] = [:]
     private var readingPending = Set<UUID>()
     private var transferTicks = 0
     @ObservationIgnored private var lastLogged: [UUID: String] = [:]
@@ -321,21 +328,17 @@ final class Drives {
         }
         let uploading = connections.filter { isTransferring($0) && (waiting[$0.id] ?? 0) > 0 }
         guard let first = uploading.first else { return nil }
-        let cached = cachedBytes.values.reduce(Int64(0)) { $0.addingReportingOverflow($1).partialValue }
         let count = uploading.reduce(0) { $0 + (waiting[$1.id] ?? 0) }
-        let summary = "\(cached.formatted(.byteCount(style: .file))) cached, \(count) waiting"
-        return ActivityLine(
-            connection: first, title: "Uploading",
-            summary: isOverReserve ? summary + ". More is waiting than the space kept free." : summary,
-            isStuck: false)
-    }
-
-    /// Saves can't be held back, because macOS owns them, so this can only say so.
-    private var isOverReserve: Bool {
-        connections.contains { connection in
-            guard let reserve = connection.settings.diskReserve else { return false }
-            return (waitingBytes[connection.id] ?? 0) > reserve
+        let left = uploading.reduce(Int64(0)) { $0.addingReportingOverflow(waitingBytes[$1.id] ?? 0).partialValue }
+        var summary = count == 1 ? "1 file" : "\(count) files"
+        if left > 0 {
+            summary += ", about \(left.formatted(.byteCount(style: .file))) to go"
         }
+        // Saves can't be held back, because macOS owns them, so this can only say so.
+        if isLowOnSpace {
+            summary += ". Your Mac is low on space. Files stay on it until they're uploaded."
+        }
+        return ActivityLine(connection: first, title: "Uploading", summary: summary, isStuck: false)
     }
 
     /// What the side panel says about a drive, above its actions.
@@ -410,7 +413,9 @@ final class Drives {
     /// macOS's list can be long, and only the start of it is ever on screen.
     private static let pendingLimit = 500
     /// How long files can wait with no sign of movement before the app stops calling it syncing.
-    private static let stallLimit: TimeInterval = 120
+    /// macOS pauses by itself at times, such as while it takes in a large copy, and that's not
+    /// worth an alert.
+    static let stallLimit: TimeInterval = 300
     /// A download's bytes stop rising when it's over, whatever macOS's progress still says.
     private static let downloadSilence: TimeInterval = 60
     /// Numbers only, never a name, so this can stay in a release build.
@@ -787,12 +792,30 @@ final class Drives {
             if downloading[id] != down { downloading[id] = down }
             let bytes = uploads[id].map { max(0, $0.totalUnitCount - $0.completedUnitCount) } ?? 0
             if waitingBytes[id] != bytes { waitingBytes[id] = bytes }
+            let bytesOut = uploads[id]?.completedUnitCount ?? 0
+            if lastUploaded[id]?.bytes != bytesOut {
+                lastUploaded[id] = (bytesOut, now)
+            }
 
             let isBusy = up > 0 || !(pending[id] ?? []).isEmpty
             if hasChanged || (isBusy && transferTicks.isMultiple(of: 5)) {
                 Task { await refreshPending(of: connection) }
             }
         }
+        let free = Self.freeSpace()
+        let isLow = free.map { free in
+            mounted.contains { connection in
+                connection.settings.diskReserve.map { free < $0 } ?? false
+            }
+        } ?? false
+        if isLowOnSpace != isLow { isLowOnSpace = isLow }
+    }
+
+    /// What the disk has free for files a person keeps, the figure macOS itself goes by.
+    private static func freeSpace() -> Int64? {
+        try? URL.homeDirectory
+            .resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+            .volumeAvailableCapacityForImportantUsage
     }
 
     /// Reads which files macOS really has waiting, and what's known about each. A file that's
@@ -881,13 +904,16 @@ final class Drives {
     }
 
     /// Decides whether the waiting files are going anywhere. Progress needs proof: a transfer
-    /// reporting, a file finishing, or the list changing.
+    /// reporting, a file finishing, the list changing, or macOS seeing upload bytes move.
     private func noteMovement(of id: UUID, waitingFiles: Set<String>, state: SyncStore) {
         let now = Date()
         let finished = (try? state.totals())?.finished ?? 0
         let isRunning = !((try? state.liveTransfers(now: now)) ?? []).isEmpty
         if isRunning || finished != lastFinished[id] || waitingFiles != lastWaiting[id] || lastMoved[id] == nil {
             lastMoved[id] = now
+        }
+        if let sent = lastUploaded[id]?.at, sent > (lastMoved[id] ?? .distantPast) {
+            lastMoved[id] = sent
         }
         lastFinished[id] = finished
         lastWaiting[id] = waitingFiles
@@ -1252,9 +1278,7 @@ final class Drives {
     /// The size limit, lowered if the disk has fallen below its reserve.
     private func limit(for settings: DriveSettings, state: SyncStore) -> Int64? {
         guard let reserve = settings.diskReserve,
-              let free = try? URL.homeDirectory
-                  .resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
-                  .volumeAvailableCapacityForImportantUsage,
+              let free = Self.freeSpace(),
               free < reserve,
               let cached = try? state.localCopiesSize()
         else { return settings.sizeLimit }
@@ -1681,6 +1705,7 @@ final class Drives {
         reportedUploads[connection.id] = nil
         lastMoved[connection.id] = nil
         lastDownloaded[connection.id] = nil
+        lastUploaded[connection.id] = nil
         stalled.remove(connection.id)
         downloading[connection.id] = nil
         problems[connection.id] = nil

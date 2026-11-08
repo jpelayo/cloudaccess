@@ -47,7 +47,8 @@ import Testing
     @Test func aTransferThatStoppedReportingIsntLive() throws {
         let store = try makeStore()
         let start = Date(timeIntervalSince1970: 1_000_000)
-        try store.beginTransfer(name: "big.mov", direction: .upload, total: 100, now: start)
+        try store.recordTransfer(
+            id: "a", name: "big.mov", direction: .upload, done: 0, total: 100, started: start, now: start)
         #expect(try store.liveTransfers(now: start.addingTimeInterval(60)).count == 1)
         #expect(try store.liveTransfers(now: start.addingTimeInterval(120)).isEmpty)
     }
@@ -55,8 +56,12 @@ import Testing
     @Test func aTransferSaysHowFarItsGot() throws {
         let store = try makeStore()
         let start = Date(timeIntervalSince1970: 1_000_000)
-        let id = try store.beginTransfer(name: "big.mov", direction: .upload, total: 100, now: start)
-        try store.updateTransfer(id: id, done: 40, now: start.addingTimeInterval(10))
+        let id = "a"
+        try store.recordTransfer(
+            id: id, name: "big.mov", direction: .upload, done: 0, total: 100, started: start, now: start)
+        try store.recordTransfer(
+            id: id, name: "big.mov", direction: .upload, done: 40, total: 100, started: start,
+            now: start.addingTimeInterval(10))
 
         let transfer = try #require(try store.liveTransfers(now: start.addingTimeInterval(10)).first)
         #expect(transfer.name == "big.mov")
@@ -80,7 +85,11 @@ import Testing
 
         clock.now.addTimeInterval(0.2)
         reporter.update(10)
-        #expect(try store.liveTransfers(now: clock.now).first?.done == 0)
+        #expect(try store.liveTransfers(now: clock.now).first?.done == 10)
+
+        clock.now.addTimeInterval(0.5)
+        reporter.update(15)
+        #expect(try store.liveTransfers(now: clock.now).first?.done == 10)
 
         clock.now.addTimeInterval(1)
         reporter.update(20)
@@ -92,6 +101,77 @@ import Testing
         #expect(try store.liveTransfers(now: clock.now).first?.done == 20)
 
         reporter.finish()
+        #expect(try store.liveTransfers(now: clock.now).isEmpty)
+    }
+
+    /// macOS hands over more files than may upload at once, and the rest wait their turn. One that
+    /// waited longer than a dead process's record lasts was cleared as one, and then moved unseen,
+    /// so a drive sending 15 MB/s said nothing was moving.
+    @Test func anUploadThatWaitedItsTurnStillShows() throws {
+        let store = try makeStore()
+        let clock = Clock()
+        let waited = TransferReporter(
+            store: store, name: "waited.mov", direction: .upload, total: 100, clock: { clock.now })
+
+        clock.now.addTimeInterval(100)
+        let next = TransferReporter(
+            store: store, name: "next.mov", direction: .upload, total: 100, clock: { clock.now })
+        next.update(1)
+
+        clock.now.addTimeInterval(1)
+        waited.update(5)
+        let live = try store.liveTransfers(now: clock.now)
+        #expect(live.first { $0.name == "waited.mov" }?.done == 5)
+    }
+
+    /// A file waiting its turn isn't moving, and its speed counts from when it started.
+    @Test func aWaitingTransferIsntShownUntilItStarts() throws {
+        let store = try makeStore()
+        let clock = Clock()
+        let reporter = TransferReporter(
+            store: store, name: "big.mov", direction: .upload, total: 100, clock: { clock.now })
+        #expect(try store.liveTransfers(now: clock.now).isEmpty)
+
+        clock.now.addTimeInterval(30)
+        reporter.update(0)
+        let transfer = try #require(try store.liveTransfers(now: clock.now).first)
+        #expect(transfer.started == clock.now)
+    }
+
+    /// An upload and its commit are two engine calls, and the second can wait too.
+    @Test func aRecordClearedBetweenEngineCallsComesBack() throws {
+        let store = try makeStore()
+        let clock = Clock()
+        let reporter = TransferReporter(
+            store: store, name: "big.mov", direction: .upload, total: 100, clock: { clock.now })
+        clock.now.addTimeInterval(0.5)
+        reporter.update(10)
+        let started = clock.now
+
+        clock.now.addTimeInterval(100)
+        let other = TransferReporter(
+            store: store, name: "other.mov", direction: .upload, total: 100, clock: { clock.now })
+        other.update(1)
+
+        clock.now.addTimeInterval(1)
+        reporter.update(0)
+        let transfer = try #require(try store.liveTransfers(now: clock.now).first { $0.name == "big.mov" })
+        #expect(transfer.done == 10)
+        #expect(transfer.started == started)
+    }
+
+    /// The engine's last report can arrive after the transfer has ended.
+    @Test func aLateReportAfterFinishingLeavesNothing() throws {
+        let store = try makeStore()
+        let clock = Clock()
+        let reporter = TransferReporter(
+            store: store, name: "big.mov", direction: .upload, total: 100, clock: { clock.now })
+        clock.now.addTimeInterval(1)
+        reporter.update(10)
+        reporter.finish()
+
+        clock.now.addTimeInterval(1)
+        reporter.update(20)
         #expect(try store.liveTransfers(now: clock.now).isEmpty)
     }
 
