@@ -17,14 +17,15 @@ enum Icons {
             return true
         }
         image.isTemplate = false
-        image.accessibilityDescription = "CloudAccess, not connected"
+        image.accessibilityDescription = String(localized: "CloudAccess, not connected")
         return image
     }()
 
     /// The loop shown while a drive syncs. It's animated where it's used.
     static func syncLoop(size: CGFloat) -> NSImage {
         let style = NSImage.SymbolConfiguration(pointSize: size, weight: .medium)
-        return NSImage(systemSymbolName: "arrow.triangle.2.circlepath", accessibilityDescription: "Syncing")?
+        return NSImage(
+            systemSymbolName: "arrow.triangle.2.circlepath", accessibilityDescription: String(localized: "Syncing"))?
             .withSymbolConfiguration(style) ?? NSImage()
     }
 

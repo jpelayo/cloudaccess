@@ -33,21 +33,21 @@ public struct RecoveryKit: Sendable {
         self.vaultID = vaultID
     }
 
-    /// The kit as text to save or print.
+    /// The kit as text to save or print, in the language shown, because it's for a person to read.
+    /// The rclone settings stay as they are: rclone reads them in one language only.
     public var text: String {
         """
-        CloudAccess recovery kit
-        Keep this somewhere safe. Anyone with it can read this drive.
+        \(Words.text("CloudAccess recovery kit"))
+        \(Words.text("Keep this somewhere safe. Anyone with it can read this drive."))
 
-        Drive: \(driveName)
-        Address: \(address)
-        Vault ID: \(vaultID)
+        \(Words.format("Drive: %@", driveName))
+        \(Words.format("Address: %@", address))
+        \(Words.format("Vault ID: %@", vaultID))
 
-        Encryption password: \(password)
-        Salt: \(salt)
+        \(Words.format("Encryption password: %@", password))
+        \(Words.format("Salt: %@", salt))
 
-        To reach your files with plain rclone (https://rclone.org), run `rclone config`,
-        or add this to rclone.conf. First obscure both values with `rclone obscure`:
+        \(Words.text("To reach your files with plain rclone (https://rclone.org), run `rclone config`,\nor add this to rclone.conf. First obscure both values with `rclone obscure`:"))
 
         [cloudaccess-recovery]
         type = crypt
@@ -58,10 +58,9 @@ public struct RecoveryKit: Sendable {
         password = <obscured encryption password>
         password2 = <obscured salt>
 
-        Then: rclone copy cloudaccess-recovery: /a/local/folder
+        \(Words.text("Then: rclone copy cloudaccess-recovery: /a/local/folder"))
 
-        The .cloudmount folder on the server isn't part of your files, and rclone
-        skips it with a notice.
+        \(Words.text("The .cloudmount folder on the server isn't part of your files, and rclone\nskips it with a notice."))
         """
     }
 }

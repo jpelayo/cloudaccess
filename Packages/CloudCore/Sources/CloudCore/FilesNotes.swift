@@ -24,11 +24,11 @@ public struct FilesNotes: Codable, Equatable, Sendable {
             self.date = date
         }
 
-        /// What the app says about it.
+        /// What the app says about it, in the language shown.
         public var explanation: String {
             isNew
-                ? "Saved here by another app. This drive is read-only, so it stays on this iPhone only. Copy it somewhere else in Files to keep it."
-                : "Changed in another app. This drive is read-only, so the change stays on this iPhone only. Copy the file somewhere else in Files to keep it."
+                ? Words.text("Saved here by another app. This drive is read-only, so it stays on this iPhone only. Copy it somewhere else in Files to keep it.")
+                : Words.text("Changed in another app. This drive is read-only, so the change stays on this iPhone only. Copy the file somewhere else in Files to keep it.")
         }
     }
 

@@ -108,6 +108,39 @@ public enum SyncError: Error, Equatable {
     case held
 }
 
+extension SyncError: WordedError {
+    /// In the language shown.
+    public var errorDescription: String? {
+        Words.shown(englishDescription)
+    }
+
+    public var englishDescription: String {
+        switch self {
+        case .anchorExpired: "The list of changes has to be read again from the start."
+        case .itemNotFound: "This item is no longer on this drive."
+        case .recovering: "macOS is still checking this drive."
+        case .newerDatabase: "This drive's records were made by a newer version of the app, so they were left alone."
+        case .repairFailed: "This drive's records couldn't be repaired safely, so nothing was changed."
+        case .treeTooLarge: "This drive has too many folders to check them all."
+        case .held: "This file kept failing, so it waits until you press Try Again."
+        }
+    }
+}
+
+extension Database.DatabaseError: WordedError {
+    /// In the language shown. SQLite's own words stay as they came.
+    var errorDescription: String? {
+        Words.shown(englishDescription)
+    }
+
+    var englishDescription: String {
+        switch self {
+        case .failed(let message): message
+        case .damaged: "This drive's records are damaged."
+        }
+    }
+}
+
 /// A file that couldn't sync, for the menu's list.
 public struct SyncFailure: Equatable, Sendable, Identifiable {
     public var id: String
@@ -1490,6 +1523,8 @@ public final class SyncStore: Sendable {
                 lastFailed: now, count: (earlier?.count ?? 0) + 1, isHeld: earlier?.isHeld ?? false)
             if canHold, !noted.isHeld, noted.hasHadEnoughChances {
                 noted.isHeld = true
+                // Saved in English, like the message after it. `FileProblem.localized` knows these
+                // words, and translates them when they're shown.
                 try writeFailure(
                     id: id, name: name, message: "Stopped trying after \(noted.count) failures. \(message)",
                     now: now)

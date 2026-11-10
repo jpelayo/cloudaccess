@@ -2,6 +2,7 @@
 
 import CloudCore
 import CloudDesign
+import Foundation
 import RemoteEngine
 import SwiftUI
 import UniformTypeIdentifiers
@@ -83,15 +84,27 @@ struct EditDriveView: View {
 
     /// What a move does, said before it happens.
     private var moveNote: String {
-        var note = "This points the drive at a different server, folder or account. It's set up again there: "
-            + "what's downloaded on this iPhone from the old one is removed, and so is its place in the Files app. "
-            + "Nothing on either server changes."
+        var note = String(localized: "This points the drive at a different server, folder or account. It's set up again there: what's downloaded on this iPhone from the old one is removed, and so is its place in the Files app. Nothing on either server changes.")
         if keptChanges > 0 {
-            note += keptChanges == 1
-                ? " 1 change saved into it by another app is only on this iPhone, and goes too."
-                : " \(keptChanges) changes saved into it by other apps are only on this iPhone, and go too."
+            // One key, with a form for one change and one for more in the catalog.
+            note += " " + String(localized: "\(keptChanges) changes saved into it by other apps are only on this iPhone, and go too.")
         }
         return note
+    }
+
+    /// The chosen key's file name, which is shown as it is, or what's saved now.
+    private var keyButton: some View {
+        Button {
+            isChoosingKey = true
+        } label: {
+            if let privateKeyName {
+                Text(verbatim: privateKeyName)
+            } else if signsInWithKey {
+                Text("Saved key")
+            } else {
+                Text("Choose…")
+            }
+        }
     }
 
     var body: some View {
@@ -105,7 +118,7 @@ struct EditDriveView: View {
                 Section {
                     Picker("Protocol", selection: $form.kind) {
                         ForEach(ConnectionForm.Kind.allCases, id: \.self) { kind in
-                            Text(kind.rawValue).tag(kind)
+                            Text(kind.title).tag(kind)
                         }
                     }
                     TextField("Host", text: $form.host)
@@ -133,9 +146,7 @@ struct EditDriveView: View {
                     SecretField("Password", text: $password, prompt: "Unchanged")
                     if form.kind == .sftp {
                         LabeledContent("Private key") {
-                            Button(privateKeyName ?? (signsInWithKey ? "Saved key" : "Choose…")) {
-                                isChoosingKey = true
-                            }
+                            keyButton
                         }
                         if privateKey != nil {
                             SecretField("Key passphrase", text: $keyPassphrase, prompt: "If it has one")
@@ -148,7 +159,9 @@ struct EditDriveView: View {
                 }
                 if connection.isEncrypted {
                     Section {
-                        LabeledContent("Encrypted", value: "Yes")
+                        LabeledContent("Encrypted") {
+                            Text("Yes")
+                        }
                     } header: {
                         SectionLabel("Encryption")
                     } footer: {
@@ -192,8 +205,14 @@ struct EditDriveView: View {
                     if isSaving {
                         ProgressView()
                     } else {
-                        Button(hostKey == nil ? "Save" : "Trust", action: save)
-                            .disabled(!canSave)
+                        Button(action: save) {
+                            if hostKey == nil {
+                                Text("Save")
+                            } else {
+                                Text("Trust")
+                            }
+                        }
+                        .disabled(!canSave)
                     }
                 }
             }
@@ -225,7 +244,7 @@ struct EditDriveView: View {
             privateKeyName = url.lastPathComponent
             problem = nil
         } catch {
-            problem = "That key can't be read: \(error.localizedDescription)"
+            problem = String(localized: "That key can't be read: \(error.localizedDescription)")
         }
     }
 

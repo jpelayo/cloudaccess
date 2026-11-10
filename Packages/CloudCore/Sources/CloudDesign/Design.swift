@@ -15,24 +15,37 @@ public enum Design {
     public static let controlFill = Color.primary.opacity(0.08)
 }
 
+// Text a person reads works as SwiftUI's `Text` does: a literal is a key, looked up in the calling
+// app's own strings, and a `String` value is shown as it is, so a drive called "Drives" is never
+// translated. Swift picks one form for a whole call, so where a component takes two texts, each
+// one says how a literal beside a value is read.
+
 /// The app's name and version, with the overall state on the right.
 public struct PanelHeader<Trailing: View>: View {
-    let title: String
+    let title: Text
     let detail: String?
     let trailing: Trailing
 
-    public init(title: String, detail: String?, @ViewBuilder trailing: () -> Trailing) {
-        self.title = title
+    /// - Parameter detail: A value, such as the version, shown as it is.
+    public init(title: LocalizedStringKey, detail: String?, @ViewBuilder trailing: () -> Trailing) {
+        self.title = Text(title)
+        self.detail = detail
+        self.trailing = trailing()
+    }
+
+    @_disfavoredOverload
+    public init(title: some StringProtocol, detail: String?, @ViewBuilder trailing: () -> Trailing) {
+        self.title = Text(verbatim: String(title))
         self.detail = detail
         self.trailing = trailing()
     }
 
     public var body: some View {
         HStack(spacing: 6) {
-            Text(title)
+            title
                 .font(.system(size: 15, weight: .bold))
             if let detail {
-                Text(detail)
+                Text(verbatim: detail)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
@@ -44,11 +57,17 @@ public struct PanelHeader<Trailing: View>: View {
 
 /// A state in a word, with a dot, so color is never the only cue.
 public struct StatusPill: View {
-    let text: String
+    let text: Text
     let color: Color
 
-    public init(text: String, color: Color) {
-        self.text = text
+    public init(text: LocalizedStringKey, color: Color) {
+        self.text = Text(text)
+        self.color = color
+    }
+
+    @_disfavoredOverload
+    public init(text: some StringProtocol, color: Color) {
+        self.text = Text(verbatim: String(text))
         self.color = color
     }
 
@@ -57,7 +76,7 @@ public struct StatusPill: View {
             Circle()
                 .fill(color)
                 .frame(width: 7, height: 7)
-            Text(text)
+            text
                 .font(.system(size: 11, weight: .medium))
         }
         .padding(.horizontal, 8)
@@ -66,19 +85,30 @@ public struct StatusPill: View {
     }
 }
 
-/// The small capitals above a card.
+/// The small capitals above a card. They're made capitals as they're drawn, in the language
+/// shown, so the words themselves stay as written.
 public struct SectionLabel: View {
-    let text: String
+    let text: Text
 
-    public init(_ text: String) {
+    public init(_ text: LocalizedStringKey) {
+        self.text = Text(text)
+    }
+
+    @_disfavoredOverload
+    public init(_ text: some StringProtocol) {
+        self.text = Text(verbatim: String(text))
+    }
+
+    init(text: Text) {
         self.text = text
     }
 
     public var body: some View {
-        Text(text.uppercased())
+        text
             .font(.system(size: 11, weight: .semibold))
             .tracking(0.6)
             .foregroundStyle(.secondary)
+            .textCase(.uppercase)
     }
 }
 
@@ -112,37 +142,59 @@ public struct Card<Content: View>: View {
 
 /// A label and the card it names.
 public struct CardSection<Content: View>: View {
-    let title: String
+    let title: Text
     let content: Content
 
-    public init(_ title: String, @ViewBuilder content: () -> Content) {
-        self.title = title
+    public init(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) {
+        self.title = Text(title)
+        self.content = content()
+    }
+
+    @_disfavoredOverload
+    public init(_ title: some StringProtocol, @ViewBuilder content: () -> Content) {
+        self.title = Text(verbatim: String(title))
         self.content = content()
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: Design.labelGap) {
-            SectionLabel(title)
+            SectionLabel(text: title)
             Card { content }
         }
     }
 }
 
 /// A feature in a card: what it is on the left, and its control on the right.
+///
+/// A literal title and subtitle are both keys, and a `String` title and subtitle are both shown as
+/// they are. A literal title with a `String` subtitle takes the second form, so to translate that
+/// title, pass `String(localized:)`.
 public struct IconRow<Control: View>: View {
     let symbol: String
-    let title: String
-    let subtitle: String?
+    let title: Text
+    let subtitle: Text?
     let tint: Color?
     let control: Control
 
     public init(
-        _ symbol: String, _ title: String, subtitle: String? = nil, tint: Color? = nil,
+        _ symbol: String, _ title: LocalizedStringKey, subtitle: LocalizedStringKey? = nil, tint: Color? = nil,
         @ViewBuilder control: () -> Control
     ) {
         self.symbol = symbol
-        self.title = title
-        self.subtitle = subtitle
+        self.title = Text(title)
+        self.subtitle = subtitle.map { Text($0) }
+        self.tint = tint
+        self.control = control()
+    }
+
+    @_disfavoredOverload
+    public init(
+        _ symbol: String, _ title: some StringProtocol, subtitle: String? = nil, tint: Color? = nil,
+        @ViewBuilder control: () -> Control
+    ) {
+        self.symbol = symbol
+        self.title = Text(verbatim: String(title))
+        self.subtitle = subtitle.map { Text(verbatim: $0) }
         self.tint = tint
         self.control = control()
     }
@@ -155,10 +207,10 @@ public struct IconRow<Control: View>: View {
                 .frame(width: 20)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
-                Text(title)
+                title
                     .font(.system(size: 13, weight: .semibold))
                 if let subtitle {
-                    Text(subtitle)
+                    subtitle
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -172,21 +224,30 @@ public struct IconRow<Control: View>: View {
 }
 
 /// A fact: a gray key on the left and its value on the right.
+///
+/// The value is data, such as a version or a date, and is shown as it is, the way `LabeledContent`
+/// shows its value. A fixed value that needs translating is passed as `String(localized:)`.
 public struct KeyValueRow: View {
-    let key: String
+    let key: Text
     let value: String
 
-    public init(_ key: String, _ value: String) {
-        self.key = key
+    public init(_ key: LocalizedStringKey, _ value: String) {
+        self.key = Text(key)
+        self.value = value
+    }
+
+    @_disfavoredOverload
+    public init(_ key: some StringProtocol, _ value: String) {
+        self.key = Text(verbatim: String(key))
         self.value = value
     }
 
     public var body: some View {
         HStack(spacing: 8) {
-            Text(key)
+            key
                 .foregroundStyle(.secondary)
             Spacer(minLength: 8)
-            Text(value)
+            Text(verbatim: value)
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .textSelection(.enabled)
@@ -195,16 +256,24 @@ public struct KeyValueRow: View {
     }
 }
 
-/// How much of something is used, with what the numbers mean underneath.
+/// How much of something is used, with what the numbers mean underneath. Both captions are
+/// literals, such as "Limit \(size)", or both are values.
 public struct UsageBar: View {
     let share: Double
-    let used: String
-    let limit: String
+    let used: Text
+    let limit: Text
 
+    public init(share: Double, used: LocalizedStringKey, limit: LocalizedStringKey) {
+        self.share = share
+        self.used = Text(used)
+        self.limit = Text(limit)
+    }
+
+    @_disfavoredOverload
     public init(share: Double, used: String, limit: String) {
         self.share = share
-        self.used = used
-        self.limit = limit
+        self.used = Text(verbatim: used)
+        self.limit = Text(verbatim: limit)
     }
 
     public var body: some View {
@@ -225,12 +294,12 @@ public struct UsageBar: View {
         }
     }
 
-    private func legend(_ text: String, color: Color) -> some View {
+    private func legend(_ text: Text, color: Color) -> some View {
         HStack(spacing: 4) {
             Circle()
                 .fill(color)
                 .frame(width: 6, height: 6)
-            Text(text)
+            text
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         }
@@ -239,13 +308,21 @@ public struct UsageBar: View {
 
 /// One of the main actions: an icon above its name.
 public struct Tile: View {
-    let title: String
+    let title: Text
     let symbol: String
     let tint: Color
     let action: () -> Void
 
-    public init(_ title: String, symbol: String, tint: Color = .blue, action: @escaping () -> Void) {
-        self.title = title
+    public init(_ title: LocalizedStringKey, symbol: String, tint: Color = .blue, action: @escaping () -> Void) {
+        self.title = Text(title)
+        self.symbol = symbol
+        self.tint = tint
+        self.action = action
+    }
+
+    @_disfavoredOverload
+    public init(_ title: some StringProtocol, symbol: String, tint: Color = .blue, action: @escaping () -> Void) {
+        self.title = Text(verbatim: String(title))
         self.symbol = symbol
         self.tint = tint
         self.action = action
@@ -258,7 +335,7 @@ public struct Tile: View {
                     .font(.system(size: 19))
                     .foregroundStyle(tint)
                     .accessibilityHidden(true)
-                Text(title)
+                title
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(tint == .red ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
                     .lineLimit(1)

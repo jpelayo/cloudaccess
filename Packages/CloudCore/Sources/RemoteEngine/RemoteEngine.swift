@@ -387,6 +387,36 @@ public final class RemoteEngine: RemoteBackend {
         let _: Empty = try await Self.call("setPolicy", values, path: .root)
     }
 
+    /// What the hidden `.cloudmount` folder holds, so a person can decide whether to remove it.
+    public struct ControlFolder: Sendable, Decodable, Equatable {
+        public let exists: Bool
+        /// An encrypted drive's marker. It always stays: the drive can't be opened without it.
+        public let hasVault: Bool
+        /// Deleted files and replaced versions that would be gone for good.
+        public let trashItems: Int
+        /// Other devices that have saved here in Safe mode, and will make the folder again.
+        public let safeDevices: Int
+        /// A device in Safe mode looks to be saving right now.
+        public let busy: Bool
+        public let removed: Bool
+        /// What's there besides the vault: trash, uploads, locks and shared settings.
+        public let otherEntries: Int
+
+        /// Whether a clean-up would remove anything.
+        public var hasRemovable: Bool { otherEntries > 0 }
+    }
+
+    public func controlFolder() async throws -> ControlFolder {
+        try await Self.call("controlFolder", Arguments(drive: driveID), path: .root)
+    }
+
+    /// Removes the control folder, keeping an encrypted drive's vault. Only a connection in Unsafe
+    /// mode can, and it refuses while a device in Safe mode is saving.
+    @discardableResult
+    public func cleanControlFolder() async throws -> ControlFolder {
+        try await Self.call("cleanControlFolder", Arguments(drive: driveID), path: .root)
+    }
+
     /// Stops every device writing to this vault once it next checks.
     public func retireVault() async throws {
         let _: Empty = try await Self.call("retireVault", Arguments(drive: driveID), path: .root)
@@ -628,6 +658,8 @@ private struct DriveConfiguration: Encodable {
     var deviceID: String?
     var deviceName: String?
     var readOnly: Bool
+    /// Safe, Unsafe or Read-only. A read-only connection stays read-only whatever this says.
+    var mode: String
     var allowInsecure: Bool
     /// Which app and version writes, as file details record it.
     var appName: String
@@ -660,6 +692,7 @@ private struct DriveConfiguration: Encodable {
         deviceID = device?.id
         deviceName = device?.name
         readOnly = connection.isReadOnly
+        mode = connection.settings.mode.rawValue
         allowInsecure = connection.allowsInsecure
     }
 

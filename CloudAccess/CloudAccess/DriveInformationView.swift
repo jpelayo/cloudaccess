@@ -66,47 +66,54 @@ struct DriveInformationView: View {
     private var headline: (symbol: String, title: String, detail: String, tint: Color?) {
         switch drives.status(of: connection) {
         case .unmounted:
-            return ("eject.fill", "Ejected", "This drive isn't in Finder, so nothing syncs.", nil)
+            return (
+                "eject.fill", String(localized: "Ejected"),
+                String(localized: "This drive isn't in Finder, so nothing syncs."), nil)
         case .needsEnabling:
             return (
-                "exclamationmark.triangle.fill", "Turned off",
-                "Turn it on under System Settings, General, Login Items & Extensions.", .red)
+                "exclamationmark.triangle.fill", String(localized: "Turned off"),
+                String(localized: "Turn it on under System Settings, General, Login Items & Extensions."), .red)
         case .offline:
-            return ("exclamationmark.triangle.fill", "Not connected", drives.offlineMessage(of: connection), .red)
+            return (
+                "exclamationmark.triangle.fill", String(localized: "Not connected"),
+                drives.offlineMessage(of: connection), .red)
         case .syncing(let count):
-            return ("arrow.up.circle", count == 1 ? "1 file to upload" : "\(count) files to upload", speed, .blue)
+            return ("arrow.up.circle", String(localized: "\(count) files to upload"), speed, .blue)
         case .needsAttention:
             return (
-                "exclamationmark.triangle.fill", "Waiting for you",
-                "These files are on this Mac and haven't reached the server. CloudAccess won't send them until you press Try Again, or rename them.",
+                "exclamationmark.triangle.fill", String(localized: "Waiting for you"),
+                String(localized: "These files are on this Mac and haven't reached the server. CloudAccess won't send them until you press Try Again, or rename them."),
                 .orange)
         case .notMoving:
-            return ("pause.circle.fill", "Uploads paused", stuckReason, .orange)
+            return ("pause.circle.fill", String(localized: "Uploads paused"), stuckReason, .orange)
         case .connected:
             if report.isBeingChecked {
-                return ("hourglass", "macOS is checking this drive", "New files can wait until it finishes.", nil)
+                return (
+                    "hourglass", String(localized: "macOS is checking this drive"),
+                    String(localized: "New files can wait until it finishes."), nil)
             }
-            return ("checkmark.circle.fill", "Up to date", "Nothing is waiting to upload.", .green)
+            return (
+                "checkmark.circle.fill", String(localized: "Up to date"),
+                String(localized: "Nothing is waiting to upload."), .green)
         }
     }
 
     private var stuckReason: String {
         if (drives.retrying[connection.id] ?? 0) > 0 {
-            return "These files keep failing. macOS tries them again by itself, and after 15 minutes of failures CloudAccess stops trying and waits for you."
+            return String(localized: "These files keep failing. macOS tries them again by itself, and after 15 minutes of failures CloudAccess stops trying and waits for you.")
         }
         let count = drives.waiting[connection.id] ?? 0
-        let files = count == 1 ? "1 file is waiting" : "\(count) files are waiting"
-        let minutes = Int(Drives.stallLimit / 60)
-        return "\(files), and none has moved for \(minutes) minutes. This usually clears by itself. Try Again asks macOS to carry on."
+        let quiet = Duration.seconds(Drives.stallLimit).formatted(.units(allowed: [.minutes], width: .wide))
+        return String(localized: "\(count) files are waiting, and none has moved for \(quiet). This usually clears by itself. Try Again asks macOS to carry on.")
     }
 
     private var speed: String {
         let rate = report.transfers.compactMap(\.bytesPerSecond).reduce(0, +)
         let running = report.transfers.count
-        guard running > 0 else { return "Waiting for the next file to start." }
-        let files = running == 1 ? "1 moving now" : "\(running) moving now"
-        guard rate > 0 else { return files }
-        return "\(files), at \(Int64(rate).formatted(.byteCount(style: .file)))/s"
+        guard running > 0 else { return String(localized: "Waiting for the next file to start.") }
+        guard rate > 0 else { return String(localized: "\(running) moving now") }
+        let perSecond = TransferRow.perSecond(rate)
+        return String(localized: "\(running) moving now, at \(perSecond)")
     }
 
     private var summary: some View {
@@ -126,7 +133,8 @@ struct DriveInformationView: View {
                 }
             }
             if let lastChecked = report.lastChecked {
-                KeyValueRow("Server last checked", lastChecked.formatted(date: .omitted, time: .standard))
+                KeyValueRow(
+                    String(localized: "Server last checked"), lastChecked.formatted(date: .omitted, time: .standard))
             }
             IconRow("doc.text", "Logs", subtitle: "A record of what happened on your drives.") {
                 Button("Show Logs") { drives.showLogs() }
@@ -161,7 +169,7 @@ struct DriveInformationView: View {
                         FileRow(
                             title: FlattenedPackage.shownName(failure.name),
                             place: place(report.failedFolders[failure.id]),
-                            problem: FileProblem(stored: failure.message)
+                            problem: FileProblem(stored: failure.message).localized
                         ) {
                             Task { await drives.reveal(failure) }
                         }
@@ -191,14 +199,20 @@ struct DriveInformationView: View {
         var note: String?
         switch file.state {
         case .waiting:
-            note = "Waiting its turn" + (file.size.map { ", \($0.formatted(.byteCount(style: .file)))" } ?? "")
+            if let size = file.size {
+                let bytes = size.formatted(.byteCount(style: .file))
+                note = String(localized: "Waiting its turn, \(bytes)")
+            } else {
+                note = String(localized: "Waiting its turn")
+            }
         case .failing(let attempt):
-            problem = FileProblem(stored: attempt.message)
+            problem = FileProblem(stored: attempt.message).localized
             note = tries(attempt)
         case .refused(let reason):
-            problem = FileProblem(cause: reason, fix: "Press Try Again.")
+            // macOS's own words, already in the language shown.
+            problem = FileProblem(cause: reason, fix: String(localized: "Press Try Again."))
         case .held:
-            note = "Stopped until you press Try Again"
+            note = String(localized: "Stopped until you press Try Again")
         }
         let title = FlattenedPackage.shownName(file.name)
         return FileRow(title: title, place: place(file.folder), problem: problem, note: note) {
@@ -208,14 +222,15 @@ struct DriveInformationView: View {
 
     /// What's been tried, for reading after the reason, which is what matters.
     private func tries(_ attempt: SyncAttempt) -> String {
-        let count = attempt.count == 1 ? "Tried once" : "Tried \(attempt.count) times"
         let last = attempt.lastFailed.formatted(date: .omitted, time: .shortened)
-        return "\(count), last at \(last). macOS tries again by itself."
+        return String(localized: "Tried \(attempt.count) times, last at \(last). macOS tries again by itself.")
     }
 
     private func place(_ folder: RemotePath?) -> String? {
         guard let folder else { return nil }
-        return folder.components.isEmpty ? "At the top of the drive" : "In \(folder)"
+        guard !folder.components.isEmpty else { return String(localized: "At the top of the drive") }
+        let path = folder.description
+        return String(localized: "In \(path)")
     }
 
     @ViewBuilder
@@ -239,22 +254,32 @@ struct DriveInformationView: View {
     }
 
     private func description(of entry: SyncActivity) -> String {
-        let verb = switch entry.kind {
-        case .uploaded: "Uploaded"
-        case .downloaded: "Downloaded"
-        case .deleted: "Deleted"
+        let time = entry.date.formatted(date: .omitted, time: .standard)
+        guard let size = entry.size.map({ $0.formatted(.byteCount(style: .file)) }) else {
+            return switch entry.kind {
+            case .uploaded: String(localized: "Uploaded at \(time)")
+            case .downloaded: String(localized: "Downloaded at \(time)")
+            case .deleted: String(localized: "Deleted at \(time)")
+            }
         }
-        let size = entry.size.map { ", \($0.formatted(.byteCount(style: .file)))" } ?? ""
-        return "\(verb) at \(entry.date.formatted(date: .omitted, time: .standard))\(size)"
+        return switch entry.kind {
+        case .uploaded: String(localized: "Uploaded at \(time), \(size)")
+        case .downloaded: String(localized: "Downloaded at \(time), \(size)")
+        case .deleted: String(localized: "Deleted at \(time), \(size)")
+        }
     }
 
+    /// Each count has its own words, because in Spanish they agree with the number.
     private var totals: String {
         let counts = report.totals
-        var text = "\(counts.uploaded) uploaded, \(counts.downloaded) downloaded, \(counts.deleted) deleted"
-        if let since = counts.since {
-            text += " since \(since.formatted(date: .abbreviated, time: .omitted))"
-        }
-        return text
+        let figures = [
+            String(localized: "\(counts.uploaded) uploaded"),
+            String(localized: "\(counts.downloaded) downloaded"),
+            String(localized: "\(counts.deleted) deleted"),
+        ].formatted(.list(type: .and))
+        guard let since = counts.since else { return figures }
+        let day = since.formatted(date: .abbreviated, time: .omitted)
+        return String(localized: "\(figures) since \(day)")
     }
 }
 
@@ -318,12 +343,25 @@ private struct TransferRow: View {
         return min(Double(transfer.done) / Double(transfer.total), 1)
     }
 
+    /// A speed, with the unit in the language shown.
+    static func perSecond(_ rate: Double) -> String {
+        let bytes = Int64(rate).formatted(.byteCount(style: .file))
+        return String(localized: "\(bytes)/s")
+    }
+
     private var figures: String {
         let done = transfer.done.formatted(.byteCount(style: .file))
         let total = transfer.total.formatted(.byteCount(style: .file))
-        let verb = transfer.direction == .upload ? "Uploading" : "Downloading"
-        guard let rate = transfer.bytesPerSecond else { return "\(verb), \(done) of \(total)" }
-        return "\(verb), \(done) of \(total), at \(Int64(rate).formatted(.byteCount(style: .file)))/s"
+        let isUpload = transfer.direction == .upload
+        guard let rate = transfer.bytesPerSecond else {
+            return isUpload
+                ? String(localized: "Uploading, \(done) of \(total)")
+                : String(localized: "Downloading, \(done) of \(total)")
+        }
+        let speed = Self.perSecond(rate)
+        return isUpload
+            ? String(localized: "Uploading, \(done) of \(total), at \(speed)")
+            : String(localized: "Downloading, \(done) of \(total), at \(speed)")
     }
 
     var body: some View {
@@ -357,17 +395,22 @@ private struct FileRow: View {
     var note: String?
     var reveal: (() -> Void)?
 
+    /// What Copy Details puts on the clipboard, in the language shown, for a person to pass on.
     private var fullText: String {
         var lines = [title]
-        lines += [place, problem.map { "Why: \($0.cause)" }].compactMap { $0 }
-        if let fix = problem?.fix, !fix.isEmpty {
-            lines.append("What to do: \(fix)")
+        if let place {
+            lines.append(place)
         }
-        return (lines + [note].compactMap { $0 }).joined(separator: "\n")
-    }
-
-    private func labelled(_ label: String, _ text: String) -> Text {
-        Text("\(label): ").fontWeight(.semibold) + Text(text)
+        if let problem {
+            lines.append(String(localized: "Why: \(problem.cause)"))
+            if !problem.fix.isEmpty {
+                lines.append(String(localized: "What to do: \(problem.fix)"))
+            }
+        }
+        if let note {
+            lines.append(note)
+        }
+        return lines.joined(separator: "\n")
     }
 
     var body: some View {
@@ -381,10 +424,11 @@ private struct FileRow: View {
                         .foregroundStyle(.secondary)
                 }
                 if let problem {
-                    labelled("Why", problem.cause)
+                    // A value put into the sentence is shown as it is, never read as Markdown.
+                    Text("**Why:** \(problem.cause)")
                         .font(.system(size: 12))
                     if !problem.fix.isEmpty {
-                        labelled("What to do", problem.fix)
+                        Text("**What to do:** \(problem.fix)")
                             .font(.system(size: 12))
                     }
                 }

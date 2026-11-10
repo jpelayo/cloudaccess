@@ -2,6 +2,7 @@
 
 import CloudCore
 import CloudDesign
+import Foundation
 import SwiftUI
 
 /// The app's version, as the About screen shows it.
@@ -9,22 +10,60 @@ private var version: String {
     Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
 }
 
+/// A name, so it reads the same in every language and is never looked up.
+private let developer = "InfiniteContext.com"
+
+/// Megabytes with one decimal, as iOS's limit is written, with the decimal mark of the language
+/// shown. The log keeps `MemoryReport.megabytes`, so support always reads it the same way.
+// TODO(l10n): use MemoryReport's own variant for the screen if the package adds one.
+private func megabytes(_ bytes: UInt64) -> String {
+    (Double(bytes) / 1_048_576).formatted(.number.precision(.fractionLength(1))) + " MB"
+}
+
 struct AboutView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var sharedLog: SharedFile?
+    @State private var language = AppLanguage.chosen()
+    /// iOS reads the language at launch, and an app can't restart itself.
+    @State private var languageChanged = false
+
+    private var languageChoice: Binding<AppLanguage> {
+        Binding {
+            language
+        } set: { chosen in
+            AppLanguage.choose(chosen)
+            language = chosen
+            languageChanged = true
+        }
+    }
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
                     KeyValueRow("Version", version)
-                    KeyValueRow("Licence", "Apache 2 licensed software")
-                    KeyValueRow("Developed by", "InfiniteContext.com")
+                    KeyValueRow("Licence", String(localized: "Apache 2 licensed software"))
+                    KeyValueRow("Developed by", developer)
                 } header: {
                     SectionLabel("CloudWanderer")
                 }
                 Section {
                     Text("Browse your own WebDAV and SFTP servers, and download and export files from them. Nothing is sent anywhere else.")
+                }
+                Section {
+                    Picker("Language", selection: languageChoice) {
+                        ForEach(AppLanguage.allCases, id: \.self) { choice in
+                            Text(verbatim: choice.title).tag(choice)
+                        }
+                    }
+                } header: {
+                    SectionLabel("Language")
+                } footer: {
+                    if languageChanged {
+                        Text("Close and reopen CloudWanderer to apply it.")
+                    } else {
+                        Text("System follows your iPhone's language.")
+                    }
                 }
                 Section {
                     NavigationLink("Show Log") {
@@ -40,15 +79,17 @@ struct AboutView: View {
                 }
                 if let report = PhoneDrives.memoryReport {
                     Section {
-                        KeyValueRow("After", "\(report.event), \(report.date.formatted(date: .omitted, time: .standard))")
-                        KeyValueRow("Then", MemoryReport.megabytes(report.now))
-                        KeyValueRow("Peak that run", MemoryReport.megabytes(report.peak))
-                        KeyValueRow("Highest seen", MemoryReport.megabytes(report.highest))
+                        // The event is the extension's own word, kept as it recorded it, and the
+                        // values are built as strings so only the labels are looked up.
+                        KeyValueRow("After", report.event + ", " + report.date.formatted(date: .omitted, time: .standard))
+                        KeyValueRow("Then", megabytes(report.now))
+                        KeyValueRow("Peak that run", megabytes(report.peak))
+                        KeyValueRow("Highest seen", megabytes(report.highest))
                         if let limit = report.limit {
-                            KeyValueRow("Limit", MemoryReport.megabytes(limit))
+                            KeyValueRow("Limit", megabytes(limit))
                         }
                         if let drives = report.drives, let threads = report.threads {
-                            KeyValueRow("Drives, threads", "\(drives), \(threads)")
+                            KeyValueRow("Drives, threads", drives.formatted() + ", " + threads.formatted())
                         }
                     } header: {
                         SectionLabel("Files extension memory")

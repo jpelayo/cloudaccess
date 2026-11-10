@@ -115,17 +115,28 @@ struct ListRow<Label: View, Controls: View>: View {
 
 /// One setting on one line, so a page fits without scrolling.
 struct SettingRow<Control: View>: View {
-    let label: String
+    let label: Text
     @ViewBuilder let control: Control
 
-    init(_ label: String, @ViewBuilder control: () -> Control) {
+    /// The label is looked up in the app's strings.
+    init(_ label: LocalizedStringKey, @ViewBuilder control: () -> Control) {
+        self.init(Text(label), control: control)
+    }
+
+    /// Words already in the language shown, or a name, appear as they are.
+    @_disfavoredOverload
+    init(_ label: some StringProtocol, @ViewBuilder control: () -> Control) {
+        self.init(Text(verbatim: String(label)), control: control)
+    }
+
+    init(_ label: Text, @ViewBuilder control: () -> Control) {
         self.label = label
         self.control = control()
     }
 
     var body: some View {
         ListRow(height: 26) {
-            Text(label)
+            label
         } controls: {
             control
                 .labelsHidden()
@@ -136,11 +147,23 @@ struct SettingRow<Control: View>: View {
 
 /// A switch that lines up with the other controls.
 struct RowSwitch: View {
-    let label: String
+    let label: Text
     @Binding var isOn: Bool
 
+    /// The label is looked up in the app's strings. It's hidden, and read out by VoiceOver.
+    init(label: LocalizedStringKey, isOn: Binding<Bool>) {
+        self.label = Text(label)
+        _isOn = isOn
+    }
+
+    @_disfavoredOverload
+    init(label: some StringProtocol, isOn: Binding<Bool>) {
+        self.label = Text(verbatim: String(label))
+        _isOn = isOn
+    }
+
     var body: some View {
-        Toggle(label, isOn: $isOn)
+        Toggle(isOn: $isOn) { label }
             .labelsHidden()
             .toggleStyle(.switch)
             .controlSize(.small)
@@ -154,6 +177,16 @@ struct DriveDetailView: View {
         case advanced = "Advanced"
         case deleted = "Deleted Files"
         case information = "Information"
+
+        /// The name on the page's tab, in the language shown. The raw value stays English.
+        var title: LocalizedStringKey {
+            switch self {
+            case .general: "General"
+            case .advanced: "Advanced"
+            case .deleted: "Deleted Files"
+            case .information: "Information"
+            }
+        }
     }
 
     @Environment(Drives.self) private var drives
@@ -174,6 +207,9 @@ struct DriveDetailView: View {
     @State private var message: String?
     @State private var hasUnsavedEdits = false
     @State private var saveRequests = 0
+    /// What the server's `.cloudmount` folder holds, looked up when the drive stops using it.
+    @State private var controlFolder: RemoteEngine.ControlFolder?
+    @State private var isOfferingCleanUp = false
 
     init(connection: Connection, startingPage: Page = .general) {
         self.connection = connection
@@ -199,6 +235,52 @@ struct DriveDetailView: View {
             changed.settings[keyPath: path] = value
             drives.update(changed)
         }
+    }
+
+    /// A change of mode applies straight away. Leaving Safe offers to remove what the drive no
+    /// longer needs on the server, and never removes it without asking.
+    private var mode: Binding<DriveMode> {
+        Binding {
+            current.settings.mode
+        } set: { newMode in
+            var changed = current
+            changed.settings.mode = newMode
+            drives.update(changed)
+            Task { await lookAtControlFolder(offering: !newMode.usesControlFolder) }
+        }
+    }
+
+    /// Only an SFTP drive that's left Safe mode is offered the clean-up.
+    private func lookAtControlFolder(offering: Bool) async {
+        guard case .sftp = current.endpoint, !current.settings.mode.usesControlFolder,
+              !current.serverIsReadOnly else {
+            controlFolder = nil
+            return
+        }
+        controlFolder = try? await drives.controlFolder(of: current)
+        if offering, controlFolder?.hasRemovable == true {
+            isOfferingCleanUp = true
+        }
+    }
+
+    /// Whole sentences, each translated by itself, and only the ones that apply.
+    private func cleanUpNote(_ found: RemoteEngine.ControlFolder) -> String {
+        var sentences = [
+            String(localized: "CloudAccess keeps locks, uploads in progress and deleted files there for Safe mode.")
+        ]
+        if found.trashItems > 0 {
+            sentences.append(String(localized: "\(found.trashItems) deleted files kept there will be gone for good."))
+        }
+        if found.safeDevices > 0 {
+            sentences.append(String(localized: "\(found.safeDevices) other devices use this drive in Safe mode, and will make the folder again."))
+        }
+        if found.hasVault {
+            sentences.append(String(localized: "The encryption marker stays, because the drive can't be opened without it."))
+        }
+        if found.busy {
+            sentences.append(String(localized: "A device in Safe mode looks to be saving now, so this may have to wait."))
+        }
+        return sentences.joined(separator: " ")
     }
 
     /// A drive can have a thousand folders, so a filter appears once the list is long.
@@ -242,7 +324,7 @@ struct DriveDetailView: View {
             }
             Picker("Page", selection: $page) {
                 ForEach(Page.allCases, id: \.self) { page in
-                    Text(page.rawValue)
+                    Text(page.title)
                 }
             }
             .pickerStyle(.segmented)
@@ -303,7 +385,7 @@ struct DriveDetailView: View {
                 perform { try await drives.remove(current); dismiss() }
             }
         } message: {
-            Text(pendingNote + "Everything on the server stays there.")
+            removeMessage
         }
         .confirmationDialog(
             "Reset \(connection.displayName)?", isPresented: $isConfirmingReset
@@ -314,13 +396,33 @@ struct DriveDetailView: View {
         } message: {
             Text("The drive is removed and added again. Files that haven't uploaded are kept, and Settings shows where.")
         }
+        .task(id: current.settings.mode) {
+            await lookAtControlFolder(offering: false)
+        }
+        .confirmationDialog(
+            "Remove CloudAccess's folder from the server?", isPresented: $isOfferingCleanUp,
+            presenting: controlFolder
+        ) { _ in
+            Button("Remove", role: .destructive) {
+                perform {
+                    let result = try await drives.cleanControlFolder(of: current)
+                    controlFolder = nil
+                    message = result.hasVault
+                        ? String(localized: "Removed. The encryption marker stayed, because the drive needs it.")
+                        : String(localized: "Removed. Nothing of CloudAccess's is left on the server.")
+                }
+            }
+            Button("Keep", role: .cancel) {}
+        } message: { found in
+            Text(cleanUpNote(found))
+        }
         .confirmationDialog(
             "Retire this encrypted drive?", isPresented: $isConfirmingRetire
         ) {
             Button("Retire", role: .destructive) {
                 perform {
                     try await drives.retireVault(of: current)
-                    message = "Retired. Every device stops writing here when it next checks."
+                    message = String(localized: "Retired. Every device stops writing here when it next checks.")
                 }
             }
         } message: {
@@ -328,10 +430,11 @@ struct DriveDetailView: View {
         }
     }
 
-    private var pendingNote: String {
+    /// One whole message either way, so each reads right in every language.
+    private var removeMessage: Text {
         let count = drives.unsentCount(of: connection)
-        guard count > 0 else { return "" }
-        return "\(count) files haven't uploaded yet. They'll be kept on this Mac, and Settings shows where. "
+        guard count > 0 else { return Text("Everything on the server stays there.") }
+        return Text("\(count) files haven't uploaded yet. They'll be kept on this Mac, and Settings shows where. Everything on the server stays there.")
     }
 
     private var general: some View {
@@ -374,11 +477,11 @@ struct DriveDetailView: View {
 
     @ViewBuilder
     private func storageUse(_ cached: Int64) -> some View {
-        let used = "On this Mac \(cached.formatted(.byteCount(style: .file)))"
+        let used = String(localized: "On this Mac \(cached.formatted(.byteCount(style: .file)))")
         if let limit = current.settings.sizeLimit, limit > 0 {
             UsageBar(
                 share: Double(cached) / Double(limit), used: used,
-                limit: "Limit \(limit.formatted(.byteCount(style: .file)))")
+                limit: String(localized: "Limit \(limit.formatted(.byteCount(style: .file)))"))
         } else {
             SettingRow("Using now") {
                 Text(cached.formatted(.byteCount(style: .file)))
@@ -419,14 +522,22 @@ struct DriveDetailView: View {
             keepDownloaded
             CardSection("Behaviour") {
                 if current.serverIsReadOnly {
-                    SettingRow("Read-only") {
-                        Text("Set by the server")
+                    SettingRow("Mode") {
+                        Text("Read-only, set by the server")
                             .foregroundStyle(.secondary)
                     }
                 } else {
-                    SettingRow("Read-only") {
-                        RowSwitch(label: "Read-only", isOn: setting(\.isReadOnly))
+                    SettingRow("Mode") {
+                        Picker("Mode", selection: mode) {
+                            ForEach(DriveMode.available(for: current.endpoint), id: \.self) { mode in
+                                Text(mode.title).tag(mode)
+                            }
+                        }
                     }
+                    Text(current.settings.mode.explanation)
+                        .font(.caption)
+                        .foregroundStyle(current.settings.mode == .unsafe ? .orange : .secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 SettingRow("Thumbnails") {
                     Picker("Thumbnails", selection: setting(\.thumbnailLimit)) {
@@ -471,7 +582,7 @@ struct DriveDetailView: View {
                     Button("Repair Drive") {
                         perform {
                             try await drives.repair(current)
-                            message = "Repaired. macOS is checking the drive again."
+                            message = String(localized: "Repaired. macOS is checking the drive again.")
                         }
                     }
                     .buttonStyle(.pill)
@@ -487,11 +598,17 @@ struct DriveDetailView: View {
                         }
                         .buttonStyle(.pill)
                     }
-                    if !current.isReadOnly {
+                    if current.writesControlFolder {
                         SettingRow("Stop writing to this drive for good") {
                             Button("Retire This Drive…") { isConfirmingRetire = true }
                                 .buttonStyle(.pill)
                         }
+                    }
+                }
+                if !current.settings.mode.usesControlFolder, controlFolder?.hasRemovable == true {
+                    SettingRow("Hidden .cloudmount folder on the server") {
+                        Button("Remove Folder…") { isOfferingCleanUp = true }
+                            .buttonStyle(.pill)
                     }
                 }
                 // Here, not beside Done, where one slip could reach it.
@@ -590,9 +707,8 @@ struct TrashView: View {
     }
 
     private var filterNote: String {
-        guard filtersFiles else { return "Showing deleted folders and files." }
-        let files = fileCount == 1 ? "1 deleted file is" : "\(fileCount) deleted files are"
-        return "Showing deleted folders only. \(files) hidden."
+        guard filtersFiles else { return String(localized: "Showing deleted folders and files.") }
+        return String(localized: "Showing deleted folders only. \(fileCount) deleted files are hidden.")
     }
 
     /// Folders by default. Single files can run to thousands, so they're counted until asked for.
@@ -633,6 +749,12 @@ struct TrashView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if connection.settings.mode == .unsafe {
+                Text("This drive is in Unsafe mode, so what's deleted now is gone for good. Files deleted before stay listed here, and can be restored in Safe mode.")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity)
@@ -642,7 +764,7 @@ struct TrashView: View {
             } else {
                 deletedItems
             }
-            if !connection.isReadOnly, retention != nil {
+            if connection.writesControlFolder, retention != nil {
                 Card {
                     SettingRow("Keep deleted files for") {
                         Picker("Keep deleted files for", selection: retentionChoice) {
@@ -687,7 +809,7 @@ struct TrashView: View {
     private var deletedItems: some View {
         if fileCount > 0 {
             Card {
-                IconRow("line.3.horizontal.decrease", "Filter files", subtitle: filterNote) {
+                IconRow("line.3.horizontal.decrease", String(localized: "Filter files"), subtitle: filterNote) {
                     RowSwitch(label: "Filter files", isOn: $filtersFiles)
                 }
             }
@@ -711,7 +833,7 @@ struct TrashView: View {
                             .foregroundStyle(.secondary)
                     }
                 } controls: {
-                    if !entry.isDamaged, !connection.isReadOnly {
+                    if !entry.isDamaged, connection.writesControlFolder {
                         Button("Restore") { restore(entry) }
                             .buttonStyle(.pill)
                     }
@@ -721,9 +843,9 @@ struct TrashView: View {
     }
 
     private func entryTitle(_ entry: RemoteEngine.TrashEntry) -> String {
-        if entry.isDamaged { return "Damaged entry" }
+        if entry.isDamaged { return String(localized: "Damaged entry") }
         let path = FlattenedPackage.shownName(entry.originalPath)
-        return entry.isVersion ? "Earlier version of \(path)" : path
+        return entry.isVersion ? String(localized: "Earlier version of \(path)") : path
     }
 
     private func load() async {

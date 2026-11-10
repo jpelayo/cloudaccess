@@ -167,8 +167,19 @@ public struct DriveSettings: Hashable, Sendable, Codable {
     public var removeLocalCopyAfter: TimeInterval? = 3600
     /// Removes the oldest local copies above this many bytes. Nil means no limit.
     public var sizeLimit: Int64? = 10 * 1_000_000_000
+    /// How the drive writes to the server. See `DriveMode`.
+    public var mode = DriveMode.safe
     /// Offers no writes, and refuses them on every path.
-    public var isReadOnly = false
+    public var isReadOnly: Bool {
+        get { mode == .readOnly }
+        set {
+            if newValue {
+                mode = .readOnly
+            } else if mode == .readOnly {
+                mode = .safe
+            }
+        }
+    }
     /// Local copies are removed to keep this many bytes of the disk free. Nil means no reserve.
     public var diskReserve: Int64? = 5 * 1_000_000_000
     /// Thumbnails are fetched for files up to this size. Nil turns them off.
@@ -183,7 +194,7 @@ public struct DriveSettings: Hashable, Sendable, Codable {
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case removeLocalCopyAfter, sizeLimit, isReadOnly, diskReserve, thumbnailLimit
+        case removeLocalCopyAfter, sizeLimit, mode, isReadOnly, diskReserve, thumbnailLimit
         case recentFolderInterval, otherFolderInterval, uploadsAtOnce
     }
 
@@ -192,12 +203,87 @@ public struct DriveSettings: Hashable, Sendable, Codable {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         removeLocalCopyAfter = try values.decodeIfPresent(TimeInterval.self, forKey: .removeLocalCopyAfter)
         sizeLimit = try values.decodeIfPresent(Int64.self, forKey: .sizeLimit)
-        isReadOnly = try values.decodeIfPresent(Bool.self, forKey: .isReadOnly) ?? false
+        if let saved = try values.decodeIfPresent(String.self, forKey: .mode) {
+            // A mode from a newer build is read as the one that writes nothing.
+            mode = DriveMode(rawValue: saved) ?? .readOnly
+        } else if try values.decodeIfPresent(Bool.self, forKey: .isReadOnly) == true {
+            // Saved before modes existed.
+            mode = .readOnly
+        }
         diskReserve = try values.decodeIfPresent(Int64.self, forKey: .diskReserve)
         thumbnailLimit = try values.decodeIfPresent(Int64.self, forKey: .thumbnailLimit)
         recentFolderInterval = try values.decodeIfPresent(TimeInterval.self, forKey: .recentFolderInterval) ?? 60
         otherFolderInterval = try values.decodeIfPresent(TimeInterval.self, forKey: .otherFolderInterval) ?? 1800
         uploadsAtOnce = try values.decodeIfPresent(Int.self, forKey: .uploadsAtOnce) ?? 4
+    }
+
+    /// `isReadOnly` is still written, so a build from before modes keeps a Read-only drive
+    /// read-only. It can't tell Unsafe from Safe, and treats both as Safe.
+    public func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encodeIfPresent(removeLocalCopyAfter, forKey: .removeLocalCopyAfter)
+        try values.encodeIfPresent(sizeLimit, forKey: .sizeLimit)
+        try values.encode(mode.rawValue, forKey: .mode)
+        try values.encode(isReadOnly, forKey: .isReadOnly)
+        try values.encodeIfPresent(diskReserve, forKey: .diskReserve)
+        try values.encodeIfPresent(thumbnailLimit, forKey: .thumbnailLimit)
+        try values.encode(recentFolderInterval, forKey: .recentFolderInterval)
+        try values.encode(otherFolderInterval, forKey: .otherFolderInterval)
+        try values.encode(uploadsAtOnce, forKey: .uploadsAtOnce)
+    }
+}
+
+/// How a drive writes to the server.
+public enum DriveMode: String, CaseIterable, Sendable, Codable {
+    /// Locks, uploads in progress and deleted files are kept in a hidden `.cloudmount` folder on
+    /// the server, so no save overwrites another device's, and deletes can be undone.
+    case safe
+    /// Writes nothing but your files. Deletes and replaced versions are gone for good, and two
+    /// devices saving one file at the same moment can lose one save. SFTP only.
+    case unsafe
+    /// Writes nothing at all.
+    case readOnly
+
+    /// The modes a drive at this endpoint can use. Unsafe needs SFTP's one-step replace: WebDAV
+    /// servers remove the old file before moving the new one in.
+    public static func available(for endpoint: Connection.Endpoint) -> [DriveMode] {
+        if case .sftp = endpoint {
+            return allCases
+        }
+        return [.safe, .readOnly]
+    }
+
+    /// Whether the drive writes the `.cloudmount` folder. An encrypted drive keeps its vault
+    /// marker there in every mode.
+    public var usesControlFolder: Bool { self == .safe }
+
+    /// The mode's name in the language shown. The raw value is what's saved and sent to the engine.
+    public var title: String {
+        switch self {
+        case .safe: Words.text("Safe")
+        case .unsafe: Words.text("Unsafe")
+        case .readOnly: Words.text("Read-only")
+        }
+    }
+
+    /// What the mode gives and gives up, in a person's words, in the language shown.
+    public var explanation: String {
+        switch self {
+        case .safe:
+            Words.text("Keeps a hidden .cloudmount folder on the server, so no save overwrites another device's, and deleted files can be restored.")
+        case .unsafe:
+            Words.text("Attention: writes nothing but your files. Deleted files and replaced versions are gone for good, and two devices saving the same file at the same moment can lose one save.")
+        case .readOnly:
+            Words.text("Writes nothing to the server.")
+        }
+    }
+}
+
+extension Connection {
+    /// Whether this drive keeps its trash, shared settings and locks in `.cloudmount`, so
+    /// restoring, retention and retiring a vault can work.
+    public var writesControlFolder: Bool {
+        !isReadOnly && settings.mode.usesControlFolder
     }
 }
 
@@ -215,7 +301,7 @@ public struct DeviceInfo: Sendable {
 }
 
 /// The secrets for a connection, held in memory only after leaving the Keychain.
-public struct Credentials: Sendable, Codable {
+public struct Credentials: Sendable, Codable, Equatable {
     public var password: String?
     public var privateKeyPEM: String?
     public var privateKeyPassphrase: String?

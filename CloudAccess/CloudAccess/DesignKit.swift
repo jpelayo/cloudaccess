@@ -38,12 +38,29 @@ struct WindowBackdrop: NSViewRepresentable {
 
 /// A text field that sits on the card instead of in a sunken box.
 struct FieldRow: View {
-    let label: String
+    let label: Text
     @Binding var text: String
-    var prompt: String?
-    var isSecure = false
+    let prompt: Text?
+    let isSecure: Bool
 
     static let width: CGFloat = 270
+
+    /// The label and the prompt are looked up in the app's strings.
+    init(label: LocalizedStringKey, text: Binding<String>, prompt: LocalizedStringKey? = nil, isSecure: Bool = false) {
+        self.label = Text(label)
+        _text = text
+        self.prompt = prompt.map { Text($0) }
+        self.isSecure = isSecure
+    }
+
+    /// A prompt that's a value, such as a port number, is shown as it is.
+    @_disfavoredOverload
+    init(label: LocalizedStringKey, text: Binding<String>, prompt: some StringProtocol, isSecure: Bool = false) {
+        self.label = Text(label)
+        _text = text
+        self.prompt = Text(verbatim: String(prompt))
+        self.isSecure = isSecure
+    }
 
     var body: some View {
         SettingRow(label) {
@@ -60,9 +77,9 @@ struct FieldRow: View {
     @ViewBuilder
     private var field: some View {
         if isSecure {
-            SecureField(label, text: $text, prompt: prompt.map { Text($0) })
+            SecureField(text: $text, prompt: prompt) { label }
         } else {
-            TextField(label, text: $text, prompt: prompt.map { Text($0) })
+            TextField(text: $text, prompt: prompt) { label }
         }
     }
 }

@@ -62,19 +62,20 @@ public struct DownloadProgress: Sendable, Equatable {
         }
     }
 
+    /// What the bar says, in the language shown. The log's own words are in `timings`.
     public func caption(now: Date = Date()) -> String {
         switch step {
         case .preparing:
-            return "Preparing…"
+            return Words.text("Preparing…")
         case .processing:
-            return "Processing…"
+            return Words.text("Processing…")
         case .downloading:
             var parts: [String] = []
             if let fraction, let total {
-                parts.append("Downloading \(Int(fraction * 100))%")
-                parts.append("\(Self.size(bytes)) of \(Self.size(total))")
+                parts.append(Words.format("Downloading %lld%%", Int(fraction * 100)))
+                parts.append(Words.format("%@ of %@", Self.size(bytes), Self.size(total)))
             } else {
-                parts.append("Downloading \(Self.size(bytes))")
+                parts.append(Words.format("Downloading %@", Self.size(bytes)))
             }
             let elapsed = now.timeIntervalSince(stepStarted)
             if elapsed >= Self.steadyAfter, bytes > 0 {

@@ -2,6 +2,7 @@
 
 import CloudCore
 import CloudDesign
+import Foundation
 import RemoteEngine
 import SwiftUI
 import UniformTypeIdentifiers
@@ -103,8 +104,14 @@ struct AddDriveView: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(hostKey == nil ? "Connect" : "Trust", action: connect)
-                        .disabled(!canConnect)
+                    Button(action: connect) {
+                        if hostKey == nil {
+                            Text("Connect")
+                        } else {
+                            Text("Trust")
+                        }
+                    }
+                    .disabled(!canConnect)
                 }
             }
         }
@@ -131,7 +138,7 @@ struct AddDriveView: View {
                     SecretField("Encryption password", text: $vaultPassword)
                 case .privateKey:
                     LabeledContent("Private key") {
-                        Button(privateKeyName ?? "Choose…") { isChoosingKey = true }
+                        keyButton
                     }
                     if privateKey != nil {
                         SecretField("Key passphrase", text: $keyPassphrase, prompt: "If it has one")
@@ -160,7 +167,7 @@ struct AddDriveView: View {
             SecretField("Password", text: $password)
             if isSFTP {
                 LabeledContent("Private key") {
-                    Button(privateKeyName ?? "Choose…") { isChoosingKey = true }
+                    keyButton
                 }
                 if privateKey != nil {
                     SecretField("Key passphrase", text: $keyPassphrase, prompt: "If it has one")
@@ -179,6 +186,19 @@ struct AddDriveView: View {
         }
     }
 
+    /// The chosen key's file name, which is shown as it is, or a word to choose one.
+    private var keyButton: some View {
+        Button {
+            isChoosingKey = true
+        } label: {
+            if let privateKeyName {
+                Text(verbatim: privateKeyName)
+            } else {
+                Text("Choose…")
+            }
+        }
+    }
+
     private func loadKey(_ result: Result<URL, Error>) {
         do {
             let url = try result.get()
@@ -190,7 +210,7 @@ struct AddDriveView: View {
             privateKeyName = url.lastPathComponent
             problem = nil
         } catch {
-            problem = "That key can't be read: \(error.localizedDescription)"
+            problem = String(localized: "That key can't be read: \(error.localizedDescription)")
         }
     }
 
@@ -199,7 +219,7 @@ struct AddDriveView: View {
     private func connectionToTry() async throws -> Connection? {
         if let setup { return setup.connection() }
         guard let server = ServerAddress(address) else {
-            problem = "That address isn't valid."
+            problem = String(localized: "That address isn't valid.")
             return nil
         }
         if case .sftp(let host, let port) = server.endpoint, hostKey == nil {
@@ -225,6 +245,8 @@ struct AddDriveView: View {
                 connection.allowsInsecure = allowsInsecure
                 #if DEBUG
                 guard connection.isTestDrive else {
+                    // Only a test build says this, and a Release build would mark a key for it
+                    // stale in the catalog, so it stays in English.
                     problem = "This test build only connects to a folder named \(Connection.testFolderName)."
                     return
                 }

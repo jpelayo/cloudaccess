@@ -85,19 +85,27 @@ final class Drives {
         case notATestFolder
         #endif
         case noSharedFolder
+        case unsafeNeedsSFTP
+        case insecureNotAllowed
 
+        /// Shown to a person, so it's in the language shown. Diagnostics record the case's name.
         var errorDescription: String? {
             switch self {
+            case .unsafeNeedsSFTP:
+                return DriveEdit.unsafeNeedsSFTP
+            case .insecureNotAllowed:
+                return String(localized: "This drive uses plain http, which sends its password readably. Allow that first.")
             case .duplicateName:
-                return "A drive with that name already exists."
+                return String(localized: "A drive with that name already exists.")
             case .duplicateDrive:
-                return "Another drive already uses this folder on this server."
+                return String(localized: "Another drive already uses this folder on this server.")
             #if DEBUG
             case .notATestFolder:
+                // A test guard, so it stays English.
                 return "This test build only connects to a folder named \(Connection.testFolderName)."
             #endif
             case .noSharedFolder:
-                return "The app's shared folder isn't available."
+                return String(localized: "The app's shared folder isn't available.")
             }
         }
     }
@@ -120,6 +128,7 @@ final class Drives {
         case needsEnabling
         case unmounted
 
+        /// For diagnostics, which stay English.
         var label: String? {
             switch self {
             case .connected: nil
@@ -132,9 +141,23 @@ final class Drives {
             case .unmounted: "ejected"
             }
         }
+
+        /// The same, in the language shown, for the screen.
+        var shownLabel: String? {
+            switch self {
+            case .connected: nil
+            case .syncing(let count): String(localized: "syncing \(count)")
+            case .notMoving(let count): String(localized: "\(count) uploads paused")
+            case .needsAttention(let count): String(localized: "\(count) files need attention")
+            case .offline: String(localized: "offline")
+            case .needsEnabling: String(localized: "turn on in System Settings")
+            case .unmounted: String(localized: "ejected")
+            }
+        }
     }
 
-    /// The dot beside a drive: mounted, mounted with a problem, or not mounted.
+    /// The dot beside a drive: mounted, mounted with a problem, or not mounted. Its description
+    /// is what VoiceOver says, in the language shown.
     enum Light: CustomStringConvertible {
         case green
         case yellow
@@ -142,9 +165,9 @@ final class Drives {
 
         var description: String {
             switch self {
-            case .green: "Mounted"
-            case .yellow: "Problem"
-            case .red: "Not mounted"
+            case .green: String(localized: "Mounted")
+            case .yellow: String(localized: "Problem")
+            case .red: String(localized: "Not mounted")
             }
         }
     }
@@ -285,22 +308,26 @@ final class Drives {
         NSWorkspace.shared.openApplication(at: tailscaleApp, configuration: NSWorkspace.OpenConfiguration())
     }
 
-    /// A drive's state in a few words, for its row.
+    /// A drive's state in a few words, for its row, in the language shown.
     func statusLabel(of connection: Connection) -> String? {
         let state = status(of: connection)
         if state == .offline, let label = problems[connection.id]?.attentionLabel {
             return label
         }
-        return state == .offline && connection.usesTailnet ? "offline, check Tailscale" : state.label
+        if state == .offline && connection.usesTailnet {
+            return String(localized: "offline, check Tailscale")
+        }
+        return state.shownLabel
     }
 
     /// What's wrong with a drive that isn't connected. Saves only wait out an outage: with a
     /// wrong password or a retired vault, they wait for a person.
     func offlineMessage(of connection: Connection) -> String {
         guard let problem = problems[connection.id], problem.attentionLabel != nil else {
-            return "Not connected. Files on this Mac are still available, and saves upload when the connection returns."
+            return String(localized: "Not connected. Files on this Mac are still available, and saves upload when the connection returns.")
         }
-        return "\(problem.localizedDescription) Files on this Mac are still available, and nothing uploads until this is fixed."
+        let reason = problem.localizedDescription
+        return String(localized: "\(reason) Files on this Mac are still available, and nothing uploads until this is fixed.")
     }
 
     /// The first drive a person has to act on. A changed host key has its own card.
@@ -321,33 +348,40 @@ final class Drives {
     /// said while something is moving.
     var activityLine: ActivityLine? {
         if let stuck = connections.first(where: needsHelp(on:)) {
-            let label = statusLabel(of: stuck) ?? "needs attention"
+            let label = statusLabel(of: stuck) ?? String(localized: "needs attention")
             return ActivityLine(
-                connection: stuck, title: "Attention",
+                connection: stuck, title: String(localized: "Attention"),
                 summary: "\(stuck.displayName): \(label)", isStuck: true)
         }
         let uploading = connections.filter { isTransferring($0) && (waiting[$0.id] ?? 0) > 0 }
         guard let first = uploading.first else { return nil }
         let count = uploading.reduce(0) { $0 + (waiting[$1.id] ?? 0) }
         let left = uploading.reduce(Int64(0)) { $0.addingReportingOverflow(waitingBytes[$1.id] ?? 0).partialValue }
-        var summary = count == 1 ? "1 file" : "\(count) files"
+        var summary: String
         if left > 0 {
-            summary += ", about \(left.formatted(.byteCount(style: .file))) to go"
+            let bytes = left.formatted(.byteCount(style: .file))
+            summary = String(localized: "\(count) files, about \(bytes) to go")
+        } else {
+            summary = String(localized: "\(count) files")
         }
         // Saves can't be held back, because macOS owns them, so this can only say so.
         if isLowOnSpace {
-            summary += ". Your Mac is low on space. Files stay on it until they're uploaded."
+            summary = String(localized: "\(summary). Your Mac is low on space. Files stay on it until they're uploaded.")
         }
-        return ActivityLine(connection: first, title: "Uploading", summary: summary, isStuck: false)
+        return ActivityLine(connection: first, title: String(localized: "Uploading"), summary: summary, isStuck: false)
     }
 
     /// What the side panel says about a drive, above its actions.
     func details(of connection: Connection) -> [ConnectionSummary.Detail] {
-        let state = statusLabel(of: connection) ?? "mounted"
-        var details = [ConnectionSummary.Detail(key: "Status", value: state.prefix(1).uppercased() + state.dropFirst())]
-        details += ConnectionSummary.details(of: connection)
+        let state = statusLabel(of: connection) ?? String(localized: "mounted")
+        var details = [
+            ConnectionSummary.Detail(
+                key: String(localized: "Status"), value: state.prefix(1).uppercased() + state.dropFirst())
+        ]
+        // The translated form: the English one is for diagnostics.
+        details += ConnectionSummary.shownDetails(of: connection)
         if let cached = cachedBytes[connection.id] {
-            details.append(.init(key: "On this Mac", value: cached.formatted(.byteCount(style: .file))))
+            details.append(.init(key: String(localized: "On this Mac"), value: cached.formatted(.byteCount(style: .file))))
         }
         return details
     }
@@ -468,7 +502,8 @@ final class Drives {
             storeProblem = nil
         } catch {
             // Keep showing what was loaded, and say so, rather than an empty list.
-            storeProblem = "The saved drives can't be read: \(error.localizedDescription)"
+            let reason = error.localizedDescription
+            storeProblem = String(localized: "The saved drives can't be read: \(reason)")
         }
     }
 
@@ -1302,6 +1337,7 @@ final class Drives {
         guard !others.contains(where: { !$0.requiresNewDrive(comparedTo: edited) }) else {
             throw DriveError.duplicateDrive
         }
+        guard DriveEdit.modeRefusal(for: edited) == nil else { throw DriveError.unsafeNeedsSFTP }
         let savedSignIn = try store.credentials(for: connection.id)
         let credentials = signIn.applied(to: savedSignIn)
         let isMoved = edited.requiresNewDrive(comparedTo: connection)
@@ -1350,19 +1386,49 @@ final class Drives {
 
     /// Saves a change of settings. Local files aren't touched until the next poll applies it.
     func update(_ connection: Connection) {
-        let wasReadOnly = connections.first { $0.id == connection.id }?.isReadOnly
+        let previous = connections.first { $0.id == connection.id }
         try? store?.save(connection)
         reload()
-        // Items carry their write capabilities, so macOS has to see them again, and the engine
-        // enforces read-only itself, so both processes have to reconnect.
-        if let wasReadOnly, wasReadOnly != connection.isReadOnly {
+        guard let previous else { return }
+        // The engine applies the mode itself, so both processes have to reconnect. Items carry
+        // their write capabilities, so after a read-only change macOS has to see them again.
+        let capabilitiesChanged = previous.isReadOnly != connection.isReadOnly
+        if capabilitiesChanged || previous.settings.mode != connection.settings.mode {
             open[connection.id] = nil
             Task {
                 try? await localState(connection).raiseSignInRevision()
-                try? await NSFileProviderManager(for: domain(for: connection))?
-                    .reimportItems(below: .rootContainer)
+                if capabilitiesChanged {
+                    try? await NSFileProviderManager(for: domain(for: connection))?
+                        .reimportItems(below: .rootContainer)
+                }
             }
         }
+    }
+
+    /// This Mac, as the extension names it to the server.
+    private func thisDevice(_ store: DriveStore) -> DeviceInfo? {
+        guard let id = try? store.deviceID() else { return nil }
+        return DeviceInfo(id: id, name: Host.current().localizedName ?? "Mac")
+    }
+
+    /// What the hidden `.cloudmount` folder on this drive's server holds.
+    func controlFolder(of connection: Connection) async throws -> RemoteEngine.ControlFolder {
+        try await opened(connection).engine.controlFolder()
+    }
+
+    /// Removes the hidden `.cloudmount` folder, keeping an encrypted drive's vault, once a person
+    /// has agreed. A Read-only drive refuses every write, so this opens its own connection in
+    /// Unsafe mode, used for nothing else.
+    func cleanControlFolder(of connection: Connection) async throws -> RemoteEngine.ControlFolder {
+        guard let store else { throw DriveError.noSharedFolder }
+        var cleaning = connection
+        cleaning.settings.mode = .unsafe
+        let engine = try await RemoteEngine(
+            connection: cleaning, credentials: store.credentials(for: connection.id),
+            device: thisDevice(store))
+        let result = try await engine.cleanControlFolder()
+        store.diagnostics.record("\(connection.displayName): removed the server's .cloudmount folder")
+        return result
     }
 
     /// Accepts a server's new key, after a person has compared it.
@@ -1401,8 +1467,10 @@ final class Drives {
         }
         guard let store else { throw DriveError.noSharedFolder }
         let state = try await localState(connection)
+        // The same device as the extension's, so maintenance knows this Mac's own uploads.
         let engine = try await RemoteEngine(
-            connection: connection, credentials: store.credentials(for: connection.id))
+            connection: connection, credentials: store.credentials(for: connection.id),
+            device: thisDevice(store))
         let drive = OpenDrive(engine: engine, syncer: Syncer(store: state, backend: engine), state: state)
         open[connection.id] = drive
         return drive
@@ -1467,6 +1535,35 @@ final class Drives {
         listen("pin-test") { [weak self] in self?.pinTestFolder() }
         listen("toggle-webdav") { [weak self] in self?.toggleTestDrive(named: "CloudAccess Test") }
         listen("toggle-sftp") { [weak self] in self?.toggleTestDrive(named: "CloudAccess SFTP Test") }
+        for mode in DriveMode.allCases {
+            listen("mode-\(mode.rawValue)") { [weak self] in self?.setTestDriveMode(mode) }
+        }
+        listen("mode-clean") { [weak self] in self?.cleanTestDriveControlFolder() }
+    }
+
+    /// The SFTP test drive, the only one whose mode a test may change.
+    private var sftpTestDrive: Connection? {
+        connections.first { $0.isTestDrive && $0.displayName == "CloudAccess SFTP Test" }
+    }
+
+    /// Goes through the same call as the Mode menu in Advanced.
+    private func setTestDriveMode(_ mode: DriveMode) {
+        guard var connection = sftpTestDrive else { return }
+        connection.settings.mode = mode
+        update(connection)
+        testReports.notice("CM_MODE: \(mode.rawValue, privacy: .public)")
+    }
+
+    private func cleanTestDriveControlFolder() {
+        guard let connection = sftpTestDrive else { return }
+        Task {
+            do {
+                let result = try await cleanControlFolder(of: connection)
+                testReports.notice("CM_MODE: cleaned vault=\(result.hasVault)")
+            } catch {
+                testReports.notice("CM_MODE: clean failed: \(String(describing: error), privacy: .public)")
+            }
+        }
     }
 
     /// Pins or unpins a folder called pinned-test, through the same call as the switch in Advanced.
@@ -1623,9 +1720,12 @@ final class Drives {
 
     /// Verifies the connection and the vault, saves it, and adds it to the Finder sidebar.
     /// The record is saved as `adding` first, so a crash at any step can be finished or undone.
+    /// - Parameter mayCreateVault: False for a drive from a drives file, which must only ever
+    ///   join the vault it came from, never start a new one with a new key in an empty folder.
     @discardableResult
-    func add(_ connection: Connection, credentials: Credentials) async throws -> Connection {
+    func add(_ connection: Connection, credentials: Credentials, mayCreateVault: Bool = true) async throws -> Connection {
         guard let store else { throw DriveError.noSharedFolder }
+        guard DriveEdit.modeRefusal(for: connection) == nil else { throw DriveError.unsafeNeedsSFTP }
         guard !connections.contains(where: { $0.displayName == connection.displayName }) else {
             throw DriveError.duplicateName
         }
@@ -1639,7 +1739,7 @@ final class Drives {
 
         let engine = try await RemoteEngine(
             connection: connection, credentials: credentials,
-            createVault: connection.isEncrypted && !connection.isReadOnly)
+            createVault: mayCreateVault && connection.isEncrypted && !connection.isReadOnly)
         _ = try await engine.list(.root)
 
         var saved = connection
@@ -1664,6 +1764,68 @@ final class Drives {
         try? store.save(saved)
         reload()
         return saved
+    }
+
+    // MARK: Drives file
+
+    /// The drives a person can put in a drives file: ones fully added, not half added or removed.
+    var exportable: [Connection] {
+        connections.filter { $0.lifecycle == .active }
+    }
+
+    /// Seals the chosen drives and their passwords into a drives file's bytes.
+    func drivesFile(of ids: Set<UUID>, password: String) throws -> Data {
+        guard let store else { throw DriveError.noSharedFolder }
+        let entries = try exportable.filter { ids.contains($0.id) }.map { connection in
+            DrivesFile.Entry(connection, credentials: try store.credentials(for: connection.id))
+        }
+        let data = try DrivesFile.seal(entries, password: password)
+        store.diagnostics.record("Exported \(entries.count) drives to a drives file")
+        return data
+    }
+
+    /// Carries out the step a person chose for one drive in a drives file. It either finishes or
+    /// changes nothing, and it never touches any other drive.
+    func importStep(
+        _ step: DrivesFileImport.Step, for row: DrivesFileImport.Row, allowsInsecure: Bool
+    ) async throws {
+        switch step {
+        case .skip:
+            return
+        case .add, .addAs:
+            guard let connection = DrivesFileImport.newDrive(for: row, step: step, allowsInsecure: allowsInsecure)
+            else { throw DriveError.insecureNotAllowed }
+            // Add is all or nothing by itself: what it saved is removed if adding the location fails.
+            try await add(connection, credentials: row.entry.credentials, mayCreateVault: false)
+        case .updatePasswords, .updatePasswordsAndSettings:
+            guard case .alreadyHere(let id) = row.situation,
+                  let existing = connections.first(where: { $0.id == id }),
+                  let updated = DrivesFileImport.updatedDrive(existing, for: row, step: step)
+            else { return }
+            try await updateFromFile(existing, as: updated, credentials: row.entry.credentials)
+        }
+    }
+
+    /// Gives a drive already here the passwords, and maybe the settings, from a drives file. They're
+    /// tried on the server first, so nothing is saved unless they work.
+    private func updateFromFile(_ existing: Connection, as updated: Connection, credentials: Credentials) async throws {
+        guard let store else { throw DriveError.noSharedFolder }
+        guard DriveEdit.modeRefusal(for: updated) == nil else { throw DriveError.unsafeNeedsSFTP }
+        let engine = try await RemoteEngine(connection: updated, credentials: credentials)
+        _ = try await engine.list(.root)
+        let previous = try store.credentials(for: existing.id)
+        try await DrivesFileImport.allOrNothing([
+            DrivesFileImport.Action(
+                run: { try store.save(credentials, for: existing.id) },
+                undo: { try? store.save(previous, for: existing.id) }),
+            // The extension keeps its connection, so it has to be told to sign in again.
+            DrivesFileImport.Action(run: { try await self.localState(existing).raiseSignInRevision() }),
+        ])
+        open[existing.id] = nil
+        if updated.settings != existing.settings {
+            update(updated)
+        }
+        store.diagnostics.record("\(existing.displayName): passwords updated from a drives file")
     }
 
     /// A server that reports no versions can't be saved to safely, and one that refuses the
@@ -1761,10 +1923,11 @@ final class Drives {
         let count = unsentCount(of: connection)
         guard count > 0 else { return true }
         let alert = NSAlert()
-        alert.messageText = "Eject \(connection.displayName)?"
-        alert.informativeText = "\(count) files haven't uploaded yet. They'll stay on this Mac, and Settings shows where."
-        alert.addButton(withTitle: "Eject")
-        alert.addButton(withTitle: "Cancel")
+        let name = connection.displayName
+        alert.messageText = String(localized: "Eject \(name)?")
+        alert.informativeText = String(localized: "\(count) files haven't uploaded yet. They'll stay on this Mac, and Settings shows where.")
+        alert.addButton(withTitle: String(localized: "Eject"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
         NSApp.activate()
         return alert.runModal() == .alertFirstButtonReturn
     }

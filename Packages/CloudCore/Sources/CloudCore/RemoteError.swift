@@ -52,6 +52,25 @@ public struct FileProblem: Equatable, Sendable {
     public var stored: String {
         fix.isEmpty ? cause : "\(cause)\n\(fix)"
     }
+
+    /// The problem in the language shown now. It's saved in English, because the extension and
+    /// the app can show different languages and diagnostics stay English, so it's translated here,
+    /// as it's shown. A server's own words, which no table knows, stay as they were.
+    public var localized: FileProblem {
+        FileProblem(cause: Self.shown(cause), fix: Words.shown(fix))
+    }
+
+    /// The sync store puts this in front of a failure it stops retrying.
+    static var stoppedPrefix: Regex<(Substring, Substring, Substring)> {
+        /^Stopped trying after (\d+) failures\. (.*)$/
+    }
+
+    private static func shown(_ cause: String) -> String {
+        if let stopped = cause.wholeMatch(of: stoppedPrefix), let count = Int(stopped.output.1) {
+            return Words.format("Stopped trying after %lld failures.", count) + " " + Words.shown(String(stopped.output.2))
+        }
+        return Words.shown(cause)
+    }
 }
 
 /// A failure from a server, independent of the protocol that produced it.
@@ -133,16 +152,16 @@ public enum RemoteError: Error, Equatable, Sendable {
     /// The server wants fewer requests for a while.
     public static let tooManyRequests = 429
 
-    /// A few words for a drive's row, when a person has to act. Nil means it can come back by
-    /// itself, so "offline" says enough.
+    /// A few words for a drive's row, when a person has to act, in the language shown. Nil means it
+    /// can come back by itself, so "offline" says enough.
     public var attentionLabel: String? {
         switch self {
-        case .unauthorized: "sign-in refused"
-        case .vault(.wrongPassword): "wrong encryption password"
-        case .vault(.retired): "retired"
-        case .vault: "needs attention"
-        case .hostKeyUnknown, .hostKeyChanged: "server identity changed"
-        case .unsupportedServer: "server not supported"
+        case .unauthorized: Words.text("sign-in refused")
+        case .vault(.wrongPassword): Words.text("wrong encryption password")
+        case .vault(.retired): Words.text("retired")
+        case .vault: Words.text("needs attention")
+        case .hostKeyUnknown, .hostKeyChanged: Words.text("server identity changed")
+        case .unsupportedServer: Words.text("server not supported")
         default: nil
         }
     }
@@ -176,14 +195,15 @@ public enum RemoteError: Error, Equatable, Sendable {
 
     private static let persists = "If it keeps failing, export Diagnostics from Settings."
 
-    /// Why this happened and what to do, for a file that didn't go.
+    /// Why this happened and what to do, for a file that didn't go. It's saved, so it's English:
+    /// `FileProblem.localized` translates it when it's shown.
     public var problem: FileProblem {
         switch self {
         case .notAPlainFile(_, let kind):
             return Self.problem(with: kind)
-        case .unreadableHere(_, let reason):
+        case .unreadableHere:
             return FileProblem(
-                cause: "This Mac couldn't read the file (\(reason)), so nothing was sent.",
+                cause: englishDescription,
                 fix: "Check that it opens on this Mac, close any app using it, then press Try Again.")
         case .nameTooLong:
             return FileProblem(
@@ -241,7 +261,7 @@ public enum RemoteError: Error, Equatable, Sendable {
                 cause: "This drive is read-only.", fix: "Turn off Read-only under Advanced to change it.")
         default:
             return FileProblem(
-                cause: localizedDescription, fix: "Press Try Again. \(Self.persists)")
+                cause: englishDescription, fix: "Press Try Again. \(Self.persists)")
         }
     }
 
@@ -282,40 +302,52 @@ public enum RemoteError: Error, Equatable, Sendable {
     }
 }
 
-extension RemoteError: LocalizedError {
+extension RemoteError: WordedError {
+    /// The failure in the language the app shows. The engine's own words, such as a server's
+    /// message, are translated when the table knows them, and otherwise shown as they came.
     public var errorDescription: String? {
+        wording.shown
+    }
+
+    /// The failure in English, for what's saved, logged and exported.
+    public var englishDescription: String {
+        wording.english
+    }
+
+    private var wording: Wording {
         switch self {
-        case .notFound(let path): "\(path) isn't on the server."
-        case .alreadyExists(let path): "\(path) already exists."
-        case .parentMissing(let path): "The folder for \(path) isn't on the server."
-        case .forbidden(let path): "The server doesn't allow access to \(path)."
-        case .locked(let path): "Another device is saving \(path)."
-        case .versionMismatch(let path): "\(path) changed on the server."
-        case .nameTooLong: "This name is too long for an encrypted drive. Shorten it in Finder."
-        case .reservedName(let name): "\(name) is a name the drive keeps for itself."
-        case .notAPlainFile, .unreadableHere: problem.cause
-        case .readOnly: "This drive is read-only."
-        case .failed(_, let message): message
-        case .tooSlow(let path): "\(path) took too long to list. The server may be busy."
-        case .tooLarge(let path): "The server refuses files as large as \(path)."
-        case .tooManyItems(let path): "\(path) has too many items for the Files app. Open it in CloudWanderer."
-        case .cancelled: "Cancelled."
-        case .unauthorized: "The server refused the username or password."
-        case .insufficientStorage: "The server is out of space."
-        case .unreachable: "The server can't be reached."
-        case .server(let status): "The server reported an error (\(status))."
-        case .vault(.wrongPassword): "That encryption password is wrong."
-        case .vault(.missing): "This folder already has files in it, and an encrypted drive needs an empty one. Choose or create another folder."
-        case .vault(.notCreated): "This folder has no encrypted drive yet."
-        case .vault(.mismatch): "This folder holds a different encrypted drive."
-        case .vault(.rollback): "This folder holds an older copy of the encrypted drive."
-        case .vault(.retired): "This encrypted drive was retired by a password change."
-        case .vault(.unsupported): "This encrypted drive needs a newer version of CloudAccess."
-        case .vault(.malformed): "This encrypted drive's details are damaged."
-        case .vault(.encrypted): "This folder is an encrypted drive. Turn on encryption and enter its password."
-        case .hostKeyUnknown: "This server's identity hasn't been confirmed."
-        case .hostKeyChanged: "This server's identity has changed. It may have been reinstalled, or it may not be your server."
-        case .unsupportedServer(let message): message
+        case .notFound(let path): Wording("%@ isn't on the server.", "\(path)")
+        case .alreadyExists(let path): Wording("%@ already exists.", "\(path)")
+        case .parentMissing(let path): Wording("The folder for %@ isn't on the server.", "\(path)")
+        case .forbidden(let path): Wording("The server doesn't allow access to %@.", "\(path)")
+        case .locked(let path): Wording("Another device is saving %@.", "\(path)")
+        case .versionMismatch(let path): Wording("%@ changed on the server.", "\(path)")
+        case .nameTooLong: Wording("This name is too long for an encrypted drive. Shorten it in Finder.")
+        case .reservedName(let name): Wording("%@ is a name the drive keeps for itself.", name)
+        case .notAPlainFile: Wording(problem.cause)
+        case .unreadableHere(_, let reason): Wording("This Mac couldn't read the file (%@), so nothing was sent.", reason)
+        case .readOnly: Wording("This drive is read-only.")
+        case .failed(_, let message): Wording(message)
+        case .tooSlow(let path): Wording("%@ took too long to list. The server may be busy.", "\(path)")
+        case .tooLarge(let path): Wording("The server refuses files as large as %@.", "\(path)")
+        case .tooManyItems(let path): Wording("%@ has too many items for the Files app. Open it in CloudWanderer.", "\(path)")
+        case .cancelled: Wording("Cancelled.")
+        case .unauthorized: Wording("The server refused the username or password.")
+        case .insufficientStorage: Wording("The server is out of space.")
+        case .unreachable: Wording("The server can't be reached.")
+        case .server(let status): Wording("The server reported an error (%lld).", status)
+        case .vault(.wrongPassword): Wording("That encryption password is wrong.")
+        case .vault(.missing): Wording("This folder already has files in it, and an encrypted drive needs an empty one. Choose or create another folder.")
+        case .vault(.notCreated): Wording("This folder has no encrypted drive yet.")
+        case .vault(.mismatch): Wording("This folder holds a different encrypted drive.")
+        case .vault(.rollback): Wording("This folder holds an older copy of the encrypted drive.")
+        case .vault(.retired): Wording("This encrypted drive was retired by a password change.")
+        case .vault(.unsupported): Wording("This encrypted drive needs a newer version of CloudAccess.")
+        case .vault(.malformed): Wording("This encrypted drive's details are damaged.")
+        case .vault(.encrypted): Wording("This folder is an encrypted drive. Turn on encryption and enter its password.")
+        case .hostKeyUnknown: Wording("This server's identity hasn't been confirmed.")
+        case .hostKeyChanged: Wording("This server's identity has changed. It may have been reinstalled, or it may not be your server.")
+        case .unsupportedServer(let message): Wording(message)
         }
     }
 }

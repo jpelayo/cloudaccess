@@ -2,8 +2,10 @@
 
 import CloudCore
 import CloudDesign
+import Foundation
 import RemoteEngine
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Somewhere a person can be: a folder on a drive. Navigation is a list of these, which is what
 /// lets the bar at the top show the whole way here, and jump back to any part of it.
@@ -100,7 +102,18 @@ final class OpenDrives {
 /// The red warning shown while a drive can't be reached.
 struct OfflineBar: View {
     /// What to check, when there's more to say.
-    var hint: String?
+    private let hint: Text?
+
+    /// Words from this app's catalog.
+    init(hint: LocalizedStringKey? = nil) {
+        self.hint = hint.map { Text($0) }
+    }
+
+    /// Words already in the language shown, such as the package's, which are shown as they are.
+    @_disfavoredOverload
+    init(hint: String?) {
+        self.hint = hint.map { Text(verbatim: $0) }
+    }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -112,7 +125,7 @@ struct OfflineBar: View {
                 Text("Files on this iPhone are still available.")
                     .font(.footnote)
                 if let hint {
-                    Text(hint)
+                    hint
                         .font(.footnote)
                 }
             }
@@ -138,8 +151,22 @@ extension View {
 /// under the other on a narrow iPhone.
 struct DrivePills: View {
     struct Pill: Hashable {
+        /// Already in the language shown, so the pill shows it as it is.
         let text: String
         let color: Color
+
+        /// Words from this app's catalog.
+        init(text: LocalizedStringResource, color: Color) {
+            self.text = String(localized: text)
+            self.color = color
+        }
+
+        /// Words already in the language shown, such as the package's.
+        @_disfavoredOverload
+        init(text: some StringProtocol, color: Color) {
+            self.text = String(text)
+            self.color = color
+        }
     }
 
     let pills: [Pill]
@@ -173,6 +200,10 @@ struct DrivesView: View {
     @State private var removing: Connection?
     @State private var signingIn: Connection?
     @State private var editing: Connection?
+    @State private var isExportingDrives = false
+    @State private var isChoosingDrivesFile = false
+    @State private var importing: DrivesFileToImport?
+    @State private var drivesFileProblem: String?
     @Environment(\.scenePhase) private var scenePhase
 
     /// Encrypted drives say so in a pill instead.
@@ -184,10 +215,10 @@ struct DrivesView: View {
     /// The kind of drive, or why it isn't in the Files app when someone would look for it there.
     private func subtitle(for connection: Connection) -> String {
         if let problem = places.problems[connection.id] {
-            return "Not in Files: \(problem)"
+            return String(localized: "Not in Files: \(problem)")
         }
         if places.switchedOff.contains(connection.id) {
-            return "Off in the Files app. Turn it on there, under Locations."
+            return String(localized: "Off in the Files app. Turn it on there, under Locations.")
         }
         return kind(of: connection)
     }
@@ -212,12 +243,12 @@ struct DrivesView: View {
 
     private var filesFooter: String {
         if places.isStillRefused {
-            return "Files still can't sign in. Sign in again here, or check the account on the server."
+            return String(localized: "Files still can't sign in. Sign in again here, or check the account on the server.")
         }
         if places.canTryAgain {
-            return "Signing in checks the password with the server, then Files uses it. Try Again has Files sign in and add the drives it couldn't. Neither opens Files."
+            return String(localized: "Signing in checks the password with the server, then Files uses it. Try Again has Files sign in and add the drives it couldn't. Neither opens Files.")
         }
-        return "Signing in checks the password with the server, then Files uses it. It doesn't open Files."
+        return String(localized: "Signing in checks the password with the server, then Files uses it. It doesn't open Files.")
     }
 
     /// Changes other apps saved into drives, which exist only on this iPhone.
@@ -269,7 +300,7 @@ struct DrivesView: View {
         return Label {
             Text(connection.displayName)
             if isOffline {
-                Text(connection.usesTailnet ? "Not connected. Check Tailscale." : "Not connected")
+                (connection.usesTailnet ? Text("Not connected. Check Tailscale.") : Text("Not connected"))
                     .foregroundStyle(.red)
             } else if !pills.isEmpty {
                 DrivePills(pills: pills)
@@ -351,6 +382,36 @@ struct DrivesView: View {
                     }
                 }
                 Section {
+                    Button {
+                        Task {
+                            drivesFileProblem = nil
+                            if await DrivesFileAccess.confirmOwner() {
+                                isExportingDrives = true
+                            }
+                        }
+                    } label: {
+                        Label("Export Drives…", systemImage: "square.and.arrow.up")
+                            .wholeRow()
+                    }
+                    .disabled(connections.isEmpty)
+                    Button {
+                        drivesFileProblem = nil
+                        isChoosingDrivesFile = true
+                    } label: {
+                        Label("Import Drives…", systemImage: "square.and.arrow.down")
+                            .wholeRow()
+                    }
+                } header: {
+                    SectionLabel("Drives file")
+                } footer: {
+                    if let drivesFileProblem {
+                        Text(drivesFileProblem)
+                            .foregroundStyle(.red)
+                    } else {
+                        Text("Moves drives and their passwords to another iPhone or Mac, in one encrypted file.")
+                    }
+                }
+                Section {
                     HStack(spacing: 8) {
                         Tile("CloudAccess for Mac", symbol: "laptopcomputer") {
                             isShowingCloudAccess = true
@@ -376,9 +437,13 @@ struct DrivesView: View {
                 // iOS puts a toolbar item in a round glass button the size of an icon, which
                 // squeezed this to one letter. The pill keeps its own width and its own background.
                 ToolbarItem(placement: .topBarLeading) {
-                    StatusPill(
-                        text: drives.isAnythingOffline ? "Not connected" : "Ready",
-                        color: drives.isAnythingOffline ? .red : .green)
+                    Group {
+                        if drives.isAnythingOffline {
+                            StatusPill(text: "Not connected", color: .red)
+                        } else {
+                            StatusPill(text: "Ready", color: .green)
+                        }
+                    }
                     .fixedSize()
                 }
                 .sharedBackgroundVisibility(.hidden)
@@ -393,6 +458,28 @@ struct DrivesView: View {
             }
             .sheet(isPresented: $isShowingAbout) {
                 AboutView()
+            }
+            .sheet(isPresented: $isExportingDrives) {
+                ExportDrivesView(store: store, drives: connections)
+            }
+            .fileImporter(isPresented: $isChoosingDrivesFile, allowedContentTypes: [.drivesFile]) { result in
+                do {
+                    importing = DrivesFileToImport(data: try DrivesFileAccess.read(result.get(), deletingCopy: false))
+                } catch {
+                    drivesFileProblem = error.localizedDescription
+                }
+            }
+            .sheet(item: $importing, onDismiss: reload) { file in
+                ImportDrivesView(store: store, file: file) { updated in
+                    for connection in connections where updated.contains(connection.id) {
+                        drives.reconnect(connection)
+                    }
+                    reload()
+                    if !updated.isEmpty {
+                        let all = (try? store.connections()) ?? []
+                        Task { await places.tryAgain(drives: all) }
+                    }
+                }
             }
             .sheet(isPresented: $isShowingCloudAccess) {
                 CloudAccessView()
@@ -418,12 +505,20 @@ struct DrivesView: View {
                 Button("Remove Drive", role: .destructive) { remove(connection, confirmed: true) }
             } message: { connection in
                 let count = places.notes[connection.id]?.kept.count ?? 0
-                Text(count == 1
-                    ? "1 change saved into it by another app is only on this iPhone. Removing the drive deletes it."
-                    : "\(count) changes saved into it by other apps are only on this iPhone. Removing the drive deletes them.")
+                // One key, with a form for one change and one for more in the catalog.
+                Text("\(count) changes saved into it by other apps are only on this iPhone. Removing the drive deletes them.")
             }
         }
         .onAppear(perform: reload)
+        // A drives file sent with AirDrop, or opened from Files. iOS hands over a copy.
+        .onOpenURL { url in
+            guard url.pathExtension == DrivesFile.fileExtension else { return }
+            do {
+                importing = DrivesFileToImport(data: try DrivesFileAccess.read(url, deletingCopy: true))
+            } catch {
+                drivesFileProblem = error.localizedDescription
+            }
+        }
         .onChange(of: scenePhase) {
             if scenePhase == .active {
                 updatePlaces()

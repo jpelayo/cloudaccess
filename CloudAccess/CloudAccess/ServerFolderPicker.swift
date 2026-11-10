@@ -36,14 +36,14 @@ struct ServerFolderPicker: View {
         VStack(alignment: .leading, spacing: Design.sectionGap) {
             VStack(alignment: .leading, spacing: Design.labelGap) {
                 SectionLabel("Folders on the server")
-                Text(folder.isRoot ? "Top folder" : folder.description)
+                Text(folder.isRoot ? String(localized: "Top folder") : folder.description)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.head)
                 BoundedList(rows: rows, rowHeight: RowHeight.single, visibleRows: 8) {
                     if let parent = folder.parent {
-                        folderRow("Up one level", symbol: "arrow.up") { folder = parent }
+                        folderRow(String(localized: "Up one level"), symbol: "arrow.up") { folder = parent }
                     }
                     ForEach(folders, id: \.self) { name in
                         folderRow(name, symbol: "folder") {
@@ -90,13 +90,14 @@ struct ServerFolderPicker: View {
         }
     }
 
+    /// A folder's name, or words already in the language shown, as they are.
     private func folderRow(_ name: String, symbol: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
-                Text(name)
+                Text(verbatim: name)
                     .lineLimit(1)
                 Spacer(minLength: 0)
             }
@@ -116,14 +117,15 @@ struct ServerFolderPicker: View {
                 .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
         } catch {
             folders = []
-            problem = "This folder can't be read: \(error.localizedDescription)"
+            let reason = error.localizedDescription
+            problem = String(localized: "This folder can't be read: \(reason)")
         }
     }
 
     private func create() {
         let name = newName.trimmingCharacters(in: .whitespaces)
         guard let path = folder.appending(name), !RemotePath.isReservedName(name) else {
-            problem = "That name can't be used for a folder."
+            problem = String(localized: "That name can't be used for a folder.")
             return
         }
         isCreating = true
@@ -135,7 +137,8 @@ struct ServerFolderPicker: View {
                 newName = ""
                 folder = path
             } catch {
-                problem = "That folder couldn't be made: \(error.localizedDescription)"
+                let reason = error.localizedDescription
+                problem = String(localized: "That folder couldn't be made: \(reason)")
             }
         }
     }

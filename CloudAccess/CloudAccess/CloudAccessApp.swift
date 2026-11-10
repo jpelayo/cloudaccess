@@ -109,7 +109,7 @@ enum AppWindows {
     }
 
     static func showSettings(drives: Drives) {
-        show(&settings, title: "Settings", content: SettingsView().environment(drives))
+        show(&settings, title: String(localized: "Settings"), content: SettingsView().environment(drives))
     }
 
     static func showAddDrive(drives: Drives) {
@@ -148,9 +148,13 @@ enum About {
     @MainActor
     static func show() {
         NSApp.activate(ignoringOtherApps: true)
+        let lines = [
+            String(localized: "Apache 2 licensed software"),
+            String(localized: "Developed by InfiniteContext.com"),
+        ]
         NSApp.orderFrontStandardAboutPanel(options: [
             .credits: NSAttributedString(
-                string: "Apache 2 licensed software\nDeveloped by InfiniteContext.com",
+                string: lines.joined(separator: "\n"),
                 attributes: [
                     .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
                     .foregroundColor: NSColor.secondaryLabelColor,

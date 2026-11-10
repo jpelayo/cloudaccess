@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- CloudCore's sentences whose words change with a number, in Spain's Spanish. en.lproj has the
+     same keys. -->
+<plist version="1.0">
+<dict>
+	<!-- RemoteError.swift, FileProblem: the sync store's prefix on a failure it stops retrying. -->
+	<key>Stopped trying after %lld failures.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@failures@</string>
+		<key>failures</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Se ha dejado de intentar tras %lld fallo.</string>
+			<key>other</key>
+			<string>Se ha dejado de intentar tras %lld fallos.</string>
+		</dict>
+	</dict>
+	<!-- DrivesFile.swift -->
+	<key>The password needs at least %lld characters.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@characters@</string>
+		<key>characters</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>La contraseña necesita al menos %lld carácter.</string>
+			<key>other</key>
+			<string>La contraseña necesita al menos %lld caracteres.</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

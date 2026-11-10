@@ -10,6 +10,12 @@ public struct ConnectionForm: Equatable, Sendable {
         case http = "WebDAV (http)"
         case sftp = "SFTP"
 
+        /// The protocol as a person reads it. The raw value is what's compared and saved, so it
+        /// never changes with the language.
+        public var title: String {
+            Words.text(rawValue)
+        }
+
         fileprivate var scheme: String {
             switch self {
             case .https: "https"

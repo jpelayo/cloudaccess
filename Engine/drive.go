@@ -59,6 +59,8 @@ type driveConfig struct {
 	AppName string `json:"appName,omitempty"`
 	// ReadOnly refuses every call that would change the drive.
 	ReadOnly bool `json:"readOnly,omitempty"`
+	// Mode is safe (the default), unsafe or readOnly. See modes.go.
+	Mode string `json:"mode,omitempty"`
 	// AllowInsecure is a person's consent to send the password over plain http.
 	AllowInsecure bool `json:"allowInsecure,omitempty"`
 }
@@ -125,6 +127,8 @@ type drive struct {
 	appName  string
 	vault    *openVault // nil on a plain drive
 	readOnly bool
+	// unsafe writes without the control folder: no claims, staging or trash. See modes.go.
+	unsafe bool
 
 	plainCheck   sync.Mutex
 	plainChecked time.Time
@@ -158,6 +162,11 @@ func openDrive(ctx context.Context, c driveConfig) (info *vaultInfo, err error) 
 	if c.ID == "" {
 		return nil, errors.New("drive id is required")
 	}
+	readOnly, unsafe, err := driveMode(c)
+	if err != nil {
+		return nil, err
+	}
+	c.ReadOnly = readOnly
 	if c.ReadOnly && c.CreateVault {
 		return nil, errReadOnly
 	}
@@ -290,6 +299,7 @@ func openDrive(ctx context.Context, c driveConfig) (info *vaultInfo, err error) 
 	opened := &drive{
 		f: f, plain: plain, cipher: cipher, server: server, vault: vault,
 		deviceID: c.DeviceID, deviceName: c.DeviceName, appName: c.AppName, readOnly: c.ReadOnly,
+		unsafe: unsafe,
 	}
 	if opened.deviceID == "" {
 		opened.deviceID = "unknown"
@@ -395,8 +405,8 @@ func (d *drive) list(ctx context.Context, dir string) ([]remoteItem, error) {
 	}
 	items := make([]remoteItem, 0, len(entries))
 	for _, entry := range entries {
-		// The control folder is reserved and never shown.
-		if entry.Remote() == controlFolder {
+		// The control folder and the .cm- names are reserved and never shown.
+		if isReservedName(entry.Remote()) {
 			continue
 		}
 		items = append(items, d.itemFromEntry(ctx, entry))
@@ -717,6 +727,10 @@ func (d *drive) probe(ctx context.Context) (probeResult, error) {
 		return probeResult{Versions: true}, nil
 	}
 	name := controlFolder + "/probe-" + uuid.NewString()
+	if d.unsafe {
+		// Hidden by its name, and removed straight away.
+		name = reservedPrefix + "probe-" + uuid.NewString()
+	}
 	if err := d.writeControlFile(ctx, name, []byte("probe")); err != nil {
 		return probeResult{}, err
 	}
@@ -795,7 +809,7 @@ func (d *drive) remove(ctx context.Context, p string) error {
 var changesTheDrive = map[string]bool{
 	"trashRestore": true, "maintain": true, "setPolicy": true, "retireVault": true, "probe": true,
 	"upload": true, "save": true, "stage": true, "commit": true, "mkdir": true, "move": true,
-	"delete": true, "trash": true,
+	"delete": true, "trash": true, "cleanControlFolder": true,
 }
 
 // dispatch runs one engine method. Arguments and results are JSON.
@@ -866,6 +880,9 @@ func dispatch(ctx context.Context, method string, arguments []byte, bytes *atomi
 	if d.readOnly && changesTheDrive[method] {
 		return nil, errReadOnly
 	}
+	if d.unsafe && needsTrash[method] {
+		return nil, errUnsafeKeepsNoTrash
+	}
 	switch method {
 	case "list":
 		return d.list(ctx, a.Path)
@@ -881,6 +898,10 @@ func dispatch(ctx context.Context, method string, arguments []byte, bytes *atomi
 		return d.restoreFromTrash(ctx, a.Path)
 	case "maintain":
 		return d.maintain(ctx)
+	case "controlFolder":
+		return d.controlFolderContents(ctx)
+	case "cleanControlFolder":
+		return d.cleanControlFolder(ctx)
 	case "getPolicy":
 		return d.retentionInfo(ctx)
 	case "setPolicy":

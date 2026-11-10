@@ -6,20 +6,24 @@ import Foundation
 /// so these are only the choices on offer, and the pace of checking that they're kept.
 public enum TrashRetention {
     public struct Choice: Identifiable, Hashable, Sendable {
-        public let label: String
+        /// The English, which is what the label is looked up by.
+        let english: String
         public let seconds: Int
 
         public var id: Int { seconds }
+
+        /// The time in the language shown, such as "7 days".
+        public var label: String { Words.text(english) }
     }
 
     public static let choices = [
-        Choice(label: "1 minute", seconds: 60),
-        Choice(label: "1 hour", seconds: 3_600),
-        Choice(label: "1 day", seconds: 86_400),
-        Choice(label: "7 days", seconds: 7 * 86_400),
-        Choice(label: "30 days", seconds: 30 * 86_400),
-        Choice(label: "90 days", seconds: 90 * 86_400),
-        Choice(label: "1 year", seconds: 365 * 86_400),
+        Choice(english: "1 minute", seconds: 60),
+        Choice(english: "1 hour", seconds: 3_600),
+        Choice(english: "1 day", seconds: 86_400),
+        Choice(english: "7 days", seconds: 7 * 86_400),
+        Choice(english: "30 days", seconds: 30 * 86_400),
+        Choice(english: "90 days", seconds: 90 * 86_400),
+        Choice(english: "1 year", seconds: 365 * 86_400),
     ]
 
     /// What the engine uses when a drive has no policy.

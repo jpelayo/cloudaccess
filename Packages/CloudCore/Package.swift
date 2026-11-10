@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "CloudCore",
+    defaultLocalization: "en",
     platforms: [.macOS(.v26), .iOS(.v26)],
     products: [
         .library(name: "CloudCore", targets: ["CloudCore"]),
@@ -14,7 +15,8 @@ let package = Package(
         .library(name: "CloudDesign", targets: ["CloudDesign"]),
     ],
     targets: [
-        .target(name: "CloudCore"),
+        // Words a person sees, in English and Spanish. See Words.swift.
+        .target(name: "CloudCore", resources: [.process("Resources")]),
         // Built by Engine/build.sh.
         .binaryTarget(name: "CEngine", path: "Binaries/CEngine.xcframework"),
         .target(

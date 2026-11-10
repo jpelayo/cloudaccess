@@ -1,0 +1,266 @@
+/* CloudCore's Spanish, for Spain, in the formal usted. The English sentence is the key. See
+   docs/glossary-es.md for the terms, and Words.swift for how these are looked up. Numbers with a
+   plural word are in Localizable.stringsdict instead. */
+
+/* AppLanguage.swift */
+"System" = "Sistema";
+
+/* Connection.swift: drive modes */
+"Safe" = "Seguro";
+"Unsafe" = "Inseguro";
+"Read-only" = "Solo lectura";
+"Keeps a hidden .cloudmount folder on the server, so no save overwrites another device's, and deleted files can be restored." = "Mantiene una carpeta .cloudmount oculta en el servidor, para que ningún guardado sobrescriba el de otro dispositivo y se puedan restaurar los archivos eliminados.";
+"Attention: writes nothing but your files. Deleted files and replaced versions are gone for good, and two devices saving the same file at the same moment can lose one save." = "Atención: no escribe nada más que sus archivos. Los archivos eliminados y las versiones reemplazadas desaparecen para siempre, y si dos dispositivos guardan el mismo archivo en el mismo momento, puede perderse uno de los guardados.";
+"Writes nothing to the server." = "No escribe nada en el servidor.";
+
+/* ConnectionForm.swift: protocols keep their own names */
+"WebDAV (https)" = "WebDAV (https)";
+"WebDAV (http)" = "WebDAV (http)";
+"SFTP" = "SFTP";
+
+/* ConnectionSummary.swift: the side panel's facts. "Kind" is also FolderOrder's sort by type. */
+"Address" = "Dirección";
+"User" = "Usuario";
+"Kind" = "Tipo";
+"local" = "local";
+"encrypted" = "cifrada";
+"plain" = "sin cifrar";
+"read-only" = "solo lectura";
+
+/* DownloadProgress.swift */
+"Preparing…" = "Preparando…";
+"Processing…" = "Procesando…";
+"Downloading %lld%%" = "Descargando %lld %%";
+"%@ of %@" = "%@ de %@";
+"Downloading %@" = "Descargando %@";
+
+/* DriveEdit.swift */
+"Another drive is called that." = "Ya hay otra unidad con ese nombre.";
+"This server folder is already a drive here." = "Esta carpeta del servidor ya es una unidad en este dispositivo.";
+"The drive needs a name." = "La unidad necesita un nombre.";
+"That address isn't valid." = "Esa dirección no es válida.";
+"Only SFTP drives can use Unsafe mode. Choose Safe or Read-only under Advanced first." = "Solo las unidades SFTP pueden usar el modo Inseguro. Elija antes Seguro o Solo lectura en Avanzado.";
+"This test build only connects to a folder named %@." = "Esta versión de prueba solo se conecta a una carpeta llamada %@.";
+
+/* DrivesFile.swift */
+"This isn't a CloudAccess drives file." = "Este no es un archivo de unidades de CloudAccess.";
+"This drives file needs a newer version of the app." = "Este archivo de unidades necesita una versión más reciente de la app.";
+"The password is wrong, or the file was changed since it was made." = "La contraseña es incorrecta, o el archivo ha cambiado desde que se creó.";
+"Choose at least one drive." = "Elija al menos una unidad.";
+
+/* DrivesFileImport.swift */
+"Skip" = "Omitir";
+"Add" = "Añadir";
+"Add as “%@”" = "Añadir como “%@”";
+"Update passwords" = "Actualizar las contraseñas";
+"Update passwords and settings" = "Actualizar las contraseñas y los ajustes";
+"Already on this device." = "Ya está en este dispositivo.";
+"Another drive here has this name." = "Otra unidad de este dispositivo tiene este nombre.";
+"A local test folder can't be moved to another device." = "Una carpeta local de prueba no se puede mover a otro dispositivo.";
+
+/* DriveStore.swift */
+"This drive's password isn't in the Keychain." = "La contraseña de esta unidad no está en el llavero.";
+"The Keychain couldn't be used (error %lld)." = "No se ha podido usar el llavero (error %lld).";
+"The app's shared folder isn't available." = "La carpeta compartida de la app no está disponible.";
+"The list of drives didn't move whole, so it was kept where it was." = "La lista de unidades no se ha movido completa, así que se ha mantenido donde estaba.";
+
+/* FilesNotes.swift */
+"Saved here by another app. This drive is read-only, so it stays on this iPhone only. Copy it somewhere else in Files to keep it." = "Guardado aquí por otra app. Esta unidad es de solo lectura, así que solo se queda en este iPhone. Cópielo en otro lugar de Archivos para conservarlo.";
+"Changed in another app. This drive is read-only, so the change stays on this iPhone only. Copy the file somewhere else in Files to keep it." = "Modificado en otra app. Esta unidad es de solo lectura, así que el cambio solo se queda en este iPhone. Copie el archivo en otro lugar de Archivos para conservarlo.";
+
+/* FolderOrder.swift. "Kind" is with ConnectionSummary.swift. */
+"Name, A to Z" = "Nombre, de la A a la Z";
+"Name, Z to A" = "Nombre, de la Z a la A";
+"Modified, newest first" = "Modificación, más recientes primero";
+"Modified, oldest first" = "Modificación, más antiguos primero";
+"Created, newest first" = "Creación, más recientes primero";
+"Created, oldest first" = "Creación, más antiguos primero";
+"Size, largest first" = "Tamaño, más grandes primero";
+"Size, smallest first" = "Tamaño, más pequeños primero";
+
+/* RecoveryKit.swift: the prose only. The rclone settings stay as rclone reads them. */
+"CloudAccess recovery kit" = "Kit de recuperación de CloudAccess";
+"Keep this somewhere safe. Anyone with it can read this drive." = "Guárdelo en un lugar seguro. Cualquiera que lo tenga puede leer esta unidad.";
+"Drive: %@" = "Unidad: %@";
+"Address: %@" = "Dirección: %@";
+"Vault ID: %@" = "ID de la bóveda: %@";
+"Encryption password: %@" = "Contraseña de cifrado: %@";
+"Salt: %@" = "Sal: %@";
+"To reach your files with plain rclone (https://rclone.org), run `rclone config`,\nor add this to rclone.conf. First obscure both values with `rclone obscure`:" = "Para acceder a sus archivos solo con rclone (https://rclone.org), ejecute `rclone config`,\no añada esto a rclone.conf. Antes, oculte los dos valores con `rclone obscure`:";
+"Then: rclone copy cloudaccess-recovery: /a/local/folder" = "Después: rclone copy cloudaccess-recovery: /una/carpeta/local";
+"The .cloudmount folder on the server isn't part of your files, and rclone\nskips it with a notice." = "La carpeta .cloudmount del servidor no forma parte de sus archivos, y rclone\nla omite con un aviso.";
+
+/* RemoteError.swift: a drive's row when a person has to act */
+"sign-in refused" = "inicio de sesión rechazado";
+"wrong encryption password" = "contraseña de cifrado incorrecta";
+"retired" = "retirada";
+"needs attention" = "requiere atención";
+"server identity changed" = "identidad del servidor cambiada";
+"server not supported" = "servidor no compatible";
+
+/* RemoteError.swift: what a failure says. The ones with no value are also saved, as a file's
+   problem, and translated when they're shown. */
+"%@ isn't on the server." = "%@ no está en el servidor.";
+"%@ already exists." = "%@ ya existe.";
+"The folder for %@ isn't on the server." = "La carpeta de %@ no está en el servidor.";
+"The server doesn't allow access to %@." = "El servidor no permite acceder a %@.";
+"Another device is saving %@." = "Otro dispositivo está guardando %@.";
+"%@ changed on the server." = "%@ ha cambiado en el servidor.";
+"This name is too long for an encrypted drive. Shorten it in Finder." = "Este nombre es demasiado largo para una unidad cifrada. Acórtelo en el Finder.";
+"%@ is a name the drive keeps for itself." = "%@ es un nombre que la unidad reserva para sí misma.";
+"This Mac couldn't read the file (%@), so nothing was sent." = "Este Mac no ha podido leer el archivo (%@), así que no se ha enviado nada.";
+"This drive is read-only." = "Esta unidad es de solo lectura.";
+"%@ took too long to list. The server may be busy." = "La lista de %@ ha tardado demasiado. Puede que el servidor esté ocupado.";
+"The server refuses files as large as %@." = "El servidor rechaza archivos tan grandes como %@.";
+"%@ has too many items for the Files app. Open it in CloudWanderer." = "%@ tiene demasiados ítems para la app Archivos. Abra la carpeta en CloudWanderer.";
+"Cancelled." = "Cancelado.";
+"The server refused the username or password." = "El servidor ha rechazado el nombre de usuario o la contraseña.";
+"The server is out of space." = "El servidor no tiene espacio libre.";
+"The server can't be reached." = "No se puede conectar con el servidor.";
+"The server reported an error (%lld)." = "El servidor ha informado de un error (%lld).";
+"That encryption password is wrong." = "Esa contraseña de cifrado es incorrecta.";
+"This folder already has files in it, and an encrypted drive needs an empty one. Choose or create another folder." = "Esta carpeta ya contiene archivos, y una unidad cifrada necesita una vacía. Elija o cree otra carpeta.";
+"This folder has no encrypted drive yet." = "Esta carpeta aún no tiene una unidad cifrada.";
+"This folder holds a different encrypted drive." = "Esta carpeta contiene otra unidad cifrada.";
+"This folder holds an older copy of the encrypted drive." = "Esta carpeta contiene una copia más antigua de la unidad cifrada.";
+"This encrypted drive was retired by a password change." = "Esta unidad cifrada se retiró al cambiar la contraseña.";
+"This encrypted drive needs a newer version of CloudAccess." = "Esta unidad cifrada necesita una versión más reciente de CloudAccess.";
+"This encrypted drive's details are damaged." = "Los datos de esta unidad cifrada están dañados.";
+"This folder is an encrypted drive. Turn on encryption and enter its password." = "Esta carpeta es una unidad cifrada. Active el cifrado e introduzca su contraseña.";
+"This server's identity hasn't been confirmed." = "La identidad de este servidor no se ha confirmado.";
+"This server's identity has changed. It may have been reinstalled, or it may not be your server." = "La identidad de este servidor ha cambiado. Puede que se haya reinstalado, o puede que no sea su servidor.";
+
+/* RemoteError.swift: a file's problem, why and what to do. It's saved in English, so these are
+   the exact sentences saved, translated when they're shown. */
+"This Mac couldn't read the file (it changed while it was being sent), so nothing was sent." = "Este Mac no ha podido leer el archivo (ha cambiado mientras se enviaba), así que no se ha enviado nada.";
+"Check that it opens on this Mac, close any app using it, then press Try Again." = "Compruebe que se abre en este Mac, cierre cualquier app que lo esté usando y pulse Reintentar.";
+"This name is too long for an encrypted drive." = "Este nombre es demasiado largo para una unidad cifrada.";
+"Shorten it in Finder. It should then upload by itself." = "Acórtelo en el Finder. Después debería subirse solo.";
+".cloudmount is a name the drive keeps for itself." = ".cloudmount es un nombre que la unidad reserva para sí misma.";
+"Rename it in Finder." = "Cámbiele el nombre en el Finder.";
+"The server refused to store this file." = "El servidor se ha negado a guardar este archivo.";
+"Check that your account can write to this folder, then press Try Again." = "Compruebe que su cuenta puede escribir en esta carpeta y pulse Reintentar.";
+"The folder for this file isn't on the server." = "La carpeta de este archivo no está en el servidor.";
+"Check that the folder still exists, then press Try Again." = "Compruebe que la carpeta todavía existe y pulse Reintentar.";
+"Another device is saving this file, or a save was interrupted." = "Otro dispositivo está guardando este archivo, o se ha interrumpido un guardado.";
+"Nothing to do. This clears by itself within 10 minutes." = "No tiene que hacer nada. Esto se resuelve solo en 10 minutos como máximo.";
+"The connection failed while sending this file." = "La conexión ha fallado mientras se enviaba este archivo.";
+"Check your network, then press Try Again. If it keeps failing, export Diagnostics from Settings." = "Compruebe la red y pulse Reintentar. Si sigue fallando, exporte el Diagnóstico desde Ajustes.";
+"The server asked for fewer requests for a while." = "El servidor ha pedido menos solicitudes durante un tiempo.";
+"Nothing to do. This carries on by itself." = "No tiene que hacer nada. Esto continúa solo.";
+"The server reported an error (500). That's a problem on the server's side." = "El servidor ha informado de un error (500). Es un problema del servidor.";
+"The server reported an error (502). That's a problem on the server's side." = "El servidor ha informado de un error (502). Es un problema del servidor.";
+"The server reported an error (503). That's a problem on the server's side." = "El servidor ha informado de un error (503). Es un problema del servidor.";
+"The server reported an error (504). That's a problem on the server's side." = "El servidor ha informado de un error (504). Es un problema del servidor.";
+"Press Try Again later. If it keeps happening, check with your server's provider." = "Pulse Reintentar más tarde. Si sigue pasando, consulte con el proveedor de su servidor.";
+"Another file or folder on the server already has this name." = "Otro archivo o carpeta del servidor ya tiene este nombre.";
+"Rename one of them in Finder." = "Cambie el nombre de uno de ellos en el Finder.";
+"The server refuses files this large, so it wasn't saved there. It's still on this Mac." = "El servidor rechaza archivos de este tamaño, así que no se ha guardado allí. Sigue en este Mac.";
+"Check the server's upload limit, or keep this file somewhere else." = "Compruebe el límite de subida del servidor, o guarde este archivo en otro lugar.";
+"The server took too long to answer." = "El servidor ha tardado demasiado en responder.";
+"It may be busy, so press Try Again later." = "Puede que esté ocupado, así que pulse Reintentar más tarde.";
+"This folder has too many items for the Files app to show." = "Esta carpeta tiene demasiados ítems para que la app Archivos los muestre.";
+"Open it in CloudWanderer instead." = "Ábrala en CloudWanderer.";
+"Free some space there, then press Try Again." = "Libere espacio allí y pulse Reintentar.";
+"Turn off Read-only under Advanced to change it." = "Desactive Solo lectura en Avanzado para poder modificarla.";
+"Press Try Again. If it keeps failing, export Diagnostics from Settings." = "Pulse Reintentar. Si sigue fallando, exporte el Diagnóstico desde Ajustes.";
+"macOS handed this over as a folder, not as one file, so nothing was sent. It's safe on this Mac." = "macOS lo ha entregado como una carpeta, no como un único archivo, así que no se ha enviado nada. Está a salvo en este Mac.";
+"This is a link, and CloudAccess doesn't upload links. Nothing was sent." = "Esto es un enlace, y CloudAccess no sube enlaces. No se ha enviado nada.";
+"To have it on the server, replace the link with a copy of the real file." = "Para tenerlo en el servidor, sustituya el enlace por una copia del archivo real.";
+"This isn't a regular file, so nothing was sent." = "Esto no es un archivo normal, así que no se ha enviado nada.";
+"Copy what it holds into a normal file if you need it on the server." = "Copie su contenido en un archivo normal si lo necesita en el servidor.";
+
+/* Tailnet.swift */
+"This server is on a tailnet. Check that Tailscale is on." = "Este servidor está en una tailnet. Compruebe que Tailscale está activado.";
+"The server can't be reached. This server is on a tailnet. Check that Tailscale is on." = "No se puede conectar con el servidor. Este servidor está en una tailnet. Compruebe que Tailscale está activado.";
+
+/* TrashRetention.swift */
+"1 minute" = "1 minuto";
+"1 hour" = "1 hora";
+"1 day" = "1 día";
+"7 days" = "7 días";
+"30 days" = "30 días";
+"90 days" = "90 días";
+"1 year" = "1 año";
+
+/* MountKit, Mutations.swift: saved in English as a file's problem, translated when shown */
+"macOS is still checking this drive." = "macOS todavía está comprobando esta unidad.";
+"Nothing to do. This carries on when macOS finishes." = "No tiene que hacer nada. Esto continúa cuando macOS termine.";
+"This is a folder on the server, so it can't be downloaded as one file." = "Esto es una carpeta en el servidor, así que no se puede descargar como un único archivo.";
+"Invalid name" = "Nombre no válido";
+"Nothing to change" = "Nada que cambiar";
+
+/* RemoteEngine.swift and RemoteBackend.swift */
+"The engine returned an unreadable response." = "El motor ha devuelto una respuesta ilegible.";
+"The engine returned no result." = "El motor no ha devuelto ningún resultado.";
+"The server didn't send all of this file." = "El servidor no ha enviado todo el archivo.";
+
+/* FileProviderShell, Connector.swift. It stays English where it's made, because Diagnostics
+   matches it. */
+"The drive is offline." = "La unidad está sin conexión.";
+
+/* SyncCore, SyncStore.swift */
+"The list of changes has to be read again from the start." = "Hay que volver a leer la lista de cambios desde el principio.";
+"This item is no longer on this drive." = "Este ítem ya no está en esta unidad.";
+"This drive's records were made by a newer version of the app, so they were left alone." = "Los registros de esta unidad los creó una versión más reciente de la app, así que no se han tocado.";
+"This drive's records couldn't be repaired safely, so nothing was changed." = "Los registros de esta unidad no se han podido reparar de forma segura, así que no se ha cambiado nada.";
+"This drive has too many folders to check them all." = "Esta unidad tiene demasiadas carpetas para comprobarlas todas.";
+"This file kept failing, so it waits until you press Try Again." = "Este archivo ha fallado varias veces, así que espera hasta que pulse Reintentar.";
+
+/* SyncCore, Database.swift */
+"Couldn't open the database." = "No se ha podido abrir la base de datos.";
+"This drive's records are damaged." = "Los registros de esta unidad están dañados.";
+
+/* The Go engine's own messages, exactly as its errors.New calls write them. They reach the screen through
+   RemoteError.failed and .unsupportedServer. Anything else it says, such as rclone's own text,
+   stays English. */
+"this file is too big to copy in the time a save can wait" = "este archivo es demasiado grande para copiarlo en el tiempo que puede esperar un guardado";
+"another device is saving this item" = "otro dispositivo está guardando este ítem";
+"this device's claim expired during the save" = "la reserva de este dispositivo ha caducado durante el guardado";
+"the server's answer was lost, so this change may or may not have happened" = "se ha perdido la respuesta del servidor, así que puede que este cambio se haya hecho o no";
+"another item on the server already has this name" = "otro ítem del servidor ya tiene este nombre";
+"the server kept only part of this file, so it wasn't saved" = "el servidor solo ha guardado parte de este archivo, así que no se ha guardado";
+"the server gave no timestamp" = "el servidor no ha dado ninguna marca de tiempo";
+"couldn't find a free name for the conflict copy" = "no se ha encontrado un nombre libre para la copia en conflicto";
+"this item changed on the server" = "este ítem ha cambiado en el servidor";
+"the server didn't keep this file's details" = "el servidor no ha conservado los detalles de este archivo";
+"this file's details are too big to keep on the server" = "los detalles de este archivo son demasiado grandes para conservarlos en el servidor";
+"this file didn't arrive as it was saved" = "este archivo no ha llegado tal como se guardó";
+"an encrypted drive without its vault can't describe a file" = "una unidad cifrada sin su bóveda no puede describir un archivo";
+"the server's reply didn't make sense" = "la respuesta del servidor no tenía sentido";
+"the server gave no usable details for this item" = "el servidor no ha dado detalles utilizables de este ítem";
+"the server returned no details for this item" = "el servidor no ha devuelto detalles de este ítem";
+"this drive is read-only" = "esta unidad es de solo lectura";
+"only https and http addresses can be used" = "solo se pueden usar direcciones https y http";
+"sending a password over plain http needs your consent" = "enviar una contraseña por http sin cifrar requiere su consentimiento";
+"the server is too slow to be usable" = "el servidor es demasiado lento para poder usarlo";
+"this folder took too long to list" = "esta carpeta ha tardado demasiado en mostrar su contenido";
+"this server only offers Digest sign-in, which CloudAccess can't use" = "este servidor solo ofrece el inicio de sesión Digest, que CloudAccess no puede usar";
+"the server sent a different amount of this file than it lists" = "el servidor ha enviado una cantidad de este archivo distinta de la que indica";
+"this isn't a plain file, so it can't be uploaded as one" = "esto no es un archivo normal, así que no se puede subir como tal";
+"this item is no longer in the trash" = "este ítem ya no está en la papelera";
+"this drive isn't encrypted" = "esta unidad no está cifrada";
+"the drive's retention policy can't be read" = "no se puede leer la política de conservación de la unidad";
+"the drive's retention policy is missing, though this device read one earlier" = "falta la política de conservación de la unidad, aunque este dispositivo leyó una antes";
+"this deleted item's details are damaged, so it can't be restored" = "los detalles de este ítem eliminado están dañados, así que no se puede restaurar";
+"this folder has too many items to list here" = "esta carpeta tiene demasiados ítems para mostrarlos aquí";
+"only SFTP drives can work without the control folder" = "solo las unidades SFTP pueden funcionar sin la carpeta de control";
+"in Unsafe mode this drive keeps no deleted files" = "en el modo Inseguro esta unidad no conserva los archivos eliminados";
+"a drive in Safe mode needs its control folder" = "una unidad en el modo Seguro necesita su carpeta de control";
+"another device is saving to this drive, so its folder was kept" = "otro dispositivo está guardando en esta unidad, así que se ha conservado su carpeta";
+"this name is too long to store on an encrypted drive" = "este nombre es demasiado largo para guardarlo en una unidad cifrada";
+"this item can't be decrypted" = "este ítem no se puede descifrar";
+"the encryption password is wrong, or the vault marker was changed" = "la contraseña de cifrado es incorrecta, o se ha modificado la marca de la bóveda";
+"this folder has files but no vault marker" = "esta carpeta tiene archivos pero no tiene marca de bóveda";
+"this folder has no vault yet" = "esta carpeta aún no tiene bóveda";
+"this folder holds a different vault from the one this drive used" = "esta carpeta contiene una bóveda distinta de la que usaba esta unidad";
+"the vault marker is older than the one this device last saw" = "la marca de la bóveda es más antigua que la última que vio este dispositivo";
+"this vault was retired by a password change" = "esta bóveda se retiró al cambiar la contraseña";
+"this vault needs a newer version of the app" = "esta bóveda necesita una versión más reciente de la app";
+"the vault marker can't be read" = "no se puede leer la marca de la bóveda";
+"this folder holds an encrypted drive" = "esta carpeta contiene una unidad cifrada";
+"this server's identity hasn't been confirmed" = "la identidad de este servidor no se ha confirmado";
+"this server's identity has changed" = "la identidad de este servidor ha cambiado";
+"this server can't replace a file in one step, so saves wouldn't be safe" = "este servidor no puede reemplazar un archivo en un solo paso, así que los guardados no serían seguros";
+"the connection to the server was lost" = "se ha perdido la conexión con el servidor";
+"could not encode the result" = "no se ha podido codificar el resultado";

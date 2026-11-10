@@ -6,11 +6,33 @@ import Security
 /// Saves connections in a shared folder and their secrets in the Keychain, so the app
 /// and its extension see the same drives.
 public struct DriveStore: Sendable {
-    public enum StoreError: Error, Equatable {
+    public enum StoreError: WordedError, Equatable {
         case keychain(OSStatus)
         case noSharedFolder
         /// A list of drives didn't read back whole after a move, so the old one was kept.
         case notMoved
+
+        /// In the language shown.
+        public var errorDescription: String? {
+            wording.shown
+        }
+
+        public var englishDescription: String {
+            wording.english
+        }
+
+        private var wording: Wording {
+            switch self {
+            case .keychain(let status) where status == errSecItemNotFound:
+                Wording("This drive's password isn't in the Keychain.")
+            case .keychain(let status):
+                Wording("The Keychain couldn't be used (error %lld).", Int(status))
+            case .noSharedFolder:
+                Wording("The app's shared folder isn't available.")
+            case .notMoved:
+                Wording("The list of drives didn't move whole, so it was kept where it was.")
+            }
+        }
     }
 
     /// The identifiers the macOS app and its extension share.

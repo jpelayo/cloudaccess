@@ -18,17 +18,18 @@ public enum FolderOrder: String, CaseIterable, Sendable, Identifiable {
 
     public var id: String { rawValue }
 
+    /// What the order is called, in the language shown. The raw value is what's saved.
     public var title: String {
         switch self {
-        case .nameAscending: "Name, A to Z"
-        case .nameDescending: "Name, Z to A"
-        case .modifiedNewest: "Modified, newest first"
-        case .modifiedOldest: "Modified, oldest first"
-        case .createdNewest: "Created, newest first"
-        case .createdOldest: "Created, oldest first"
-        case .kind: "Kind"
-        case .sizeLargest: "Size, largest first"
-        case .sizeSmallest: "Size, smallest first"
+        case .nameAscending: Words.text("Name, A to Z")
+        case .nameDescending: Words.text("Name, Z to A")
+        case .modifiedNewest: Words.text("Modified, newest first")
+        case .modifiedOldest: Words.text("Modified, oldest first")
+        case .createdNewest: Words.text("Created, newest first")
+        case .createdOldest: Words.text("Created, oldest first")
+        case .kind: Words.text("Kind")
+        case .sizeLargest: Words.text("Size, largest first")
+        case .sizeSmallest: Words.text("Size, smallest first")
         }
     }
 

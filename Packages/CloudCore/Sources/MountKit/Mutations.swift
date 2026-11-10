@@ -173,8 +173,10 @@ public struct Mutations: Sendable {
             problem = remote.problem
             canHold = true
         default:
+            // Saved in English, whatever language this process shows, so the app can translate it
+            // when it's shown. Only the system's own errors come already in its language.
             problem = FileProblem(
-                cause: error.localizedDescription,
+                cause: (error as? any WordedError)?.englishDescription ?? error.localizedDescription,
                 fix: "Press Try Again. If it keeps failing, export Diagnostics from Settings.")
             canHold = true
         }

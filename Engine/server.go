@@ -158,7 +158,9 @@ func (d *drive) serverList(ctx context.Context, dir string) ([]remoteItem, error
 	}
 	items := make([]remoteItem, 0, len(entries))
 	for _, entry := range entries {
-		if entry.Name == controlFolder {
+		// An Unsafe device's upload in progress is a hidden .cm- file, and must never look like one
+		// of a person's files.
+		if isReservedName(entry.Name) {
 			continue
 		}
 		if item, ok := d.itemFromRaw(entry, dir); ok {

@@ -61,12 +61,12 @@ struct OverallPill: View {
     let open: (Connection) -> Void
 
     private var status: (text: String, color: Color) {
-        if drives.hasConnectionProblem { return ("Not connected", .red) }
-        if drives.connections.isEmpty { return ("No drives", .gray) }
-        if !drives.connections.contains(where: \.isMounted) { return ("Ejected", .gray) }
-        if drives.needsHelp { return ("Attention", .orange) }
-        if drives.isSyncing { return ("Syncing", .blue) }
-        return ("Connected", .green)
+        if drives.hasConnectionProblem { return (String(localized: "Not connected"), .red) }
+        if drives.connections.isEmpty { return (String(localized: "No drives"), .gray) }
+        if !drives.connections.contains(where: \.isMounted) { return (String(localized: "Ejected"), .gray) }
+        if drives.needsHelp { return (String(localized: "Attention"), .orange) }
+        if drives.isSyncing { return (String(localized: "Syncing"), .blue) }
+        return (String(localized: "Connected"), .green)
     }
 
     var body: some View {
@@ -326,7 +326,7 @@ struct StatusPanelView: View {
         if let changed = drives.connections.first(where: { drives.changedHostKeys.contains($0.id) }) {
             Card {
                 IconRow(
-                    "exclamationmark.shield.fill", "Server identity changed",
+                    "exclamationmark.shield.fill", String(localized: "Server identity changed"),
                     subtitle: changed.displayName, tint: .red
                 ) {
                     Button("Review") {
@@ -445,7 +445,7 @@ struct StatusPanelView: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .lineLimit(1)
                                     .truncationMode(.middle)
-                                Text(FileProblem(stored: failure.message).cause)
+                                Text(FileProblem(stored: failure.message).localized.cause)
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
@@ -455,7 +455,7 @@ struct StatusPanelView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .help("\(FlattenedPackage.shownName(failure.name)): \(failure.message.replacingOccurrences(of: "\n", with: " "))")
+                        .help(Self.helpText(for: failure))
                         .accessibilityHint("Shows the file in Finder")
                         .contextMenu {
                             Button("Reveal in Finder") { reveal(failure) }
@@ -470,6 +470,14 @@ struct StatusPanelView: View {
 extension StatusPanelView {
     private func reveal(_ failure: SyncFailure) {
         panel.leave { Task { await drives.reveal(failure) } }
+    }
+
+    /// The file's name and the whole saved reason, in the language shown. It's built as plain
+    /// text, so `help` shows it as it is.
+    private static func helpText(for failure: SyncFailure) -> String {
+        let problem = FileProblem(stored: failure.message).localized
+        let reason = [problem.cause, problem.fix].filter { !$0.isEmpty }.joined(separator: " ")
+        return "\(FlattenedPackage.shownName(failure.name)): \(reason)"
     }
 }
 
@@ -531,14 +539,22 @@ struct DriveSidePanel: View {
 private struct ActionRow: View {
     @Environment(\.isEnabled) private var isEnabled
 
-    let title: String
+    let title: Text
     let symbol: String
     let action: () -> Void
 
     @State private var isHovering = false
 
-    init(_ title: String, symbol: String, action: @escaping () -> Void) {
-        self.title = title
+    /// The title is looked up in the app's strings.
+    init(_ title: LocalizedStringKey, symbol: String, action: @escaping () -> Void) {
+        self.title = Text(title)
+        self.symbol = symbol
+        self.action = action
+    }
+
+    @_disfavoredOverload
+    init(_ title: some StringProtocol, symbol: String, action: @escaping () -> Void) {
+        self.title = Text(verbatim: String(title))
         self.symbol = symbol
         self.action = action
     }
@@ -551,7 +567,7 @@ private struct ActionRow: View {
                     .foregroundStyle(.blue)
                     .frame(width: 18)
                     .accessibilityHidden(true)
-                Text(title)
+                title
                     .font(.system(size: 13))
                 Spacer(minLength: 0)
             }

@@ -24,14 +24,24 @@ public enum DriveEdit {
 
         public var reason: String {
             switch self {
-            case .name: "Another drive is called that."
-            case .place: "This server folder is already a drive here."
+            case .name: Words.text("Another drive is called that.")
+            case .place: Words.text("This server folder is already a drive here.")
             }
         }
     }
 
-    public static let noName = "The drive needs a name."
-    public static let badAddress = "That address isn't valid."
+    // Refusals are shown straight away and never saved, so they're in the language shown.
+    public static var noName: String { Words.text("The drive needs a name.") }
+    public static var badAddress: String { Words.text("That address isn't valid.") }
+    public static var unsafeNeedsSFTP: String {
+        Words.text("Only SFTP drives can use Unsafe mode. Choose Safe or Read-only under Advanced first.")
+    }
+
+    /// Why a drive can't be saved with its mode, or nil if it can. Unsafe needs SFTP's one-step
+    /// replace, and quietly falling back to Safe would write the folder a person chose to avoid.
+    public static func modeRefusal(for drive: Connection) -> String? {
+        DriveMode.available(for: drive.endpoint).contains(drive.settings.mode) ? nil : unsafeNeedsSFTP
+    }
 
     /// Whether a drive would clash with another one already on this device. A drive never clashes
     /// with itself.
@@ -56,11 +66,15 @@ public enum DriveEdit {
         guard let edited = form.applied(to: saved) else { return .refused(badAddress) }
         #if DEBUG
         guard edited.isTestDrive else {
-            return .refused("This test build only connects to a folder named \(Connection.testFolderName).")
+            return .refused(Words.format(
+                "This test build only connects to a folder named %@.", Connection.testFolderName))
         }
         #endif
         if let clash = clash(edited, among: others) {
             return .refused(clash.reason)
+        }
+        if let refusal = modeRefusal(for: edited) {
+            return .refused(refusal)
         }
         if edited.requiresNewDrive(comparedTo: saved) {
             var moved = edited

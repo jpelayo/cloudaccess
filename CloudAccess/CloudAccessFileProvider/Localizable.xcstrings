@@ -1,0 +1,27 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Conflict copy" : {
+      "comment" : "Finder badge, from NSFileProviderDecorations in FileProvider-Info.plist.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Copia en conflicto" } }
+      }
+    },
+    "Couldn't sync" : {
+      "comment" : "Finder badge, from NSFileProviderDecorations in FileProvider-Info.plist.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se ha podido sincronizar" } }
+      }
+    },
+    "Not available offline" : {
+      "comment" : "Finder badge, from NSFileProviderDecorations in FileProvider-Info.plist.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No disponible sin conexión" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

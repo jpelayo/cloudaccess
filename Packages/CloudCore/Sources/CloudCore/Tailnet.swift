@@ -5,7 +5,10 @@ import Foundation
 /// Servers reached through Tailscale. With Tailscale off, one looks exactly like a server that's
 /// down, so the apps say what to check. No app can turn on another app's VPN, so they can't do more.
 public enum Tailnet {
-    public static let hint = "This server is on a tailnet. Check that Tailscale is on."
+    /// In the language shown.
+    public static var hint: String {
+        Words.text("This server is on a tailnet. Check that Tailscale is on.")
+    }
 
     /// Tailscale's names end in ts.net, and its addresses are in 100.64.0.0/10 and
     /// fd7a:115c:a1e0::/48. Other networks use that IPv4 range too, which is why the hint says to
@@ -29,13 +32,15 @@ public enum Tailnet {
         endpoint.host.map { contains(host: $0) } ?? false
     }
 
-    /// A failed connection in words, with what to check when that's worth saying. A wrong password
-    /// reached the server, so that's never Tailscale's doing.
+    /// A failed connection in words, in the language shown, with what to check when that's worth
+    /// saying. A wrong password reached the server, so that's never Tailscale's doing.
     public static func explain(_ error: Error, for endpoint: Connection.Endpoint) -> String {
         guard contains(endpoint), case RemoteError.unreachable = error else {
             return error.localizedDescription
         }
-        return "\(error.localizedDescription) \(hint)"
+        // An unreachable server always says just that, so the two sentences are translated
+        // together, never glued from pieces.
+        return Words.text("The server can't be reached. This server is on a tailnet. Check that Tailscale is on.")
     }
 }
 

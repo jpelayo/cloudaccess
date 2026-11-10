@@ -2,6 +2,7 @@
 
 import AVFoundation
 import CloudCore
+import Foundation
 import SwiftUI
 import Vision
 import VisionKit
@@ -58,9 +59,9 @@ struct ScanSheet: View {
             onScanned(try ConnectionSetup(scanned: text))
             dismiss()
         } catch ConnectionSetup.SetupError.newerFormat {
-            problem = "This code needs a newer CloudWanderer."
+            problem = String(localized: "This code needs a newer CloudWanderer.")
         } catch {
-            problem = "That isn't a CloudAccess setup code."
+            problem = String(localized: "That isn't a CloudAccess setup code.")
         }
     }
 }

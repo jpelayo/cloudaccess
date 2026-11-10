@@ -337,7 +337,12 @@ func signClaim(ctx context.Context, server rawServer, claim string) (heldClaim, 
 // serverNow reads the server's clock from a new folder's timestamp, because a device with a
 // wrong clock must never take over a live claim.
 func serverNow(ctx context.Context, server rawServer) (time.Time, error) {
-	probe := claimsFolder + "/now-" + uuid.NewString()
+	return serverNowAt(ctx, server, claimsFolder+"/now-"+uuid.NewString())
+}
+
+// serverNowAt is serverNow with its scratch folder at a given name, for a drive that writes
+// nothing in the control folder.
+func serverNowAt(ctx context.Context, server rawServer, probe string) (time.Time, error) {
 	if _, err := server.createExclusive(ctx, probe); err != nil {
 		return time.Time{}, err
 	}
@@ -446,6 +451,9 @@ func (d *drive) structureHeld(ctx context.Context) (bool, error) {
 func (d *drive) withClaims(
 	ctx context.Context, rawPaths []string, body func(stillHeld func() error) error,
 ) error {
+	if d.unsafe {
+		return d.withoutClaims(ctx, body)
+	}
 	sorted := slices.Clone(rawPaths)
 	slices.Sort(sorted)
 	sorted = slices.Compact(sorted)
@@ -507,6 +515,9 @@ func (d *drive) withClaims(
 // committing. A file claim can't protect a folder, because a save inside it claims a
 // different path.
 func (d *drive) withStructure(ctx context.Context, body func(stillHeld func() error) error) error {
+	if d.unsafe {
+		return d.withoutClaims(ctx, body)
+	}
 	held, err := acquireClaimFolder(ctx, d.server, structureClaim)
 	if err != nil {
 		return err
@@ -565,6 +576,9 @@ func (d *drive) waitForFileClaims(ctx context.Context) error {
 // file's modified time is the document's, which can be years old, and a file that looks old is
 // swept away while its upload is still running.
 func (d *drive) stagingName() string {
+	if d.unsafe {
+		return d.unsafeUploadName()
+	}
 	return fmt.Sprintf("%s/%s/%d-%s", stagingFolder, d.deviceID, time.Now().Unix(), uuid.NewString())
 }
 
@@ -937,6 +951,10 @@ func (d *drive) commitStageWith(
 // other tools don't use claims at all, so this is what makes an overwrite recoverable whatever
 // caused it. It's only a second chance: if it fails, the save carries on, as it would without it.
 func (d *drive) keepReplaced(ctx context.Context, p, raw string, current remoteItem) {
+	if d.unsafe {
+		// Unsafe mode keeps no trash, which is what a person chose it for.
+		return
+	}
 	keeping, cancel := context.WithTimeout(ctx, keepCopyLimit)
 	defer cancel()
 	entry := trashFolder + "/" + versionPrefix + uuid.NewString()
@@ -1064,6 +1082,9 @@ func (d *drive) trash(ctx context.Context, p, baseVersion string) error {
 func (d *drive) moveToTrash(
 	ctx context.Context, p, raw string, folder bool, stillHeld func() error,
 ) error {
+	if d.unsafe {
+		return d.removeForGood(ctx, raw, folder)
+	}
 	entry := trashFolder + "/" + uuid.NewString()
 	if err := d.server.ensureFolder(ctx, entry); err != nil {
 		return err

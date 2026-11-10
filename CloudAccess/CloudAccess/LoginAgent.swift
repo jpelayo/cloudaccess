@@ -211,6 +211,25 @@ enum LoginAgent {
         end()
     }
 
+    /// Whether `restart()` can bring the app back by itself.
+    static var canRestart: Bool { status == .on }
+
+    /// Ends this copy so the launch agent starts it again, for a change Apple only reads at launch,
+    /// such as the language. launchd leaves a successful exit alone and brings back any other, so
+    /// this exits with a code of its own and writes no Quit note.
+    static func restart() {
+        guard canRestart else { return }
+        for window in NSApp.windows {
+            if let sheet = window.attachedSheet {
+                window.endSheet(sheet)
+            }
+        }
+        exit(restartCode)
+    }
+
+    /// EX_TEMPFAIL: not a failure, and not a Quit.
+    private static let restartCode: Int32 = 75
+
     /// An open sheet makes macOS cancel a Quit, with no sign of why, so they're closed first.
     private static func end() {
         if isTurningOff {

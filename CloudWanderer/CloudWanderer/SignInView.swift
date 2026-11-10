@@ -2,6 +2,7 @@
 
 import CloudCore
 import CloudDesign
+import Foundation
 import RemoteEngine
 import SwiftUI
 import UniformTypeIdentifiers
@@ -65,7 +66,16 @@ struct SignInView: View {
                     }
                     if asksForKey {
                         LabeledContent("Private key") {
-                            Button(privateKeyName ?? "Choose…") { isChoosingKey = true }
+                            Button {
+                                isChoosingKey = true
+                            } label: {
+                                // The key's file name is shown as it is.
+                                if let privateKeyName {
+                                    Text(verbatim: privateKeyName)
+                                } else {
+                                    Text("Choose…")
+                                }
+                            }
                         }
                         if privateKey != nil {
                             SecretField("Key passphrase", text: $keyPassphrase, prompt: "If it has one")
@@ -114,7 +124,7 @@ struct SignInView: View {
             privateKeyName = url.lastPathComponent
             problem = nil
         } catch {
-            problem = "That key can't be read: \(error.localizedDescription)"
+            problem = String(localized: "That key can't be read: \(error.localizedDescription)")
         }
     }
 

@@ -34,25 +34,41 @@ public enum ConnectionSummary {
         }
     }
 
-    /// What the side panel says about a drive: where it is and what kind it is.
+    /// Where a drive is and what kind it is, in English, as diagnostics and support read it.
     public static func details(of connection: Connection) -> [Detail] {
-        var details = [Detail(key: "Address", value: address(of: connection))]
+        details(of: connection, word: { $0 })
+    }
+
+    /// The same, in the language shown, for the side panel.
+    public static func shownDetails(of connection: Connection) -> [Detail] {
+        details(of: connection, word: Words.text)
+    }
+
+    /// What kind of drive this is, in the language shown, such as "SFTP, encrypted".
+    public static func shownKind(of connection: Connection) -> String {
+        traits(of: connection, word: Words.text).joined(separator: ", ")
+    }
+
+    private static func details(of connection: Connection, word: (String) -> String) -> [Detail] {
+        var details = [Detail(key: word("Address"), value: address(of: connection))]
         if !connection.username.isEmpty {
-            details.append(Detail(key: "User", value: connection.username))
+            details.append(Detail(key: word("User"), value: connection.username))
         }
-        details.append(Detail(key: "Kind", value: traits(of: connection).joined(separator: ", ")))
+        details.append(Detail(key: word("Kind"), value: traits(of: connection, word: word).joined(separator: ", ")))
         return details
     }
 
-    private static func traits(of connection: Connection) -> [String] {
+    /// - Parameter word: How an English word is said: as it is for diagnostics, or translated for
+    ///   the screen. A protocol's name is the same in every language.
+    private static func traits(of connection: Connection, word: (String) -> String = { $0 }) -> [String] {
         let kind: String
         switch connection.endpoint {
         case .webDAV: kind = "WebDAV"
         case .sftp: kind = "SFTP"
-        case .localFolder: kind = "local"
+        case .localFolder: kind = word("local")
         }
-        var parts = [kind, connection.isEncrypted ? "encrypted" : "plain"]
-        if connection.isReadOnly { parts.append("read-only") }
+        var parts = [kind, word(connection.isEncrypted ? "encrypted" : "plain")]
+        if connection.isReadOnly { parts.append(word("read-only")) }
         return parts
     }
 

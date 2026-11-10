@@ -13,6 +13,23 @@ struct SettingsView: View {
     @State private var isConfirmingForgetAll = false
     @State private var loginStatus = LoginAgent.status
     @State private var diagnostics: TextFile?
+    @State private var isExporting = false
+    @State private var isChoosingImport = false
+    @State private var importing: DrivesFileToImport?
+    @State private var drivesFileProblem: String?
+    @State private var language = AppLanguage.chosen()
+    /// Apple reads the language at launch, so a new choice waits for a restart.
+    @State private var languageChanged = false
+
+    private var languageChoice: Binding<AppLanguage> {
+        Binding {
+            language
+        } set: { chosen in
+            AppLanguage.choose(chosen)
+            language = chosen
+            languageChanged = true
+        }
+    }
 
     private var launchAtLogin: Binding<Bool> {
         Binding {
@@ -109,7 +126,7 @@ struct SettingsView: View {
                 }
             }
             if !drives.unknownDomains.isEmpty {
-                Text("macOS has \(drives.unknownDomains.count) drive(s) that CloudAccess doesn't recognise. They've been left alone.")
+                Text("macOS has \(drives.unknownDomains.count) drives that CloudAccess doesn't recognise. They've been left alone.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -122,6 +139,55 @@ struct SettingsView: View {
                         diagnostics = TextFile(text: drives.diagnosticsText())
                     }
                     .buttonStyle(.pill)
+                }
+                IconRow("globe", "Language", subtitle: "System follows your Mac's language") {
+                    Picker("Language", selection: languageChoice) {
+                        ForEach(AppLanguage.allCases, id: \.self) { choice in
+                            Text(verbatim: choice.title).tag(choice)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 140)
+                }
+                if languageChanged {
+                    if LoginAgent.canRestart {
+                        IconRow("arrow.clockwise", "The new language shows after a restart") {
+                            Button("Restart Now") { LoginAgent.restart() }
+                                .buttonStyle(.pill)
+                        }
+                    } else {
+                        IconRow(
+                            "arrow.clockwise", "The new language shows after a restart",
+                            subtitle: "Quit, then open CloudAccess again"
+                        ) {
+                            Button("Quit") { LoginAgent.quit() }
+                                .buttonStyle(.pill)
+                        }
+                    }
+                }
+                IconRow("square.and.arrow.up.on.square", "Export drives", subtitle: "Drives and passwords, in one encrypted file") {
+                    Button("Export…") {
+                        Task {
+                            drivesFileProblem = nil
+                            if await DrivesFileAccess.confirmOwner() {
+                                isExporting = true
+                            }
+                        }
+                    }
+                    .buttonStyle(.pill)
+                    .disabled(drives.exportable.isEmpty)
+                }
+                IconRow("square.and.arrow.down.on.square", "Import drives", subtitle: "From a drives file, one drive at a time") {
+                    Button("Import…") {
+                        drivesFileProblem = nil
+                        isChoosingImport = true
+                    }
+                    .buttonStyle(.pill)
+                }
+                if let drivesFileProblem {
+                    Text(drivesFileProblem)
+                        .font(.caption)
+                        .foregroundStyle(.red)
                 }
                 IconRow("iphone", "CloudWanderer for iPhone", subtitle: "Your drives on your phone") {
                     Button("Learn More…") {
@@ -180,29 +246,56 @@ struct SettingsView: View {
             Text("The files stay on this Mac, but CloudAccess stops showing where they are.")
         }
         .savesText($diagnostics, named: "CloudAccess Diagnostics.txt")
+        .sheet(isPresented: $isExporting) {
+            ExportDrivesView(drives: drives.exportable)
+                .presentationBackground(.regularMaterial)
+        }
+        .fileImporter(isPresented: $isChoosingImport, allowedContentTypes: [.drivesFile]) { result in
+            do {
+                importing = DrivesFileToImport(data: try DrivesFileAccess.read(result.get()))
+            } catch {
+                drivesFileProblem = error.localizedDescription
+            }
+        }
+        .sheet(item: $importing) { file in
+            ImportDrivesView(file: file)
+                .presentationBackground(.regularMaterial)
+        }
     }
 }
 
 /// Something macOS is still waiting for. It comes first, because nothing works without it.
 private struct PermissionRow: View {
-    let text: String
-    let button: String
+    let text: Text
+    let button: Text
     let action: (() -> Void)?
 
-    init(_ text: String, button: String = "Open System Settings", action: (() -> Void)?) {
-        self.text = text
-        self.button = button
+    /// The text and the button are looked up in the app's strings.
+    init(_ text: LocalizedStringKey, button: LocalizedStringKey = "Open System Settings", action: (() -> Void)?) {
+        self.text = Text(text)
+        self.button = Text(button)
+        self.action = action
+    }
+
+    @_disfavoredOverload
+    init(_ text: some StringProtocol, button: LocalizedStringKey = "Open System Settings", action: (() -> Void)?) {
+        self.text = Text(verbatim: String(text))
+        self.button = Text(button)
         self.action = action
     }
 
     var body: some View {
         Card {
             HStack {
-                Label(text, systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.red)
+                Label {
+                    text
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                }
+                .foregroundStyle(.red)
                 Spacer()
                 if let action {
-                    Button(button, action: action)
+                    Button(action: action) { button }
                         .buttonStyle(.pill)
                 }
             }
@@ -402,7 +495,7 @@ struct AddDriveView: View {
                 SettingRow("Protocol") {
                     Picker("Protocol", selection: $form.kind) {
                         ForEach(ConnectionForm.Kind.allCases, id: \.self) { kind in
-                            Text(kind.rawValue)
+                            Text(kind.title)
                         }
                     }
                 }
@@ -417,7 +510,7 @@ struct AddDriveView: View {
                 FieldRow(label: "Password", text: $password, isSecure: true)
                 if isSFTP {
                     SettingRow("Private key") {
-                        Button(privateKeyName ?? "Choose…") { isChoosingKey = true }
+                        Button(privateKeyName ?? String(localized: "Choose…")) { isChoosingKey = true }
                             .buttonStyle(.pill)
                     }
                     if privateKey != nil {
@@ -521,14 +614,15 @@ struct AddDriveView: View {
             privateKeyName = key.name
             problem = nil
         } catch {
-            problem = "That key can't be read: \(error.localizedDescription)"
+            let reason = error.localizedDescription
+            problem = String(localized: "That key can't be read: \(reason)")
         }
     }
 
     /// The engine's path for a refusal is `/`, the drive's own folder, which reads as the server's.
     private func explain(_ error: Error, for endpoint: Connection.Endpoint) -> String {
         if case RemoteError.forbidden = error {
-            return "The server refused to open this folder. Check that this user can read it. On a Mac server, Documents, Desktop and Downloads also need \"Allow full disk access for remote users\", under System Settings, General, Sharing, Remote Login."
+            return String(localized: "The server refused to open this folder. Check that this user can read it. On a Mac server, Documents, Desktop and Downloads also need \"Allow full disk access for remote users\", under System Settings, General, Sharing, Remote Login.")
         }
         return Tailnet.explain(error, for: endpoint)
     }
@@ -538,7 +632,7 @@ struct AddDriveView: View {
         form = tidied
         let start = browseStart
         guard var connection = start.browsingConnection(hostKey: hostKey?.key) else {
-            problem = "Check the server's details."
+            problem = String(localized: "Check the server's details.")
             return
         }
         connection.allowsInsecure = allowsInsecure
@@ -553,13 +647,14 @@ struct AddDriveView: View {
                 // The first press only reads the server's identity, to show it.
                 if case .sftp(let host, let port) = connection.endpoint, hostKey == nil {
                     hostKey = try await RemoteEngine.hostKey(host: host, port: port)
-                    problem = "Check the server's identity below, then press Browse again."
+                    problem = String(localized: "Check the server's identity below, then press Browse again.")
                     return
                 }
                 let engine = try await RemoteEngine(connection: connection, credentials: signIn)
                 browsing = FolderBrowsing(start: start, engine: engine)
             } catch {
-                problem = "Couldn't connect: \(explain(error, for: connection.endpoint))"
+                let reason = explain(error, for: connection.endpoint)
+                problem = String(localized: "Couldn't connect: \(reason)")
             }
         }
     }
@@ -570,7 +665,7 @@ struct AddDriveView: View {
         guard var connection = form.browsingConnection(hostKey: hostKey?.key),
               let folder = RemotePath.root.appending(form.ownFolderName)
         else {
-            problem = "That name can't be used for a folder."
+            problem = String(localized: "That name can't be used for a folder.")
             return
         }
         connection.allowsInsecure = allowsInsecure
@@ -588,7 +683,8 @@ struct AddDriveView: View {
                 connect()
             } catch {
                 isConnecting = false
-                problem = "That folder couldn't be made: \(Tailnet.explain(error, for: connection.endpoint))"
+                let reason = Tailnet.explain(error, for: connection.endpoint)
+                problem = String(localized: "That folder couldn't be made: \(reason)")
             }
         }
     }
@@ -596,7 +692,7 @@ struct AddDriveView: View {
     private func connect() {
         form = tidied
         guard var connection = form.newConnection(isEncrypted: isEncrypted, hostKey: hostKey?.key) else {
-            problem = "Check the name and the server's details."
+            problem = String(localized: "Check the name and the server's details.")
             return
         }
         connection.allowsInsecure = allowsInsecure
@@ -623,7 +719,8 @@ struct AddDriveView: View {
             } catch RemoteError.vault(.missing) {
                 needsOwnFolder = true
             } catch {
-                problem = "Couldn't connect: \(explain(error, for: connection.endpoint))"
+                let reason = explain(error, for: connection.endpoint)
+                problem = String(localized: "Couldn't connect: \(reason)")
             }
         }
     }

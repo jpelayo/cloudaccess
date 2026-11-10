@@ -64,8 +64,16 @@ struct ConnectionEditor: View {
     }
 
     private var statusLabel: String {
-        if isSaving { return "Checking the connection…" }
-        return form.applied(to: connection) == nil ? "Those details aren't valid" : "Not saved yet"
+        if isSaving { return String(localized: "Checking the connection…") }
+        return form.applied(to: connection) == nil
+            ? String(localized: "Those details aren't valid")
+            : String(localized: "Not saved yet")
+    }
+
+    /// The chosen key's file name, as it is, or what the button does.
+    private var keyButtonTitle: String {
+        if let privateKeyName { return privateKeyName }
+        return drives.signsInWithKey(connection) ? String(localized: "Replace…") : String(localized: "Choose…")
     }
 
     /// Only a mounted drive has anything to rebuild. An ejected one is just its saved details.
@@ -73,9 +81,12 @@ struct ConnectionEditor: View {
         edited.requiresNewDrive(comparedTo: connection) && connection.isMounted
     }
 
-    private var pendingNote: String {
-        guard let count = drives.waiting[connection.id], count > 0 else { return "" }
-        return "\(count) files haven't uploaded yet. They'll be kept on this Mac, and Settings shows where. "
+    /// One whole message either way, so each reads right in every language.
+    private var moveMessage: Text {
+        guard let count = drives.waiting[connection.id], count > 0 else {
+            return Text("The drive leaves Finder and comes back with what's at the new address. Everything on the current server stays there.")
+        }
+        return Text("\(count) files haven't uploaded yet. They'll be kept on this Mac, and Settings shows where. The drive leaves Finder and comes back with what's at the new address. Everything on the current server stays there.")
     }
 
     var body: some View {
@@ -87,7 +98,7 @@ struct ConnectionEditor: View {
             SettingRow("Protocol") {
                 Picker("Protocol", selection: $form.kind) {
                     ForEach(ConnectionForm.Kind.allCases, id: \.self) { kind in
-                        Text(kind.rawValue)
+                        Text(kind.title)
                     }
                 }
             }
@@ -98,7 +109,7 @@ struct ConnectionEditor: View {
             FieldRow(label: "Password", text: $password, prompt: "Unchanged", isSecure: true)
             if form.kind == .sftp {
                 SettingRow("Private key") {
-                    Button(privateKeyName ?? (drives.signsInWithKey(connection) ? "Replace…" : "Choose…")) {
+                    Button(keyButtonTitle) {
                         isChoosingKey = true
                     }
                     .buttonStyle(.pill)
@@ -143,7 +154,7 @@ struct ConnectionEditor: View {
             if canSave {
                 save()
             } else if !isSaving {
-                problem = "Those details aren't valid, so nothing has been saved."
+                problem = String(localized: "Those details aren't valid, so nothing has been saved.")
             }
         }
         .fileImporter(isPresented: $isChoosingKey, allowedContentTypes: [.item], onCompletion: loadKey)
@@ -162,7 +173,7 @@ struct ConnectionEditor: View {
                 }
             }
         } message: {
-            Text(pendingNote + "The drive leaves Finder and comes back with what's at the new address. Everything on the current server stays there.")
+            moveMessage
         }
     }
 
@@ -173,7 +184,8 @@ struct ConnectionEditor: View {
             privateKeyName = key.name
             problem = nil
         } catch {
-            problem = "That key can't be read: \(error.localizedDescription)"
+            let reason = error.localizedDescription
+            problem = String(localized: "That key can't be read: \(reason)")
         }
     }
 
@@ -201,7 +213,8 @@ struct ConnectionEditor: View {
                     try await apply(edited)
                 }
             } catch {
-                problem = "Not saved: \(Tailnet.explain(error, for: edited.endpoint))"
+                let reason = Tailnet.explain(error, for: edited.endpoint)
+                problem = String(localized: "Not saved: \(reason)")
             }
         }
     }
@@ -214,7 +227,8 @@ struct ConnectionEditor: View {
             do {
                 try await apply(edited)
             } catch {
-                problem = "Not saved: \(Tailnet.explain(error, for: edited.endpoint))"
+                let reason = Tailnet.explain(error, for: edited.endpoint)
+                problem = String(localized: "Not saved: \(reason)")
             }
         }
     }
@@ -250,8 +264,8 @@ private struct HostKeyReview: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            KeyValueRow("Saved", saved?.fingerprint ?? "…")
-            KeyValueRow("Now offered", offered?.fingerprint ?? "…")
+            KeyValueRow(String(localized: "Saved"), saved?.fingerprint ?? "…")
+            KeyValueRow(String(localized: "Now offered"), offered?.fingerprint ?? "…")
             if let problem {
                 Text(problem)
                     .foregroundStyle(.red)

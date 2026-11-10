@@ -223,7 +223,7 @@ type trashInfo struct {
 }
 
 func isNotFound(err error) bool {
-	return classify(err).Kind == "notFound"
+	return err != nil && classify(err).Kind == "notFound"
 }
 
 // trashReaders is how many entries are read at once. Each takes two requests, and every save adds
@@ -393,6 +393,9 @@ func (d *drive) restoreFromTrash(ctx context.Context, id string) (remoteItem, er
 type maintenanceResult struct {
 	PurgedEntries int `json:"purgedEntries"`
 	SweptFiles    int `json:"sweptFiles"`
+	// OtherDevicesUploads counts other devices' Unsafe uploads in the drive's root. They may be
+	// live, so they're shown, never removed.
+	OtherDevicesUploads int `json:"otherDevicesUploads,omitempty"`
 	// PurgeSkipped says why no trash was purged on this pass, for the diagnostics.
 	PurgeSkipped string `json:"purgeSkipped,omitempty"`
 	// RetentionSeconds tells the app how soon to look again, once the policy could be read.
@@ -439,6 +442,11 @@ func (d *drive) maintain(ctx context.Context) (maintenanceResult, error) {
 	var result maintenanceResult
 	if d.server == nil {
 		return result, nil
+	}
+	// Checked here, not by the caller, so no path into maintenance can make the control folder
+	// on a drive whose person chose to keep it off the server.
+	if d.unsafe {
+		return d.sweepUnsafeUploads(ctx)
 	}
 	// The probe needs the claims folder, which a new drive may not have yet.
 	if err := d.server.ensureFolder(ctx, claimsFolder); err != nil {

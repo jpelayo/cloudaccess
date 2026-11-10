@@ -129,7 +129,7 @@ final class StatusPanel: NSObject {
             } else if needsHelp {
                 let sign = NSImage(
                     systemSymbolName: "exclamationmark.triangle.fill",
-                    accessibilityDescription: "CloudAccess needs attention")
+                    accessibilityDescription: String(localized: "CloudAccess needs attention"))
                 sign?.isTemplate = true
                 button.image = sign
             } else {

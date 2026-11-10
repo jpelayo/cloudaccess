@@ -265,7 +265,9 @@ extension RemoteBackend {
         }
         if isIncomplete {
             try? FileManager.default.removeItem(at: destination)
-            throw RemoteError.failed(path, "The server didn't send all of \(path.name).")
+            // One sentence for every file, so it can be translated: the file's name is beside it
+            // wherever it's shown.
+            throw RemoteError.failed(path, "The server didn't send all of this file.")
         }
         throw RemoteError.locked(path)
     }

@@ -4,11 +4,11 @@
 <dict>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.infinitecontext.cloudwander</string>
+		<string>group.com.infinitecontext.CloudWanderer</string>
 	</array>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)com.infinitecontext.CloudWander.FileProvider</string>
+		<string>$(AppIdentifierPrefix)com.infinitecontext.CloudWanderer.FileProvider</string>
 	</array>
 </dict>
 </plist>
