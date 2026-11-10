@@ -31,7 +31,8 @@ import Testing
     }
 
     private let everyRequest: [MacAnswer.Request] = [
-        .read, .create(isSafelyNew: false), .create(isSafelyNew: true), .delete,
+        .read, .create(isSafelyNew: false, holdsData: true), .create(isSafelyNew: true, holdsData: true),
+        .create(isSafelyNew: false, holdsData: false), .create(isSafelyNew: true, holdsData: false), .delete,
         .modify(hasContents: false, failOnConflict: false), .modify(hasContents: true, failOnConflict: false),
         .modify(hasContents: true, failOnConflict: true),
     ]
@@ -46,16 +47,36 @@ import Testing
         }
     }
 
+    /// A new file's bytes, or a new folder's files, exist only on this Mac, so they're never told
+    /// they're gone. Only a re-import of a file with no bytes can be.
+    @Test func aNewFileIsNeverToldItsGone() {
+        for error in everyFailure {
+            for isSafelyNew in [false, true] {
+                let request = MacAnswer.Request.create(isSafelyNew: isSafelyNew, holdsData: true)
+                #expect(MacAnswer.to(request, failingWith: error) != .noSuchItem, "\(error)")
+            }
+        }
+        #expect(MacAnswer.to(.create(isSafelyNew: true, holdsData: true), failingWith: SyncError.itemNotFound("x"))
+            == .cannotSync)
+        #expect(MacAnswer.to(.create(isSafelyNew: false, holdsData: false), failingWith: RemoteError.notFound(path))
+            == .noSuchItem)
+    }
+
     /// macOS answers "leave out" with a delete that reaches every device.
     @Test func onlyACreateOfSomethingNewIsEverLeftOut() {
-        for request in everyRequest where request != .create(isSafelyNew: true) {
+        let leftOut: [MacAnswer.Request] = [
+            .create(isSafelyNew: true, holdsData: true), .create(isSafelyNew: true, holdsData: false),
+        ]
+        for request in everyRequest where !leftOut.contains(request) {
             for error in everyFailure {
                 #expect(MacAnswer.to(request, failingWith: error) != .leaveOut, "\(request) \(error)")
             }
         }
-        let new = MacAnswer.Request.create(isSafelyNew: true)
+        let new = MacAnswer.Request.create(isSafelyNew: true, holdsData: true)
         #expect(MacAnswer.to(new, failingWith: RemoteError.nameTooLong(path)) == .leaveOut)
-        #expect(MacAnswer.to(.create(isSafelyNew: false), failingWith: RemoteError.nameTooLong(path)) == .cannotSync)
+        #expect(
+            MacAnswer.to(.create(isSafelyNew: false, holdsData: true), failingWith: RemoteError.nameTooLong(path))
+                == .cannotSync)
         // A folder may be a package macOS hasn't flattened, so it waits where a person can see it.
         #expect(MacAnswer.to(new, failingWith: RemoteError.notAPlainFile(path, .folder)) == .cannotSync)
     }
@@ -94,7 +115,7 @@ import Testing
     /// has the system put the item back. "Can't sync" would leave it gone here and there on the server.
     @Test func aReadOnlyDeleteBringsTheItemBack() {
         #expect(MacAnswer.to(.delete, failingWith: RemoteError.readOnly) == .deletionRefused)
-        #expect(MacAnswer.to(.create(isSafelyNew: false), failingWith: RemoteError.readOnly) == .cannotSync)
+        #expect(MacAnswer.to(.create(isSafelyNew: false, holdsData: true), failingWith: RemoteError.readOnly) == .cannotSync)
         #expect(
             MacAnswer.to(.modify(hasContents: true, failOnConflict: false), failingWith: RemoteError.readOnly)
                 == .cannotSync)
@@ -259,6 +280,38 @@ import Testing
         #expect(try drive.store.failures().map(\.id) == [item.id])
     }
 
+    /// A peer deleted a folder and this Mac confirmed it. Before macOS took that in, a person saved
+    /// a new file, or made a new folder, inside it. Those exist only here, so they wait, listed.
+    @Test func aNewFileInAFolderThatWentWaitsWhereAPersonCanSeeIt() async throws {
+        for isFolder in [false, true] {
+            let drive = try Drive()
+            await drive.server.makeFolder(path("/Work"))
+            try await drive.syncer.refresh(folderID: root)
+            let work = try #require(try drive.store.child(of: root, named: "Work"))
+            try await drive.confirmGone("/Work")
+            #expect(try drive.store.item(id: work.id) == nil)
+
+            let contents: URL? = try isFolder ? nil : drive.local("new")
+            var thrown: Error?
+            do {
+                _ = try await drive.mutations.create(
+                    name: "Notes", parentID: work.id, isFolder: isFolder,
+                    contents: contents, mayAlreadyExist: false)
+            } catch {
+                thrown = error
+            }
+
+            let error = try #require(thrown)
+            for isSafelyNew in [false, true] {
+                let request = MacAnswer.Request.create(isSafelyNew: isSafelyNew, holdsData: true)
+                #expect(MacAnswer.to(request, failingWith: error) == .cannotSync, "folder: \(isFolder)")
+            }
+            let unsent = SyncFailure.unsentID(name: "Notes", parentID: work.id)
+            #expect(try drive.store.failures().map(\.id) == [unsent], "folder: \(isFolder)")
+            #expect(await drive.server.content(at: path("/Work/Notes")) == nil)
+        }
+    }
+
     // MARK: A taken name
 
     /// A peer made a file with this name, and this Mac hasn't listed it yet.
@@ -320,5 +373,50 @@ import Testing
             name: "Report.docx", parentID: root, isFolder: false, contents: nil, mayAlreadyExist: true)
 
         #expect(adopted.name == "Report.docx")
+    }
+
+    /// A rename with no edit, of a file a peer is saving, can land in Apache's moment without it.
+    /// macOS drops its copy on "no such item", so the rename is tried again first.
+    @Test func aRenameLooksTwiceBeforeSayingAFileIsGone() async throws {
+        let drive = try Drive()
+        let item = try await drive.synced("/Report.docx", "version A")
+        await drive.server.goMissingOnce(path("/Report.docx"))
+
+        let outcome = try await drive.mutations.modify(
+            id: item.id, baseVersion: drive.base(of: item), newLocation: (root, "Final.docx"),
+            contents: nil, failOnConflict: false)
+
+        #expect(outcome.item.id == item.id)
+        #expect(outcome.item.name == "Final.docx")
+        #expect(await drive.text(at: path("/Final.docx")) == "version A")
+    }
+
+    /// Both looks landed in a moment without the file, so macOS heard it was gone and dropped it.
+    /// The server still has it, so the next listing announces it again, or it would stay hidden
+    /// on this Mac until it changed.
+    @Test func aFileWronglyCalledGoneComesBackAtTheNextListing() async throws {
+        let renamed = try Drive()
+        let renamedItem = try await renamed.synced("/Report.docx", "version A")
+        await renamed.server.goMissing(path("/Report.docx"), times: 2)
+        await #expect(throws: RemoteError.self) {
+            _ = try await renamed.mutations.modify(
+                id: renamedItem.id, baseVersion: renamed.base(of: renamedItem), newLocation: (root, "Final.docx"),
+                contents: nil, failOnConflict: false)
+        }
+
+        let downloaded = try Drive()
+        let downloadedItem = try await downloaded.synced("/Report.docx", "version A")
+        await downloaded.server.goMissing(path("/Report.docx"), times: 2)
+        await #expect(throws: SyncError.itemNotFound(downloadedItem.id)) {
+            _ = try await downloaded.mutations.fetch(
+                id: downloadedItem.id, to: downloaded.folder.appendingPathComponent("out"))
+        }
+
+        for (drive, item) in [(renamed, renamedItem), (downloaded, downloadedItem)] {
+            let dropped = try drive.store.currentAnchor()
+            try await drive.syncer.refresh(folderID: root)
+            #expect(try drive.store.changes(since: dropped).updated.map(\.id) == [item.id])
+            #expect(await drive.text(at: path("/Report.docx")) == "version A")
+        }
     }
 }

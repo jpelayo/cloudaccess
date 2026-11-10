@@ -73,7 +73,7 @@ func TestPlainRcloneReadsWhatTheEngineWrote(t *testing.T) {
 	d := openEncrypted(t, "interop-read", driveConfig{Kind: "local", RootPath: server})
 
 	var counter atomic.Int64
-	content := []byte("written by CloudMount")
+	content := []byte("written by CloudAccess")
 	if _, err := d.upload(context.Background(), writeLocal(t, content), "Informes/año 2026.txt", &counter); err != nil {
 		t.Fatal(err)
 	}

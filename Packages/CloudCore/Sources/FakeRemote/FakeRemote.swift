@@ -31,7 +31,7 @@ public actor FakeRemote: RemoteBackend {
     private var stagedFiles: [String: Data] = [:]
     private var duringNextCommit: (@Sendable () async -> Void)?
     private var downloadsToShorten = 0
-    private var briefAbsences = Set<RemotePath>()
+    private var briefAbsences: [RemotePath: Int] = [:]
     public private(set) var listingCount = 0
     private var keepsDetails = true
 
@@ -44,13 +44,18 @@ public actor FakeRemote: RemoteBackend {
     /// The next look at this path finds nothing, once. Apache does this in the middle of a save
     /// that replaces a file, because it removes the old one before moving the new one in.
     public func goMissingOnce(_ path: RemotePath) {
-        briefAbsences.insert(path)
+        goMissing(path, times: 1)
+    }
+
+    /// The next few looks at this path find nothing, as when one look lands in each of two saves.
+    public func goMissing(_ path: RemotePath, times: Int) {
+        briefAbsences[path] = times
     }
 
     private func checkPresent(_ path: RemotePath) throws {
-        if briefAbsences.remove(path) != nil {
-            throw RemoteError.notFound(path)
-        }
+        guard let left = briefAbsences[path] else { return }
+        briefAbsences[path] = left > 1 ? left - 1 : nil
+        throw RemoteError.notFound(path)
     }
 
     /// Like a server that gives no ETags.
@@ -359,7 +364,10 @@ public actor FakeRemote: RemoteBackend {
         from source: RemotePath, to destination: RemotePath, baseVersion: String?
     ) async throws -> RemoteItem {
         try check()
-        guard entries[source] != nil else {
+        // The engine looks for the source once, so Apache's moment without a file looks like a
+        // source that's gone.
+        let isBrieflyAbsent = (try? checkPresent(source)) == nil
+        guard !isBrieflyAbsent, entries[source] != nil else {
             // A replay only recognises its own result, by its version.
             if let moved = entries[destination] {
                 let found = item(destination, moved)

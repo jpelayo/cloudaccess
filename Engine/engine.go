@@ -1,6 +1,6 @@
 // Apache 2 license - developer@infinitecontext.com
 
-// Package main builds the CloudMount engine: a thin C interface over rclone's
+// Package main builds the CloudAccess engine: a thin C interface over rclone's
 // WebDAV, SFTP and crypt backends, compiled with -buildmode=c-archive.
 //
 // Calls pass JSON metadata and file paths, never file bytes. CMCallBytes blocks, so

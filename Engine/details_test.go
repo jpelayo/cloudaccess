@@ -175,7 +175,7 @@ func openDetailsDrive(t *testing.T, config driveConfig, device string, encrypted
 		}
 		return '-'
 	}, driveID(t)+"-"+device)
-	config.DeviceID, config.DeviceName, config.AppName = "device-"+device, device, "CloudMount test"
+	config.DeviceID, config.DeviceName, config.AppName = "device-"+device, device, "CloudAccess test"
 	if encrypted {
 		config.Encrypted, config.VaultPassword, config.CreateVault = true, interopPassword, true
 	}
@@ -446,7 +446,7 @@ func checkEncryptedDetailsTellTheServerNothing(t *testing.T, server detailsServe
 	content := []byte("secret content")
 	saveWith(t, d, content, "secret.txt", "", fileInput{Modified: ownModified, Created: ownCreated})
 	item, entry := stat(t, d, "secret.txt")
-	for _, leak := range []string{"2019-03-04", "2018-12-01", sum(content), "secret", `"size"`, "CloudMount test"} {
+	for _, leak := range []string{"2019-03-04", "2018-12-01", sum(content), "secret", `"size"`, "CloudAccess test"} {
 		if strings.Contains(entry.Details, leak) {
 			t.Errorf("the server can read %q in %s", leak, entry.Details)
 		}

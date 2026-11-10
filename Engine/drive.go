@@ -70,7 +70,7 @@ var (
 	errTooSlow         = errors.New("the server is too slow to be usable")
 	// errFolderTooSlow is one folder running out of time on a server that's still answering.
 	errFolderTooSlow = errors.New("this folder took too long to list")
-	errDigestOnly    = errors.New("this server only offers Digest sign-in, which CloudMount can't use")
+	errDigestOnly    = errors.New("this server only offers Digest sign-in, which CloudAccess can't use")
 	errShortFile     = errors.New("the server sent a different amount of this file than it lists")
 	errNotAPlainFile = errors.New("this isn't a plain file, so it can't be uploaded as one")
 )
@@ -135,6 +135,9 @@ type drive struct {
 	detailsKept  bool
 	// staged holds what staging learned about each upload still waiting to be committed.
 	staged sync.Map
+	// policySeen says this drive has read or saved a retention policy since it opened, so one
+	// that's missing now is uncertain, not the default.
+	policySeen atomic.Bool
 }
 
 var (
@@ -167,7 +170,7 @@ func openDrive(ctx context.Context, c driveConfig) (info *vaultInfo, err error) 
 			releaseSections(c.ID)
 		}
 	}()
-	base := "cm-" + c.ID
+	base := "ca-" + c.ID
 	pass, err := obscured(c.Password)
 	if err != nil {
 		return nil, err
@@ -350,7 +353,7 @@ func shutdownBackend(f fs.Fs) {
 // releaseSections forgets a drive's rclone configuration, which holds its obscured secrets,
 // and rclone's cached backends for it.
 func releaseSections(id string) {
-	for _, section := range []string{"cm-" + id, "cm-" + id + "-crypt"} {
+	for _, section := range []string{"ca-" + id, "ca-" + id + "-crypt"} {
 		cache.ClearConfig(section)
 		config.LoadedData().DeleteSection(section)
 	}
@@ -941,7 +944,7 @@ func configureRclone() {
 	ci.Timeout = fs.Duration(60 * time.Second)
 	ci.ConnectTimeout = fs.Duration(15 * time.Second)
 	ci.LowLevelRetries = 3
-	ci.UserAgent = "CloudMount"
+	ci.UserAgent = "CloudAccess"
 }
 
 // nanoTime reads a time Swift sent as nanoseconds, where zero means none.

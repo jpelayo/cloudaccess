@@ -89,7 +89,7 @@ func TestAFailedOpenLeavesNoSecretsBehind(t *testing.T) {
 	if _, err := openDrive(context.Background(), wrong); !errors.Is(err, errWrongPassword) {
 		t.Fatalf("err = %v", err)
 	}
-	if rcloneconfig.LoadedData().HasSection("cm-" + wrong.ID) {
+	if rcloneconfig.LoadedData().HasSection("ca-" + wrong.ID) {
 		t.Error("a failed open left its configuration behind")
 	}
 }

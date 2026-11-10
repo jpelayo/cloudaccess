@@ -212,6 +212,6 @@ import Testing
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try Data(#"old line password: "kept here""#.utf8).write(to: folder.appendingPathComponent("diagnostics.log"))
 
-        #expect(!Diagnostics(directory: folder).exportedText(header: "CloudMount").contains("kept here"))
+        #expect(!Diagnostics(directory: folder).exportedText(header: "CloudAccess").contains("kept here"))
     }
 }

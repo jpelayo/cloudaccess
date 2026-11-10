@@ -14,7 +14,7 @@ public final class NetworkWatcher: Sendable {
         monitor.pathUpdateHandler = { path in
             onChange(path.status == .satisfied)
         }
-        monitor.start(queue: DispatchQueue(label: "cloudmount.network"))
+        monitor.start(queue: DispatchQueue(label: "cloudaccess.network"))
     }
 
     deinit {

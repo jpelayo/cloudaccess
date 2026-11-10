@@ -162,7 +162,7 @@ type davResponse struct {
 			Modified string `xml:"getlastmodified"`
 			ETag     string `xml:"getetag"`
 			// Details is this app's own property, and only in its namespace.
-			Details string `xml:"https://infinitecontext.com/ns/cloudmount/ file"`
+			Details string `xml:"https://infinitecontext.com/ns/cloudaccess/ file"`
 		} `xml:"prop"`
 	} `xml:"propstat"`
 }
@@ -473,7 +473,7 @@ func (c *davClient) setDetails(ctx context.Context, rawPath string, folder bool,
 			Propstats []struct {
 				Status string `xml:"status"`
 				Prop   struct {
-					File *struct{} `xml:"https://infinitecontext.com/ns/cloudmount/ file"`
+					File *struct{} `xml:"https://infinitecontext.com/ns/cloudaccess/ file"`
 				} `xml:"prop"`
 			} `xml:"propstat"`
 		} `xml:"response"`

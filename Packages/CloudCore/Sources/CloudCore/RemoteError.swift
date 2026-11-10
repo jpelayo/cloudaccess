@@ -232,7 +232,7 @@ public enum RemoteError: Error, Equatable, Sendable {
         case .tooManyItems:
             return FileProblem(
                 cause: "This folder has too many items for the Files app to show.",
-                fix: "Open it in CloudWander instead.")
+                fix: "Open it in CloudWanderer instead.")
         case .insufficientStorage:
             return FileProblem(
                 cause: "The server is out of space.", fix: "Free some space there, then press Try Again.")
@@ -253,7 +253,7 @@ public enum RemoteError: Error, Equatable, Sendable {
                 fix: "Press Try Again. \(persists)")
         case .link:
             return FileProblem(
-                cause: "This is a link, and CloudMount doesn't upload links. Nothing was sent.",
+                cause: "This is a link, and CloudAccess doesn't upload links. Nothing was sent.",
                 fix: "To have it on the server, replace the link with a copy of the real file.")
         case .other:
             return FileProblem(
@@ -298,7 +298,7 @@ extension RemoteError: LocalizedError {
         case .failed(_, let message): message
         case .tooSlow(let path): "\(path) took too long to list. The server may be busy."
         case .tooLarge(let path): "The server refuses files as large as \(path)."
-        case .tooManyItems(let path): "\(path) has too many items for the Files app. Open it in CloudWander."
+        case .tooManyItems(let path): "\(path) has too many items for the Files app. Open it in CloudWanderer."
         case .cancelled: "Cancelled."
         case .unauthorized: "The server refused the username or password."
         case .insufficientStorage: "The server is out of space."
@@ -310,7 +310,7 @@ extension RemoteError: LocalizedError {
         case .vault(.mismatch): "This folder holds a different encrypted drive."
         case .vault(.rollback): "This folder holds an older copy of the encrypted drive."
         case .vault(.retired): "This encrypted drive was retired by a password change."
-        case .vault(.unsupported): "This encrypted drive needs a newer version of CloudMount."
+        case .vault(.unsupported): "This encrypted drive needs a newer version of CloudAccess."
         case .vault(.malformed): "This encrypted drive's details are damaged."
         case .vault(.encrypted): "This folder is an encrypted drive. Turn on encryption and enter its password."
         case .hostKeyUnknown: "This server's identity hasn't been confirmed."

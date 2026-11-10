@@ -144,13 +144,13 @@ extension FileProviderItem: NSFileProviderItemDecorating {
     public var decorations: [NSFileProviderItemDecorationIdentifier]? {
         var found: [NSFileProviderItemDecorationIdentifier] = []
         if item.name.contains(" (conflict from ") {
-            found.append(NSFileProviderItemDecorationIdentifier("com.infinitecontext.CloudMount.conflict"))
+            found.append(NSFileProviderItemDecorationIdentifier("com.infinitecontext.CloudAccess.conflict"))
         }
         if isUnavailable {
-            found.append(NSFileProviderItemDecorationIdentifier("com.infinitecontext.CloudMount.unavailable"))
+            found.append(NSFileProviderItemDecorationIdentifier("com.infinitecontext.CloudAccess.unavailable"))
         }
         if isFailed {
-            found.append(NSFileProviderItemDecorationIdentifier("com.infinitecontext.CloudMount.failed"))
+            found.append(NSFileProviderItemDecorationIdentifier("com.infinitecontext.CloudAccess.failed"))
         }
         return found.isEmpty ? nil : found
     }

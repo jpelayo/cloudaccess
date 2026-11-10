@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="CloudMount/CloudMount/Assets.xcassets/AppIcon.appiconset/icon_128x128@2x.png" width="128" height="128" alt="CloudMount icon">
+  <img src="CloudAccess/CloudAccess/Assets.xcassets/AppIcon.appiconset/icon_128x128@2x.png" width="128" height="128" alt="CloudAccess icon">
 </p>
 
-<h1 align="center">CloudMount</h1>
+<h1 align="center">CloudAccess</h1>
 
 <p align="center">
   Your own storage, as a drive on your Mac.<br>
-  With <b>CloudWander</b>, the same files on your iPhone.
+  With <b>CloudWanderer</b>, the same files on your iPhone.
 </p>
 
 > **Attention: in development.** Don't keep the only copy of anything on it yet.
@@ -15,7 +15,7 @@
 
 You may already pay for storage somewhere: a storage box from a hosting company, a storage device at home (often called a NAS), or space on a web server. Usually, getting files in and out of it means a separate program, copying files back and forth, and remembering which copy is the latest.
 
-**CloudMount makes that storage look like an ordinary drive on your Mac.** It appears in Finder's sidebar, just like iCloud Drive or Dropbox. You open, save, rename and drag files as you always do, and they're kept on your storage.
+**CloudAccess makes that storage look like an ordinary drive on your Mac.** It appears in Finder's sidebar, just like iCloud Drive or Dropbox. You open, save, rename and drag files as you always do, and they're kept on your storage.
 
 - **It doesn't fill your Mac.** Files stay on your storage and download only when you open them. Copies you haven't used for a while are removed from the Mac, and stay on the storage.
 - **You choose what stays.** Mark a folder to stay downloaded, and it's always there, even without internet.
@@ -23,11 +23,11 @@ You may already pay for storage somewhere: a storage box from a hosting company,
 - **It doesn't lose your work.** A save your Mac has confirmed is kept. If two computers change the same file at the same time, both versions are kept. Deleted files wait in a trash on the storage, for a week unless you choose otherwise.
 - **Nothing locks you in.** Files are stored in standard formats, so you can always reach them with other tools, even without this app.
 
-**CloudWander** is the iPhone companion. It shows your drives so you can browse files, download them, and share them to other apps. Plain drives also appear in the iPhone's Files app. You set it up by scanning a code on your Mac, so you only type the passwords.
+**CloudWanderer** is the iPhone companion. It shows your drives so you can browse files, download them, and share them to other apps. Plain drives also appear in the iPhone's Files app. You set it up by scanning a code on your Mac, so you only type the passwords.
 
 ### What you need
 
-- A Mac with macOS 26 or later. CloudWander needs iOS 26 or later.
+- A Mac with macOS 26 or later. CloudWanderer needs iOS 26 or later.
 - Storage you can reach over **WebDAV** or **SFTP**. These are two common ways for apps to connect to storage. Your provider or device tells you which it offers, along with an address, a username and a password.
 
 So far it's been tested with a Hetzner Storage Box and with servers set up for testing. Any other storage has to pass the same safety checks. If it can't be saved to safely, the drive opens read-only instead.
@@ -38,9 +38,9 @@ There's no download yet. For now, it has to be built from source: see [For devel
 
 ### On your Mac
 
-1. Click the CloudMount icon in the menu bar, then choose Settings, then Add Drive.
+1. Click the CloudAccess icon in the menu bar, then choose Settings, then Add Drive.
 2. Enter your storage's address, username and password. Switch on **Enable encryption** if you want it. This choice can't be changed later.
-3. Turn CloudMount on under System Settings, General, Login Items & Extensions. The CloudMount menu has a shortcut there.
+3. Turn CloudAccess on under System Settings, General, Login Items & Extensions. The CloudAccess menu has a shortcut there.
 4. Your drive appears in Finder's sidebar.
 
 In a drive's details you choose how long downloaded copies stay, how much space they may use, and which folders always stay downloaded.
@@ -48,7 +48,7 @@ In a drive's details you choose how long downloaded copies stay, how much space 
 ### On your iPhone
 
 1. On your Mac, open the drive's details and choose Show QR Code.
-2. In CloudWander, add a drive, scan the code, and type the passwords.
+2. In CloudWanderer, add a drive, scan the code, and type the passwords.
 
 To change a drive later, swipe it and choose Edit.
 
@@ -65,9 +65,9 @@ On the iPhone, About has the app's log: Show Log reads it, and Share Log sends i
 - **File dates:** a file keeps its own dates on SFTP, and on WebDAV storage that can store them, such as the Storage Box. Files put on the storage by other programs show when they arrived there.
 - **Replaced versions are kept for a week,** and only up to 2 GB on WebDAV.
 - **Git repositories and databases,** such as SQLite files, are only safe when used from one computer at a time.
-- **The iPhone only reads.** CloudWander and the Files app never change anything on your storage. A download stops if you leave the app.
-- **Encrypted drives don't appear in the iPhone's Files app,** only in CloudWander. Unlocking one needs more memory than iOS allows there.
-- **The Files app** picks up changes while you're using it, and whenever you open CloudWander. Nothing checks in the background, because this kind of storage can't wake an iPhone.
+- **The iPhone only reads.** CloudWanderer and the Files app never change anything on your storage. A download stops if you leave the app.
+- **Encrypted drives don't appear in the iPhone's Files app,** only in CloudWanderer. Unlocking one needs more memory than iOS allows there.
+- **The Files app** picks up changes while you're using it, and whenever you open CloudWanderer. Nothing checks in the background, because this kind of storage can't wake an iPhone.
 - **iPhone passwords stay on that iPhone** and aren't in its backups. A new or restored iPhone asks for them again.
 
 ### Trade-offs, chosen on purpose
@@ -87,9 +87,9 @@ On the iPhone, About has the app's log: Show Log reads it, and Share Log sends i
 
 ## Your files without this app
 
-Everything CloudMount stores can be read with [rclone](https://rclone.org), a widely used command-line tool, on any computer. Use it if the app stops working, your Mac is gone, or you're moving away. Use rclone to get files out, not alongside CloudMount: it doesn't take part in the locks that keep two computers from overwriting each other.
+Everything CloudAccess stores can be read with [rclone](https://rclone.org), a widely used command-line tool, on any computer. Use it if the app stops working, your Mac is gone, or you're moving away. Use rclone to get files out, not alongside CloudAccess: it doesn't take part in the locks that keep two computers from overwriting each other.
 
-**Plain drives** are ordinary files on the storage, readable with any WebDAV or SFTP program. Ignore the `.cloudmount` folder: it holds uploads in progress and deleted files. Mac documents that are really folders, such as some `.numbers` files, are stored as one file ending in `.pkgf`, which only a Mac with CloudMount turns back into the document.
+**Plain drives** are ordinary files on the storage, readable with any WebDAV or SFTP program. Ignore the `.cloudmount` folder: it holds uploads in progress and deleted files. Mac documents that are really folders, such as some `.numbers` files, are stored as one file ending in `.pkgf`, which only a Mac with CloudAccess turns back into the document.
 
 **Encrypted drives** need the encryption password, which nobody else has, and the salt, which is in the recovery kit the app offers you. Save that kit. Without the password, the files can't be recovered.
 
@@ -130,7 +130,7 @@ Everything CloudMount stores can be read with [rclone](https://rclone.org), a wi
 4. Below it, add the encrypted drive. `remote` is your storage's name, then the drive's folder:
 
    ```ini
-   [cloudmount-recovery]
+   [cloudaccess-recovery]
    type = crypt
    remote = my-server:the-drive-folder
    filename_encryption = standard
@@ -143,11 +143,11 @@ Everything CloudMount stores can be read with [rclone](https://rclone.org), a wi
 5. Copy your files out:
 
    ```sh
-   rclone lsf cloudmount-recovery:
-   rclone copy cloudmount-recovery: ~/Recovered --progress
+   rclone lsf cloudaccess-recovery:
+   rclone copy cloudaccess-recovery: ~/Recovered --progress
    ```
 
-rclone prints a notice about `.cloudmount`, because that folder's names aren't encrypted. It's harmless. If `lsf` shows nothing, the password or the salt is wrong: rclone shows an empty folder instead of an error.
+A kit from before the app was renamed names its section `[cloudmount-recovery]`. Use that name in the commands. rclone prints a notice about `.cloudmount`, because that folder's names aren't encrypted. It's harmless. If `lsf` shows nothing, the password or the salt is wrong: rclone shows an empty folder instead of an error.
 
 </details>
 
@@ -155,7 +155,7 @@ rclone prints a notice about `.cloudmount`, because that folder's names aren't e
 
 ### How it works
 
-CloudMount is a menu bar app with a File Provider extension, the system iCloud Drive uses. macOS mounts each drive under `~/Library/CloudStorage` and asks the extension for listings and contents when they're needed. Transfers go through a Go engine built on rclone, so encrypted drives use rclone's crypt format unchanged.
+CloudAccess is a menu bar app with a File Provider extension, the system iCloud Drive uses. macOS mounts each drive under `~/Library/CloudStorage` and asks the extension for listings and contents when they're needed. Transfers go through a Go engine built on rclone, so encrypted drives use rclone's crypt format unchanged.
 
 ```
 Finder ── File Provider extension ── MountKit ── SyncCore ── Go engine ── your server
@@ -173,7 +173,7 @@ Neither WebDAV nor SFTP can replace a file only if nobody else has changed it, s
 
 If another device saved first, the new file is kept as a conflict copy instead.
 
-CloudWander uses the same engine directly to browse and download. Its read-only Files extension runs the engine in a lean mode, because iOS stops these extensions at about 20 MB of memory.
+CloudWanderer uses the same engine directly to browse and download. Its read-only Files extension runs the engine in a lean mode, because iOS stops these extensions at about 20 MB of memory.
 
 ### Building
 
@@ -181,8 +181,8 @@ You need Xcode 27 and Go 1.26 or later. rclone is optional: the tests that check
 
 ```sh
 bash Engine/build.sh all     # builds the engine for macOS, iOS and the simulator
-open CloudMount/CloudMount.xcodeproj
-open CloudWander/CloudWander.xcodeproj
+open CloudAccess/CloudAccess.xcodeproj
+open CloudWanderer/CloudWanderer.xcodeproj
 ```
 
 Run the tests with:
@@ -204,8 +204,8 @@ The Swift tests link the built engine, so build it again after changing anything
 |---|---|
 | `Engine/` | Go engine: rclone, the save protocol, and the C interface |
 | `Packages/CloudCore/` | Swift package shared by both apps: drives and settings, the engine wrapper, sync state, every decision about what macOS is told, and the shared look |
-| `CloudMount/` | The Mac app and its File Provider extension |
-| `CloudWander/` | The iPhone app and its read-only Files extension |
+| `CloudAccess/` | The Mac app and its File Provider extension |
+| `CloudWanderer/` | The iPhone app and its read-only Files extension |
 
 ## Licence
 

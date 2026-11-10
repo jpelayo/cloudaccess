@@ -9,7 +9,7 @@ import Testing
 @Suite struct RemoteEngineTests {
     private func temporaryFolder() throws -> URL {
         let folder = FileManager.default.temporaryDirectory
-            .appendingPathComponent("CloudMountTests-\(UUID().uuidString)")
+            .appendingPathComponent("CloudAccessTests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return folder
     }

@@ -36,7 +36,7 @@ public struct RecoveryKit: Sendable {
     /// The kit as text to save or print.
     public var text: String {
         """
-        CloudMount recovery kit
+        CloudAccess recovery kit
         Keep this somewhere safe. Anyone with it can read this drive.
 
         Drive: \(driveName)
@@ -49,7 +49,7 @@ public struct RecoveryKit: Sendable {
         To reach your files with plain rclone (https://rclone.org), run `rclone config`,
         or add this to rclone.conf. First obscure both values with `rclone obscure`:
 
-        [cloudmount-recovery]
+        [cloudaccess-recovery]
         type = crypt
         remote = <your server's rclone remote>:<the drive's folder>
         filename_encryption = standard
@@ -58,7 +58,7 @@ public struct RecoveryKit: Sendable {
         password = <obscured encryption password>
         password2 = <obscured salt>
 
-        Then: rclone copy cloudmount-recovery: /a/local/folder
+        Then: rclone copy cloudaccess-recovery: /a/local/folder
 
         The .cloudmount folder on the server isn't part of your files, and rclone
         skips it with a notice.

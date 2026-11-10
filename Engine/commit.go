@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rclone/rclone/backend/webdav/api"
 	"github.com/rclone/rclone/fs/object"
 )
 
@@ -97,10 +98,22 @@ func (d *drive) commitMove(ctx context.Context, from, to string, folder, overwri
 	moving, cancel := settled(ctx)
 	defer cancel()
 	err := d.server.moveRaw(moving, from, to, folder, overwrite)
-	if err != nil && (errors.Is(err, context.DeadlineExceeded) || classify(err).Kind == "unreachable") {
+	if err != nil && (errors.Is(err, context.DeadlineExceeded) || classify(err).Kind == "unreachable" ||
+		mayStillLand(err)) {
 		return fmt.Errorf("%w: %v", errResultUnknown, err)
 	}
 	return err
+}
+
+// mayStillLand says whether a server error leaves a move's outcome open. A proxy answers 502 or
+// 504 when it gives up on the server behind it, which may still carry the move out, and a 500 can
+// come after the work is done. Only a full server, 507, says for certain nothing happened.
+func mayStillLand(err error) bool {
+	var davError *api.Error
+	if !errors.As(err, &davError) {
+		return false
+	}
+	return davError.StatusCode >= 500 && davError.StatusCode != http.StatusInsufficientStorage
 }
 
 func (c *davClient) mkcol(ctx context.Context, rawPath string) (int, error) {
@@ -170,10 +183,18 @@ func (c *davClient) removeFound(ctx context.Context, rawPath string, folder bool
 	if response.StatusCode == http.StatusNotFound {
 		return false, nil
 	}
-	if response.StatusCode >= 300 {
+	if !didAll(response.StatusCode) {
 		return false, statusError(response.StatusCode)
 	}
 	return true, nil
+}
+
+// didAll says whether a MOVE, COPY or DELETE did everything it was asked. 207 Multi-Status means
+// some members of a folder failed, so part of it may still be where it was. Taking that as done
+// would let what's left be cleaned up as if it had moved, such as the rest of a folder being
+// restored from the trash.
+func didAll(status int) bool {
+	return status >= 200 && status < 300 && status != http.StatusMultiStatus
 }
 
 // removeAll deletes a folder, which WebDAV's DELETE does recursively.
@@ -191,7 +212,7 @@ func (c *davClient) keepCopy(ctx context.Context, from, to string, size int64) e
 		return err
 	}
 	response.Body.Close()
-	if response.StatusCode >= 300 {
+	if !didAll(response.StatusCode) {
 		return statusError(response.StatusCode)
 	}
 	return nil
@@ -210,7 +231,7 @@ func (c *davClient) moveRaw(ctx context.Context, from, to string, folder, overwr
 		return err
 	}
 	response.Body.Close()
-	if response.StatusCode >= 300 {
+	if !didAll(response.StatusCode) {
 		return statusError(response.StatusCode)
 	}
 	return nil

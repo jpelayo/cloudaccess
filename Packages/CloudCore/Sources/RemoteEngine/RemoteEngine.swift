@@ -28,7 +28,7 @@ public final class RemoteEngine: RemoteBackend {
 
     /// Engine calls block, so they run here rather than on Swift's cooperative thread pool.
     private static let queue = DispatchQueue(
-        label: "cloudmount.engine", qos: .userInitiated, attributes: .concurrent)
+        label: "cloudaccess.engine", qos: .userInitiated, attributes: .concurrent)
 
     /// A soft limit on Go's own memory, so its heap doesn't grow unchecked between collections.
     private static let setUp: Void = {
@@ -663,14 +663,14 @@ private struct DriveConfiguration: Encodable {
         allowInsecure = connection.allowsInsecure
     }
 
-    /// Such as "CloudMount 1.0 (macOS 27.2)". No device name: details can outlive a device.
+    /// Such as "CloudAccess 1.0 (macOS 27.2)". No device name: details can outlive a device.
     static let appName: String = {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         let system = ProcessInfo.processInfo.operatingSystemVersion
         #if os(macOS)
-        let product = "CloudMount", platform = "macOS"
+        let product = "CloudAccess", platform = "macOS"
         #else
-        let product = "CloudWander", platform = "iOS"
+        let product = "CloudWanderer", platform = "iOS"
         #endif
         return "\(product) \(version) (\(platform) \(system.majorVersion).\(system.minorVersion))"
     }()

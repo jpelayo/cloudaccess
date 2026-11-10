@@ -334,8 +334,16 @@ public final class SyncStore: Sendable {
     /// is marked as needing a rebuild, which the app does once it can reach the server.
     /// Unsent files don't depend on this: macOS holds them, with their base versions.
     public static func opening(url: URL, backup: URL) throws -> (store: SyncStore, recovery: Recovery) {
+        try opening(url: url, backup: backup, beforeReplacing: nil)
+    }
+
+    /// - Parameter beforeReplacing: For tests: runs with the replacement, just before it takes the
+    ///   database's name.
+    static func opening(
+        url: URL, backup: URL, beforeReplacing: ((URL) throws -> Void)?
+    ) throws -> (store: SyncStore, recovery: Recovery) {
         let files = FileManager.default
-        if files.fileExists(atPath: url.path), let store = try intact(url) {
+        if files.fileExists(atPath: url.path), !isEmptied(url), let store = try intact(url) {
             remember(url)
             return (store, .none)
         }
@@ -345,7 +353,7 @@ public final class SyncStore: Sendable {
         let lock = try RepairLock(url)
         defer { lock.release() }
         if files.fileExists(atPath: url.path) {
-            if let store = try intact(url) {
+            if !isEmptied(url), let store = try intact(url) {
                 remember(url)
                 return (store, .none)
             }
@@ -358,21 +366,54 @@ public final class SyncStore: Sendable {
         // This includes a log left behind by a database that's gone, which a new database would
         // otherwise try to read as its own.
         try setAside(url)
+
+        // The replacement is made under another name and flagged there. Only then does it take
+        // the database's name, so a crash, or the other process opening it meanwhile, never finds
+        // a restored or empty database that looks settled, and tells macOS what it holds is gone.
+        let replacement = URL(fileURLWithPath: url.path + ".rebuilding")
+        try removeDatabase(at: replacement)
+        var recovery = Recovery.startedAgain
         if files.fileExists(atPath: backup.path) {
-            try files.copyItem(at: backup, to: url)
-            if let store = try intact(url) {
+            try files.copyItem(at: backup, to: replacement)
+            if let restored = try intact(replacement) {
                 // Anchors macOS holds may be ahead of this copy, so they have to expire.
-                try store.startNewEpoch()
-                try store.setNeedsRebuild(true)
-                remember(url)
-                return (store, .restoredFromBackup)
+                try restored.startNewEpoch()
+                try restored.setNeedsRebuild(true)
+                recovery = .restoredFromBackup
+            } else {
+                try removeDatabase(at: replacement)
             }
-            try setAside(url)
+        }
+        if recovery == .startedAgain {
+            try SyncStore(url: replacement).setNeedsRebuild(true)
+        }
+        // Every connection to the replacement is closed by now, so its log is in the file.
+        try beforeReplacing?(replacement)
+        // Its log first: until the file itself arrives, the other process finds nothing and waits.
+        for suffix in ["-wal", "-shm", ""] where files.fileExists(atPath: replacement.path + suffix) {
+            try files.moveItem(atPath: replacement.path + suffix, toPath: url.path + suffix)
         }
         let store = try SyncStore(url: url)
-        try store.setNeedsRebuild(true)
         remember(url)
-        return (store, .startedAgain)
+        return (store, recovery)
+    }
+
+    /// SQLite takes an empty file for a new database. For a drive that has had one, it's a loss,
+    /// and a new database there would look settled. A log with something in it isn't empty.
+    private static func isEmptied(_ url: URL) -> Bool {
+        func size(_ path: String) -> Int64? {
+            ((try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? NSNumber)?.int64Value
+        }
+        return size(url.path) == 0 && (size(url.path + "-wal") ?? 0) == 0
+            && FileManager.default.fileExists(atPath: marker(for: url).path)
+    }
+
+    /// Removes a database and its sidecars, such as a replacement a crash left half made.
+    private static func removeDatabase(at url: URL) throws {
+        let files = FileManager.default
+        for suffix in ["", "-wal", "-shm"] where files.fileExists(atPath: url.path + suffix) {
+            try files.removeItem(atPath: url.path + suffix)
+        }
     }
 
     /// Says a drive has had a database, so one that vanishes along with its backup is a loss to
@@ -761,6 +802,7 @@ public final class SyncStore: Sendable {
             var existing = Dictionary(
                 try children(of: parentID).map { (Array($0.name.utf8), $0) },
                 uniquingKeysWith: { first, _ in first })
+            let doubted = try doubtedChildren(of: parentID)
             var seen = Set<[UInt8]>()
             var didAddOrRemove = false
 
@@ -780,9 +822,11 @@ public final class SyncStore: Sendable {
                         continue
                     }
                     // New details alone change no version, but macOS has to hear them to show them.
+                    // An item macOS may have been told was gone has to be heard of again too.
                     let changed = known.version != version
                         || (entry.kind == .file && known.size != entry.size)
                         || !Self.sameDetails(known, entry)
+                        || doubted.contains(known.id)
                     try database.execute(
                         """
                         UPDATE items SET size = ?, modified = ?, version = ?, versionID = ?,
@@ -875,9 +919,25 @@ public final class SyncStore: Sendable {
         }
     }
 
-    public func clearMissing(id: String) throws {
-        try database.execute(
-            "UPDATE items SET missing_passes = 0, missing_since = NULL WHERE id = ?", [.text(id)])
+    /// A direct check found the item. If it had been doubted, macOS may have been told it was gone,
+    /// so it hears of it again.
+    public func clearMissing(id: String, now: Date = Date()) throws {
+        try database.transaction {
+            let wasDoubted = try !database.execute(
+                "SELECT 1 FROM items WHERE id = ? AND missing_passes > 0", [.text(id)]).isEmpty
+            try database.execute(
+                "UPDATE items SET missing_passes = 0, missing_since = NULL WHERE id = ?", [.text(id)])
+            if wasDoubted {
+                try logChange(id, deleted: false, now: now)
+            }
+        }
+    }
+
+    /// Items in a folder that a direct check, or macOS being told one was gone, left in doubt.
+    private func doubtedChildren(of parentID: String) throws -> Set<String> {
+        Set(try database.execute(
+            "SELECT id FROM items WHERE parent = ? AND missing_passes > 0", [.text(parentID)]
+        ).compactMap { $0.text("id") })
     }
 
     /// Removes an item the server has confirmed is gone, with everything inside it. The check

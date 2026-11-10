@@ -16,7 +16,7 @@ public enum Trace {
 
     /// The Mac extension's, unless another extension says where its own go.
     private static let standard = Sink(
-        logger: Logger(subsystem: "com.infinitecontext.CloudMount", category: "extension"),
+        logger: Logger(subsystem: "com.infinitecontext.CloudAccess", category: "extension"),
         diagnostics: try? DriveStore.shared().diagnostics)
     private static let chosen = Mutex<Sink?>(nil)
 
@@ -32,7 +32,7 @@ public enum Trace {
     public static func log(_ message: @autoclosure () -> String) {
         #if DEBUG
         let text = message()
-        sink.logger.notice("CM_EXT: \(text, privacy: .public)")
+        sink.logger.notice("CA_EXT: \(text, privacy: .public)")
         #endif
     }
 

@@ -236,6 +236,7 @@ public struct Mutations: Sendable {
             do {
                 fetched = try await backend.verifiedDownload(path, to: destination)
             } catch RemoteError.notFound {
+                noteToldGone(id)
                 throw store.missing(id)
             }
         }
@@ -243,6 +244,14 @@ public struct Mutations: Sendable {
         try? store.markLocal(id: id, size: fetched.size ?? 0)
         try? store.noteFinished(.downloaded, name: saved.name, size: fetched.size, now: clock())
         return saved
+    }
+
+    /// macOS is about to hear an item is gone, and drop its copy, while this Mac still has its row.
+    /// Two looks can both land in moments without it, so the row is marked as doubted: if the
+    /// next poll finds it after all, macOS is told it exists again. If it's really gone, the
+    /// usual checks remove it.
+    private func noteToldGone(_ id: String) {
+        _ = try? store.recordMissingPass(id: id, now: clock())
     }
 
     /// What's at a path, or nil only after two direct not-founds, for the same reason as a download.
@@ -333,7 +342,15 @@ public struct Mutations: Sendable {
         details: FileDetails
     ) async throws -> SyncItem {
         func location() throws -> RemotePath {
-            let parent = try store.path(of: parentID)
+            let parent: RemotePath
+            do {
+                parent = try store.path(of: parentID)
+            } catch SyncError.itemNotFound where contents != nil || isFolder {
+                // A peer deleted its folder, and this Mac confirmed it before macOS took that in.
+                // These bytes, or what goes in this folder, exist only here, so it waits, listed
+                // with why. A recovering database still says "recovering".
+                throw RemoteError.parentMissing(RemotePath(name) ?? .root)
+            }
             guard let path = parent.appending(name) else {
                 throw RemoteError.failed(parent, "Invalid name")
             }
@@ -530,7 +547,7 @@ public struct Mutations: Sendable {
                 try await backend.checkName(destination)
                 let kind = try store.item(id: id)?.kind
                 do {
-                    let moved = try await backend.move(from: path, to: destination, baseVersion: baseVersion)
+                    let moved = try await moveLookingTwice(from: path, to: destination, baseVersion: baseVersion)
                     // A replay takes any folder it finds, because a folder has no version to prove
                     // it's the one that moved. A file can't have turned into one, so that's another
                     // item with the name.
@@ -539,6 +556,10 @@ public struct Mutations: Sendable {
                 } catch RemoteError.notFound where contents != nil {
                     // A peer deleted it while this edit waited. The edit is the only copy of these
                     // bytes, so it's saved at the new name, as an edit of a deleted file is.
+                } catch RemoteError.notFound(let missing) {
+                    // No bytes to keep, so macOS hears it's gone, and drops its copy.
+                    noteToldGone(id)
+                    throw RemoteError.notFound(missing)
                 }
                 try store.recordMoved(id: id, to: newLocation.parentID, name: newLocation.name)
                 path = destination
@@ -569,6 +590,20 @@ public struct Mutations: Sendable {
             }
             // A move takes whatever the server has now, which may be a peer's newer version.
             return Outcome(item: saved, shouldFetchContent: Self.isNotBase(saved, baseVersion))
+    }
+
+    /// A rename of a file a peer is saving can land in Apache's moment without it, and the engine
+    /// then says the source isn't there. One not-found proves little, so it's tried again first,
+    /// as a download and a re-import look twice.
+    private func moveLookingTwice(
+        from source: RemotePath, to destination: RemotePath, baseVersion: String?
+    ) async throws -> RemoteItem {
+        do {
+            return try await backend.move(from: source, to: destination, baseVersion: baseVersion)
+        } catch RemoteError.notFound {
+            try await Task.sleep(for: Self.secondLook)
+        }
+        return try await backend.move(from: source, to: destination, baseVersion: baseVersion)
     }
 
     /// A folder above can move between working out the path and committing. The bytes then land

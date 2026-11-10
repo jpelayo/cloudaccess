@@ -221,6 +221,31 @@ private let root = SyncItem.rootID
         #expect(try store.child(of: root, named: "Old") != nil)
     }
 
+    /// macOS was told an item was gone after a not-found that didn't last, and dropped its copy.
+    /// While the server still has it, the next poll announces it again, whether the listing finds
+    /// it or only a direct check does. Without that, it stays hidden on this Mac until it changes.
+    @Test func aDoubtedItemThatsStillThereIsAnnouncedAgain() async throws {
+        let (store, server, syncer, now) = try await oneFile()
+        let keep = try #require(try store.child(of: root, named: "keep.txt"))
+        let other = try #require(try store.child(of: root, named: "other.txt"))
+        let anchor = try store.currentAnchor()
+        await server.hideFromListings(path("/other.txt"))
+
+        _ = try store.recordMissingPass(id: keep.id, now: now)
+        _ = try store.recordMissingPass(id: other.id, now: now)
+        try await syncer.refresh(folderID: root, now: now.addingTimeInterval(120))
+
+        let announced = try Set(store.changes(since: anchor).updated.map(\.id))
+        #expect(announced == [keep.id, other.id])
+        #expect(try store.child(of: root, named: "keep.txt")?.id == keep.id)
+        #expect(try store.child(of: root, named: "other.txt")?.id == other.id)
+
+        // Once announced, an unchanged item isn't announced again.
+        let after = try store.currentAnchor()
+        try await syncer.refresh(folderID: root, now: now.addingTimeInterval(240))
+        #expect(try store.changes(since: after).updated.isEmpty)
+    }
+
     @Test func aRestoreIntoAnUnknownFolderForgetsNothing() async throws {
         let store = try makeStore()
         #expect(try store.forgetDeletion(at: path("/Nowhere/Report.docx")) == nil)
@@ -964,6 +989,60 @@ private let root = SyncItem.rootID
         let opened = try SyncStore.opening(url: url, backup: backup)
 
         #expect(opened.recovery == .startedAgain)
+    }
+
+    /// SQLite takes an empty file for a new database. For a drive that has had one, that's a
+    /// loss: a new, settled database would tell macOS that everything it holds is gone.
+    @Test func anEmptiedDatabaseIsALossNotANewDrive() throws {
+        let base = try folder()
+        let url = base.appendingPathComponent("a.sqlite")
+        let backup = base.appendingPathComponent("a.backup")
+        do {
+            let store = try SyncStore.opening(url: url, backup: backup).store
+            _ = try store.recordCreated(entry("kept.txt"), in: SyncItem.rootID)
+        }
+        try Data().write(to: url)
+        for suffix in ["-wal", "-shm"] {
+            try? FileManager.default.removeItem(atPath: url.path + suffix)
+        }
+
+        let opened = try SyncStore.opening(url: url, backup: backup)
+
+        #expect(opened.recovery == .startedAgain)
+        #expect(try opened.store.isRecovering())
+    }
+
+    /// A repair builds its replacement aside, and flags it before it takes the database's name.
+    /// A crash, or the other process opening the database meanwhile, then never finds a restored
+    /// or empty database that looks settled.
+    @Test func aReplacementIsFlaggedBeforeItGetsTheDatabasesName() throws {
+        for hasBackup in [true, false] {
+            let base = try folder()
+            let url = base.appendingPathComponent("a.sqlite")
+            let backup = base.appendingPathComponent("a.backup")
+            do {
+                let store = try SyncStore(url: url)
+                _ = try store.recordCreated(entry("kept.txt"), in: SyncItem.rootID)
+                if hasBackup {
+                    try store.backUp(to: backup)
+                }
+            }
+            try damage(url)
+
+            var checked = false
+            let opened = try SyncStore.opening(url: url, backup: backup) { replacement in
+                #expect(replacement != url, "backup: \(hasBackup)")
+                #expect(!FileManager.default.fileExists(atPath: url.path), "backup: \(hasBackup)")
+                let isFlagged = (try? SyncStore(url: replacement).needsRebuild()) == true
+                #expect(isFlagged, "backup: \(hasBackup)")
+                checked = true
+            }
+
+            #expect(checked)
+            #expect(opened.recovery == (hasBackup ? .restoredFromBackup : .startedAgain))
+            #expect(try opened.store.needsRebuild())
+            #expect(!FileManager.default.fileExists(atPath: url.path + ".rebuilding"))
+        }
     }
 }
 

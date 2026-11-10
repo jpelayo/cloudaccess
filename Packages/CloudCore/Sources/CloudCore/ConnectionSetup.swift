@@ -20,7 +20,7 @@ public struct ConnectionSetup: Codable, Equatable, Sendable {
         case privateKey
     }
 
-    private static let prefix = "cloudmount-setup:"
+    private static let prefix = "cloudaccess-setup:"
     public static let currentFormat = 1
 
     public var format: Int

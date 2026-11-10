@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	detailsNamespace = "https://infinitecontext.com/ns/cloudmount/"
+	detailsNamespace = "https://infinitecontext.com/ns/cloudaccess/"
 	// detailsFormat goes up only when a field changes meaning. Adding a field never bumps it.
 	detailsFormat = 1
 	// maxDetailsBytes is the most written. Stock Apache keeps properties in SDBM records of about

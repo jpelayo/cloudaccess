@@ -14,16 +14,16 @@ public struct DriveStore: Sendable {
     }
 
     /// The identifiers the macOS app and its extension share.
-    public static let appGroup = "group.com.infinitecontext.cloudmount"
-    public static let sharedKeychainGroup = "833T9Q2V4W.com.infinitecontext.CloudMount"
+    public static let appGroup = "group.com.infinitecontext.cloudaccess"
+    public static let sharedKeychainGroup = "833T9Q2V4W.com.infinitecontext.CloudAccess"
 
     /// The identifiers the iPhone app and its Files extension share. On iOS an App Group is also a
     /// keychain group, and both targets have this one, so the extension reads the passwords
     /// without a Keychain Sharing entitlement of its own.
-    public static let phoneAppGroup = "group.com.infinitecontext.cloudwander"
+    public static let phoneAppGroup = "group.com.infinitecontext.CloudWanderer"
     public static let phoneKeychainGroup = phoneAppGroup
     /// The app's own group, where its passwords were before. The Files extension can't read it.
-    public static let phoneEarlierKeychainGroup = "833T9Q2V4W.com.infinitecontext.CloudWander"
+    public static let phoneEarlierKeychainGroup = "833T9Q2V4W.com.infinitecontext.CloudWanderer"
 
     /// The store the iPhone's Files extension reads, or nil in a build without the App Group.
     public static func phoneShared() -> DriveStore? {
@@ -72,7 +72,7 @@ public struct DriveStore: Sendable {
     private let earlierKeychainGroup: String?
     private let keepsPasswordsOnThisDevice: Bool
 
-    private static let service = "CloudMount"
+    private static let service = "CloudAccess"
 
     /// - Parameters:
     ///   - directory: Where the list of connections is kept.

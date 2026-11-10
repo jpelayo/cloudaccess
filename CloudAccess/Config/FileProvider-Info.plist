@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionFileProviderDocumentGroup</key>
+		<string>group.com.infinitecontext.cloudaccess</string>
+		<key>NSExtensionFileProviderSupportsEnumeration</key>
+		<true/>
+		<key>NSExtensionFileProviderAllowsUserControlledEviction</key>
+		<true/>
+		<key>NSExtensionFileProviderWantsFlattenedPackages</key>
+		<true/>
+		<key>NSFileProviderDecorations</key>
+		<array>
+			<dict>
+				<key>Identifier</key>
+				<string>com.infinitecontext.CloudAccess.conflict</string>
+				<key>Label</key>
+				<string>Conflict copy</string>
+				<key>BadgeImageType</key>
+				<string>com.apple.icon-decoration.badge.warning</string>
+				<key>Category</key>
+				<string>Badge</string>
+			</dict>
+			<dict>
+				<key>Identifier</key>
+				<string>com.infinitecontext.CloudAccess.unavailable</string>
+				<key>Label</key>
+				<string>Not available offline</string>
+				<key>BadgeImageType</key>
+				<string>com.apple.icon-decoration.badge.warning</string>
+				<key>Category</key>
+				<string>Badge</string>
+			</dict>
+			<dict>
+				<key>Identifier</key>
+				<string>com.infinitecontext.CloudAccess.failed</string>
+				<key>Label</key>
+				<string>Couldn't sync</string>
+				<key>BadgeImageType</key>
+				<string>com.apple.icon-decoration.badge.warning</string>
+				<key>Category</key>
+				<string>Badge</string>
+			</dict>
+		</array>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.fileprovider-nonui</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>$(PRODUCT_MODULE_NAME).FileProviderExtension</string>
+	</dict>
+</dict>
+</plist>

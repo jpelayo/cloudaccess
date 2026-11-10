@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"path"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -34,10 +35,20 @@ const (
 	maxControlFileBytes   = 1 << 20
 )
 
+// policyLookAgain waits before a missing policy is looked for again. Apache removes the old file
+// for a moment while a new one replaces it.
+var policyLookAgain = func(ctx context.Context) {
+	select {
+	case <-ctx.Done():
+	case <-time.After(2 * time.Second):
+	}
+}
+
 var (
 	errNotInTrash       = errors.New("this item is no longer in the trash")
 	errNotEncrypted     = errors.New("this drive isn't encrypted")
 	errPolicyUnreadable = errors.New("the drive's retention policy can't be read")
+	errPolicyGone       = errors.New("the drive's retention policy is missing, though this device read one earlier")
 	errDamagedEntry     = errors.New("this deleted item's details are damaged, so it can't be restored")
 )
 
@@ -135,21 +146,52 @@ func (d *drive) retentionInfo(ctx context.Context) (retentionInfo, error) {
 // read or doesn't make sense is an error: it might be hiding a longer retention than the default,
 // and purging can't be undone, so uncertainty must never shorten it.
 func (d *drive) policy(ctx context.Context) (drivePolicy, error) {
+	policy, _, err := d.readPolicy(ctx)
+	return policy, err
+}
+
+// readPolicy is policy, and also says whether there was one.
+func (d *drive) readPolicy(ctx context.Context) (drivePolicy, bool, error) {
 	content, err := d.readControlFile(ctx, policyFile)
 	if err != nil {
 		if isNotFound(err) {
-			return drivePolicy{TrashRetentionDays: defaultRetentionDays}, nil
+			return drivePolicy{TrashRetentionDays: defaultRetentionDays}, false, nil
 		}
-		return drivePolicy{}, err
+		return drivePolicy{}, false, err
 	}
 	var policy drivePolicy
 	if err := json.Unmarshal(content, &policy); err != nil {
-		return drivePolicy{}, errPolicyUnreadable
+		return drivePolicy{}, false, errPolicyUnreadable
 	}
 	if !policy.makesSense() {
-		return drivePolicy{}, errPolicyUnreadable
+		return drivePolicy{}, false, errPolicyUnreadable
 	}
-	return policy, nil
+	d.policySeen.Store(true)
+	return policy, true, nil
+}
+
+// purgePolicy is the policy a purge may act on. Apache replaces a file by removing the old one
+// first, so a policy being saved is missing for a moment, which looks the same as a drive that
+// never had one. So before the default can purge anything, a missing policy is looked for again.
+// One this drive has read or saved, and now can't find, is uncertain: the pass purges nothing.
+//   - defaultWouldPurge: whether anything in the trash is past the default retention.
+func (d *drive) purgePolicy(ctx context.Context, defaultWouldPurge bool) (drivePolicy, error) {
+	policy, found, err := d.readPolicy(ctx)
+	if err != nil || found {
+		return policy, err
+	}
+	if d.policySeen.Load() {
+		return drivePolicy{}, errPolicyGone
+	}
+	if !defaultWouldPurge {
+		return policy, nil
+	}
+	policyLookAgain(ctx)
+	if err := ctx.Err(); err != nil {
+		return drivePolicy{}, err
+	}
+	policy, _, err = d.readPolicy(ctx)
+	return policy, err
 }
 
 func (d *drive) setPolicy(ctx context.Context, policy drivePolicy) error {
@@ -160,7 +202,11 @@ func (d *drive) setPolicy(ctx context.Context, policy drivePolicy) error {
 	if err != nil {
 		return err
 	}
-	return d.publishControlFile(ctx, policyFile, encoded)
+	if err := d.publishControlFile(ctx, policyFile, encoded); err != nil {
+		return err
+	}
+	d.policySeen.Store(true)
+	return nil
 }
 
 // trashInfo is one deleted item, as a person sees it.
@@ -403,17 +449,21 @@ func (d *drive) maintain(ctx context.Context) (maintenanceResult, error) {
 		return result, err
 	}
 
-	policy, policyErr := d.policy(ctx)
+	entries, err := d.server.listRaw(ctx, trashFolder)
+	if err != nil && !isNotFound(err) {
+		return result, err
+	}
+	defaultRetention := drivePolicy{TrashRetentionDays: defaultRetentionDays}.retention()
+	defaultWouldPurge := slices.ContainsFunc(entries, func(entry rawEntry) bool {
+		return !entry.Modified.IsZero() && now.Sub(entry.Modified) > defaultRetention
+	})
+	policy, policyErr := d.purgePolicy(ctx, defaultWouldPurge)
 	if policyErr != nil {
 		// Nothing irreversible runs on uncertain evidence, so trash waits for the next pass.
 		result.PurgeSkipped = policyErr.Error()
 	} else {
 		retention := policy.retention()
 		result.RetentionSeconds = int64(retention / time.Second)
-		entries, err := d.server.listRaw(ctx, trashFolder)
-		if err != nil && !isNotFound(err) {
-			return result, err
-		}
 		for _, entry := range entries {
 			lifetime := retention
 			if strings.HasPrefix(entry.Name, versionPrefix) {

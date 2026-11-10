@@ -231,7 +231,7 @@ import Testing
     /// The whole point: `Connection` holds no secrets, and nothing adds one on the way.
     @Test func aCodeHoldsNoSecrets() throws {
         let text = try ConnectionSetup(connection: drive(), signsInWithKey: true).encoded()
-        let payload = String(text.dropFirst("cloudmount-setup:".count))
+        let payload = String(text.dropFirst("cloudaccess-setup:".count))
         let json = String(decoding: Data(base64Encoded: payload) ?? Data(), as: UTF8.self).lowercased()
         for word in ["password", "passphrase", "privatekey", "secret"] {
             #expect(!json.contains(word))
@@ -248,7 +248,7 @@ import Testing
         #expect(ConnectionSetup(connection: drive(encrypted: false)).neededSecrets == [.serverPassword])
     }
 
-    @Test(arguments: ["", "hello", "https://example.com", "cloudmount-setup:", "cloudmount-setup:!!!"])
+    @Test(arguments: ["", "hello", "https://example.com", "cloudaccess-setup:", "cloudaccess-setup:!!!"])
     func otherCodesAreRefused(text: String) {
         #expect(throws: ConnectionSetup.SetupError.notASetupCode) {
             _ = try ConnectionSetup(scanned: text)
@@ -258,7 +258,7 @@ import Testing
     @Test func aNewerFormatAsksForAnUpdate() throws {
         let newer = Data(#"{"format":99}"#.utf8).base64EncodedString()
         #expect(throws: ConnectionSetup.SetupError.newerFormat) {
-            _ = try ConnectionSetup(scanned: "cloudmount-setup:" + newer)
+            _ = try ConnectionSetup(scanned: "cloudaccess-setup:" + newer)
         }
     }
 

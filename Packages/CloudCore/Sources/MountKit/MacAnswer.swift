@@ -52,9 +52,12 @@ public enum MacAnswer: Equatable, Sendable {
     public enum Request: Sendable, Equatable {
         /// Looking up an item, downloading one, or listing a folder.
         case read
-        /// - Parameter isSafelyNew: What `Mutations.isSafelyNew` says, so nothing on the server
-        ///   is ever left out.
-        case create(isSafelyNew: Bool)
+        /// - Parameters:
+        ///   - isSafelyNew: What `Mutations.isSafelyNew` says, so nothing on the server is ever
+        ///     left out.
+        ///   - holdsData: A file with bytes, or a folder, which may hold files nobody has sent.
+        ///     Only a re-import of a file with no bytes holds nothing.
+        case create(isSafelyNew: Bool, holdsData: Bool)
         /// - Parameter hasContents: The call carries bytes, which may be the only copy of an edit.
         case modify(hasContents: Bool, failOnConflict: Bool)
         case delete
@@ -65,10 +68,15 @@ public enum MacAnswer: Equatable, Sendable {
         switch request {
         case .read:
             return answer
-        case .create(let isSafelyNew):
+        case .create(let isSafelyNew, let holdsData):
             if let remote = error as? RemoteError, remote.canNeverBeSent {
                 // It's on the failed list with why. If it could be on the server, it only waits.
                 return isSafelyNew ? .leaveOut : .cannotSync
+            }
+            // A new file's bytes, or a new folder's files, exist only on this Mac, and macOS
+            // deletes them on "no such item", as it would an edit's.
+            if holdsData, answer == .noSuchItem {
+                return .cannotSync
             }
             return answer
         case .modify(let hasContents, let failOnConflict):

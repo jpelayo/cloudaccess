@@ -54,7 +54,7 @@ import Testing
 
         log.record("new line")
 
-        let text = log.exportedText(header: "CloudMount")
+        let text = log.exportedText(header: "CloudAccess")
         #expect(text.contains("older"))
         #expect(text.contains("current"))
         #expect(text.contains("new line"))
@@ -122,7 +122,7 @@ import Testing
         try FileManager.default.setAttributes(
             [.modificationDate: Date().addingTimeInterval(-31 * 86_400)], ofItemAtPath: file.path)
 
-        let text = Diagnostics(directory: folder).exportedText(header: "CloudMount")
+        let text = Diagnostics(directory: folder).exportedText(header: "CloudAccess")
 
         #expect(!text.contains("from long ago"))
     }
@@ -147,7 +147,7 @@ import Testing
         log.record("after both")
 
         #expect(try lines(of: log).count == 1)
-        let text = log.exportedText(header: "CloudMount")
+        let text = log.exportedText(header: "CloudAccess")
         #expect(text.contains("bbbb"))
         #expect(!text.contains("aaaa"))
         #expect(try names(in: folder).count == 2)

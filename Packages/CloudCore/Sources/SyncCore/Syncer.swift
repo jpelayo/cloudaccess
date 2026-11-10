@@ -82,7 +82,7 @@ public struct Syncer: Sendable {
         else { return }
         do {
             _ = try await backend.item(at: path)
-            try store.clearMissing(id: item.id)
+            try store.clearMissing(id: item.id, now: now)
         } catch RemoteError.notFound {
             let result = try store.recordMissingPass(id: item.id, now: now)
             if result.passes >= requiredPasses,
