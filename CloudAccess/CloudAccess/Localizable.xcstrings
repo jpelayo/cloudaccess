@@ -4191,6 +4191,356 @@
           }
         }
       }
+    },
+    "A Finder location with no drive" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una ubicación del Finder sin unidad"
+          }
+        }
+      }
+    },
+    "A step failed. Nothing after it was done." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ha fallado un paso. No se ha hecho nada de lo que venía después."
+          }
+        }
+      }
+    },
+    "Attention: without its password, an encrypted drive can't be read. Export your drives or save each recovery kit first." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atención: sin su contraseña, una unidad cifrada no se puede leer. Exporte antes sus unidades o guarde el kit de recuperación de cada una."
+          }
+        }
+      }
+    },
+    "Before anything is removed, CloudAccess waits for every file to finish uploading." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antes de quitar nada, CloudAccess espera a que terminen de subirse todos los archivos."
+          }
+        }
+      }
+    },
+    "CloudAccess has been removed from this Mac." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudAccess se ha quitado de este Mac."
+          }
+        }
+      }
+    },
+    "CloudAccess is being uninstalled, so drives can't be added or changed." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudAccess se está desinstalando, así que no se pueden añadir ni cambiar unidades."
+          }
+        }
+      }
+    },
+    "CloudAccess Uninstalled" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudAccess desinstalado"
+          }
+        }
+      }
+    },
+    "Continue Uninstalling" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seguir desinstalando"
+          }
+        }
+      }
+    },
+    "encrypted" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "cifrada"
+          }
+        }
+      }
+    },
+    "Export Drives…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar unidades…"
+          }
+        }
+      }
+    },
+    "Failed" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fallido"
+          }
+        }
+      }
+    },
+    "Launch at login couldn't be turned off. Turn it off in Login Items." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido desactivar «Abrir al iniciar sesión». Desactívelo en Ítems de inicio."
+          }
+        }
+      }
+    },
+    "No drives." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay unidades."
+          }
+        }
+      }
+    },
+    "Not done" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin hacer"
+          }
+        }
+      }
+    },
+    "Nothing was changed." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha cambiado nada."
+          }
+        }
+      }
+    },
+    "Open Login Items" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ítems de inicio"
+          }
+        }
+      }
+    },
+    "Passed" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Superado"
+          }
+        }
+      }
+    },
+    "Progress" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progreso"
+          }
+        }
+      }
+    },
+    "Quit CloudAccess" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salir de CloudAccess"
+          }
+        }
+      }
+    },
+    "Quit, then move CloudAccess from Applications to the Bin. macOS keeps the app's own folders in your Library, with nothing of your drives in them." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salga y después mueva CloudAccess de Aplicaciones a la Papelera. macOS conserva las carpetas propias de la app en su Biblioteca, sin nada de sus unidades."
+          }
+        }
+      }
+    },
+    "Reading the drives…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leyendo las unidades…"
+          }
+        }
+      }
+    },
+    "Removes your drives and their passwords from this Mac. Files on your servers are not changed." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quita sus unidades y sus contraseñas de este Mac. Los archivos de sus servidores no cambian."
+          }
+        }
+      }
+    },
+    "Running" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En curso"
+          }
+        }
+      }
+    },
+    "Save Report…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar informe…"
+          }
+        }
+      }
+    },
+    "Show CloudAccess in Finder" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar CloudAccess en el Finder"
+          }
+        }
+      }
+    },
+    "Show Kept Files: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar archivos conservados: %@"
+          }
+        }
+      }
+    },
+    "Stop After This Drive" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detener tras esta unidad"
+          }
+        }
+      }
+    },
+    "Stop Uninstalling" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dejar de desinstalar"
+          }
+        }
+      }
+    },
+    "Stopped. The drives not yet removed are still on this Mac and working." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detenido. Las unidades que aún no se han quitado siguen en este Mac y funcionan."
+          }
+        }
+      }
+    },
+    "These drives will be removed from Finder, and their passwords deleted from this Mac. Files on your servers are not changed." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estas unidades se quitarán del Finder y sus contraseñas se eliminarán de este Mac. Los archivos de sus servidores no cambian."
+          }
+        }
+      }
+    },
+    "Uninstall" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalar"
+          }
+        }
+      }
+    },
+    "Uninstall CloudAccess" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalar CloudAccess"
+          }
+        }
+      }
+    },
+    "Uninstall…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalar…"
+          }
+        }
+      }
+    },
+    "Uninstalling CloudAccess" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalando CloudAccess"
+          }
+        }
+      }
+    },
+    "Version %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versión %@"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

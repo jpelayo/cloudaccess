@@ -1,6 +1,7 @@
 // Apache 2 license - developer@infinitecontext.com
 
 import Foundation
+import Synchronization
 
 /// A small log, shared by the app and its extension, that only leaves this device when a person
 /// exports it. It records what happened to drives, never file contents.
@@ -58,7 +59,16 @@ public struct Diagnostics: Sendable {
         return cleaned
     }
 
+    /// Set once an uninstall has deleted the log, so nothing in this process writes a new one.
+    private static let silenced = Mutex(false)
+
+    /// Stops this process recording, for good. An uninstall calls it before deleting the log.
+    public static func silence() {
+        silenced.withLock { $0 = true }
+    }
+
     public func record(_ message: String, now: Date = Date()) {
+        guard !Self.silenced.withLock({ $0 }) else { return }
         guard let data = "\(now.ISO8601Format()) \(Self.redact(message))\n".data(using: .utf8) else { return }
         let target = file(on: now)
         let manager = FileManager.default

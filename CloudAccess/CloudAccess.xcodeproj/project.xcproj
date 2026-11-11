@@ -8,7 +8,6 @@
     "development": "en",
     "supported": [
       "Base",
-      "en",
       "es",
     ],
   },
@@ -87,7 +86,7 @@
         "CODE_SIGN_IDENTITY": "Apple Development",
         "CODE_SIGN_STYLE": "Automatic",
         "COMBINE_HIDPI_IMAGES": "YES",
-        "CURRENT_PROJECT_VERSION": "1",
+        "CURRENT_PROJECT_VERSION": "3",
         "DEVELOPMENT_TEAM": "833T9Q2V4W",
         "ENABLE_APP_SANDBOX": "YES",
         "ENABLE_HARDENED_RUNTIME": "YES",
@@ -102,7 +101,7 @@
           "$(inherited)",
           "@executable_path/../Frameworks",
         ],
-        "MARKETING_VERSION": "0.1.0",
+        "MARKETING_VERSION": "0.3.0",
         "PRODUCT_BUNDLE_IDENTIFIER": "com.infinitecontext.CloudAccess",
         "PRODUCT_NAME": "$(TARGET_NAME)",
         "PROVISIONING_PROFILE_SPECIFIER": "",
@@ -131,6 +130,10 @@
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "package": "CloudCore",
+          "product-name": "FileProviderShell",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "CloudCore",
           "product-name": "MountKit",
           "build-phase": { "build-phase": "frameworks" },
         }, {
@@ -141,16 +144,12 @@
           "package": "CloudCore",
           "product-name": "SyncCore",
           "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "CloudCore",
-          "product-name": "FileProviderShell",
-          "build-phase": { "build-phase": "frameworks" },
         },
       ],
       "build-settings": {
         "CODE_SIGN_ENTITLEMENTS": "Config/FileProvider.entitlements",
         "CODE_SIGN_STYLE": "Automatic",
-        "CURRENT_PROJECT_VERSION": "1",
+        "CURRENT_PROJECT_VERSION": "3",
         "ENABLE_APP_SANDBOX": "YES",
         "ENABLE_HARDENED_RUNTIME": "YES",
         "GENERATE_INFOPLIST_FILE": "YES",
@@ -161,7 +160,7 @@
           "@executable_path/../Frameworks",
           "@executable_path/../../../../Frameworks",
         ],
-        "MARKETING_VERSION": "0.1.0",
+        "MARKETING_VERSION": "0.3.0",
         "PRODUCT_BUNDLE_IDENTIFIER": "com.infinitecontext.CloudAccess.FileProvider",
         "PRODUCT_NAME": "$(TARGET_NAME)",
         "REGISTER_APP_GROUPS": "YES",

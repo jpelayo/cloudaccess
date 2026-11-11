@@ -53,6 +53,9 @@ final class FilesPlaces {
     private(set) var isTryingAgain = false
     /// The last Try Again ended with Files still refused, until the drives are next checked.
     private(set) var isStillRefused = false
+    /// Set while an uninstall runs, so coming back to the app can't put a location back between
+    /// its steps.
+    var isPaused = false
     private var updating = false
     private var again = false
     private var isListening = false
@@ -66,7 +69,7 @@ final class FilesPlaces {
     /// Matches the locations to the drives. A call that arrives while one is running makes that
     /// one run again once it ends, so a drive added during the launch pass isn't missed.
     func update(drives: [Connection]) async {
-        guard PhoneDrives.reachFiles else { return }
+        guard PhoneDrives.reachFiles, !isPaused else { return }
         guard !updating else {
             again = true
             return
@@ -85,7 +88,7 @@ final class FilesPlaces {
     /// locations that couldn't be added, and has Files sign in to each drive again. Only a person
     /// asks for this, so a change that's refused anyway is refused once, not in a loop.
     func tryAgain(drives: [Connection]) async {
-        guard !isTryingAgain else { return }
+        guard !isTryingAgain, !isPaused else { return }
         isTryingAgain = true
         defer { isTryingAgain = false }
         let before = notes

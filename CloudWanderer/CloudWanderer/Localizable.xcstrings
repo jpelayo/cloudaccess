@@ -756,6 +756,146 @@
       "localizations" : {
         "es" : { "stringUnit" : { "state" : "translated", "value" : "Sí" } }
       }
+    },
+    "A Files location with no drive" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Una ubicación de Archivos sin unidad" } }
+      }
+    },
+    "A step failed. Nothing after it was done." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ha fallado un paso. No se ha hecho nada de lo que venía después." } }
+      }
+    },
+    "Attention: other apps saved changes into these drives. The drives are read-only, so the changes exist only on this iPhone, and uninstalling deletes them. Copy them somewhere else in Files first to keep them." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Atención: otras apps han guardado cambios en estas unidades. Las unidades son de solo lectura, así que los cambios solo existen en este iPhone y al desinstalar se eliminan. Cópielos antes en otro lugar de Archivos para conservarlos." } }
+      }
+    },
+    "Attention: without its password, an encrypted drive can't be read. Export your drives first if you'll need them again." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Atención: sin su contraseña, una unidad cifrada no se puede leer. Exporte antes sus unidades si va a volver a necesitarlas." } }
+      }
+    },
+    "Back" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Atrás" } }
+      }
+    },
+    "Changes only on this iPhone" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cambios solo en este iPhone" } }
+      }
+    },
+    "CloudWanderer has been removed from this iPhone." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "CloudWanderer se ha quitado de este iPhone." } }
+      }
+    },
+    "CloudWanderer Uninstalled" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "CloudWanderer desinstalado" } }
+      }
+    },
+    "Failed" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Fallido" } }
+      }
+    },
+    "No drives." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No hay unidades." } }
+      }
+    },
+    "Not done" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sin hacer" } }
+      }
+    },
+    "Nothing was changed." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se ha cambiado nada." } }
+      }
+    },
+    "Passed" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Superado" } }
+      }
+    },
+    "Progress" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Progreso" } }
+      }
+    },
+    "Reading the drives…" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Leyendo las unidades…" } }
+      }
+    },
+    "Removes your drives and their passwords from this iPhone. Files on your servers are not changed." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Quita sus unidades y sus contraseñas de este iPhone. Los archivos de sus servidores no cambian." } }
+      }
+    },
+    "Running" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "En curso" } }
+      }
+    },
+    "Share Report…" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Compartir informe…" } }
+      }
+    },
+    "Steps" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pasos" } }
+      }
+    },
+    "Stop Uninstalling" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Dejar de desinstalar" } }
+      }
+    },
+    "These drives will be removed from Files, and their passwords deleted from this iPhone. Files on your servers are not changed." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Estas unidades se quitarán de Archivos y sus contraseñas se eliminarán de este iPhone. Los archivos de sus servidores no cambian." } }
+      }
+    },
+    "To delete the app, touch and hold its icon, then choose Remove App." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Para eliminar la app, mantenga pulsado su icono y elija «Eliminar app»." } }
+      }
+    },
+    "To remove" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Para quitar" } }
+      }
+    },
+    "Try Again" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Reintentar" } }
+      }
+    },
+    "Uninstall" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desinstalar" } }
+      }
+    },
+    "Uninstall CloudWanderer" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desinstalar CloudWanderer" } }
+      }
+    },
+    "Uninstall CloudWanderer…" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desinstalar CloudWanderer…" } }
+      }
+    },
+    "Uninstalling CloudWanderer" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desinstalando CloudWanderer" } }
+      }
     }
   },
   "version" : "1.0"

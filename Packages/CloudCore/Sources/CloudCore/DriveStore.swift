@@ -167,6 +167,11 @@ public struct DriveStore: Sendable {
         for copy in ["backup", "before-upgrade"] {
             try? FileManager.default.removeItem(at: stem.appendingPathExtension(copy))
         }
+        // Anything else named for this drive, such as a rebuild or a partial copy that a crash
+        // left. Every file here starts with the ID of the drive it belongs to.
+        for path in databaseFiles(for: id) {
+            try? FileManager.default.removeItem(atPath: path)
+        }
     }
 
     /// A drive's backup, kept beside its database.
@@ -361,5 +366,120 @@ public struct DriveStore: Sendable {
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw StoreError.keychain(status)
         }
+    }
+
+    // MARK: Uninstalling
+
+    /// What deleting everything found.
+    public struct Deletion: Equatable, Sendable {
+        /// How many of the store's files and folders were deleted.
+        public var deleted: Int
+        /// What's still there afterwards, by path. Empty means all of it went.
+        public var left: [String]
+    }
+
+    /// Deletes everything this store keeps on the device, for an uninstall:
+    /// - the drive list, the kept-files list and the device's ID;
+    /// - every drive's database with all its companions;
+    /// - the iPhone extension's notes and memory report;
+    /// - the log.
+    ///
+    /// Only what this store made goes, because other things can share the folder. Then it looks
+    /// again, so what it says is left is what's really there.
+    public func deleteEverything() -> Deletion {
+        let manager = FileManager.default
+        var deleted = 0
+        for target in everythingKept where manager.fileExists(atPath: target.path) {
+            if (try? manager.removeItem(at: target)) != nil {
+                deleted += 1
+            }
+        }
+        return Deletion(deleted: deleted, left: whatsLeft())
+    }
+
+    /// What of `deleteEverything()`'s list is still there, by path, for the last check.
+    public func whatsLeft() -> [String] {
+        everythingKept.filter { FileManager.default.fileExists(atPath: $0.path) }.map(\.path)
+    }
+
+    private var everythingKept: [URL] {
+        let folder = file.deletingLastPathComponent()
+        var targets = [
+            file, preservedFile, folder.appendingPathComponent("device-id"),
+            folder.appendingPathComponent("Drives"), folder.appendingPathComponent("FilesNotes"),
+            memoryReportURL, diagnostics.folder,
+        ]
+        // Older builds kept the log beside the drive list.
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        targets += names.filter { $0.hasPrefix("diagnostics") && $0.hasSuffix(".log") }
+            .sorted()
+            .map { folder.appendingPathComponent($0) }
+        return targets
+    }
+
+    /// A drive's database files that exist, by path, for the check after removing it. Unlike
+    /// `databaseURL(for:)`, looking creates nothing.
+    public func databaseFiles(for id: UUID) -> [String] {
+        let folder = file.deletingLastPathComponent().appendingPathComponent("Drives")
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        return names.filter { $0.hasPrefix(id.uuidString) }.sorted().map { folder.appendingPathComponent($0).path }
+    }
+
+    /// Where an uninstall looks for passwords: this store's groups, and every group the app can
+    /// reach, which also finds one saved by a build that kept it somewhere else.
+    private var everyPasswordGroup: [String?] {
+        var groups: [String?] = []
+        for group in [keychainGroup, earlierKeychainGroup].compactMap({ $0 }) where !groups.contains(group) {
+            groups.append(group)
+        }
+        return groups + [nil]
+    }
+
+    private func everyPassword(in group: String?) -> [CFString: Any] {
+        var search: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: Self.service,
+            kSecUseDataProtectionKeychain: true,
+        ]
+        if let group {
+            search[kSecAttrAccessGroup] = group
+        }
+        return search
+    }
+
+    /// Deletes every password saved under this app's service, whatever drive it was for, so one
+    /// whose drive record was already gone goes too. A group this build isn't entitled to holds
+    /// nothing it could ever read, so it's passed over.
+    public func deleteAllPasswords() throws {
+        for group in everyPasswordGroup {
+            let status = SecItemDelete(everyPassword(in: group) as CFDictionary)
+            guard [errSecSuccess, errSecItemNotFound, errSecMissingEntitlement].contains(status) else {
+                throw StoreError.keychain(status)
+            }
+        }
+    }
+
+    /// How many passwords are still saved under this app's service, in every group the app can
+    /// reach, for the uninstall's checks.
+    public func passwordsLeft() throws -> Int {
+        var search = everyPassword(in: nil)
+        search[kSecMatchLimit] = kSecMatchLimitAll
+        search[kSecReturnAttributes] = true
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(search as CFDictionary, &result)
+        switch status {
+        case errSecSuccess:
+            return (result as? [Any])?.count ?? 1
+        case errSecItemNotFound:
+            return 0
+        default:
+            throw StoreError.keychain(status)
+        }
+    }
+
+    /// Whether a drive's own password is gone from every group the app can reach, for the check
+    /// after removing it. A read that fails another way doesn't count as gone.
+    public func hasNoPassword(for id: UUID) -> Bool {
+        read(id, in: nil).status == errSecItemNotFound
     }
 }

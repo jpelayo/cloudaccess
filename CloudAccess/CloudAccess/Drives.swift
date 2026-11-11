@@ -87,10 +87,13 @@ final class Drives {
         case noSharedFolder
         case unsafeNeedsSFTP
         case insecureNotAllowed
+        case uninstalling
 
         /// Shown to a person, so it's in the language shown. Diagnostics record the case's name.
         var errorDescription: String? {
             switch self {
+            case .uninstalling:
+                return String(localized: "CloudAccess is being uninstalled, so drives can't be added or changed.")
             case .unsafeNeedsSFTP:
                 return DriveEdit.unsafeNeedsSFTP
             case .insecureNotAllowed:
@@ -230,6 +233,33 @@ final class Drives {
     private var readingPending = Set<UUID>()
     private var transferTicks = 0
     @ObservationIgnored private var lastLogged: [UUID: String] = [:]
+    /// The uninstall under way, if there is one. While it runs nothing is added, mounted or edited.
+    private(set) var uninstaller: Uninstaller?
+    /// Set when an uninstall has stopped every check, for good. Nothing may then open a drive's
+    /// database, because that would create it again after it's deleted.
+    private var isStopped = false
+
+    var isUninstalling: Bool {
+        uninstaller != nil
+    }
+
+    /// The uninstall under way, or a new one.
+    func beginUninstall() -> Uninstaller {
+        if let uninstaller {
+            return uninstaller
+        }
+        let made = Uninstaller(drives: self, store: store)
+        uninstaller = made
+        return made
+    }
+
+    /// Drops an uninstall that changed nothing, or stopped before the checks did, so the app goes
+    /// back to working as it was.
+    func endUninstall() {
+        guard !isStopped else { return }
+        uninstaller = nil
+        reload()
+    }
 
     var needsEnabling: Bool {
         !notEnabled.isEmpty
@@ -628,7 +658,7 @@ final class Drives {
     /// one asked for during a poll runs straight after it.
     /// - Parameter force: Checks every listed folder now, instead of those due.
     func pollOnce(force: Bool = false) async {
-        guard memory?.level != .critical else { return }
+        guard !isStopped, memory?.level != .critical else { return }
         guard !isPolling else {
             pollAgain = pollAgain || force
             return
@@ -798,6 +828,7 @@ final class Drives {
     /// macOS updates these objects as it goes, so they're kept rather than asked for each time.
     /// They only hint at what's going on: `refreshPending` says which files are really waiting.
     private func updateTransfers() {
+        guard !isStopped else { return }
         func remaining(_ progress: Progress?) -> Int {
             guard let progress else { return 0 }
             return max(0, (progress.fileTotalCount ?? 0) - (progress.fileCompletedCount ?? 0))
@@ -1327,6 +1358,7 @@ final class Drives {
     /// protected removal as any other, so unsent files are kept.
     func saveEdit(of connection: Connection, as edited: Connection, signIn: SignInEdit) async throws {
         guard let store else { throw DriveError.noSharedFolder }
+        guard !isUninstalling else { throw DriveError.uninstalling }
         #if DEBUG
         guard edited.isTestDrive else { throw DriveError.notATestFolder }
         #endif
@@ -1447,6 +1479,8 @@ final class Drives {
 
     /// A drive's database, which needs no connection.
     private func localState(_ connection: Connection) async throws -> SyncStore {
+        // Every way to a drive's database comes through here.
+        guard !isStopped else { throw CancellationError() }
         if let existing = states[connection.id], existing.isCurrent {
             return existing
         }
@@ -1725,6 +1759,7 @@ final class Drives {
     @discardableResult
     func add(_ connection: Connection, credentials: Credentials, mayCreateVault: Bool = true) async throws -> Connection {
         guard let store else { throw DriveError.noSharedFolder }
+        guard !isUninstalling else { throw DriveError.uninstalling }
         guard DriveEdit.modeRefusal(for: connection) == nil else { throw DriveError.unsafeNeedsSFTP }
         guard !connections.contains(where: { $0.displayName == connection.displayName }) else {
             throw DriveError.duplicateName
@@ -1842,18 +1877,31 @@ final class Drives {
 
     /// Unsent files are kept: `preserveDirtyUserData` never discards local changes. The
     /// connection and its secrets are only deleted once macOS has removed the drive.
-    func remove(_ connection: Connection) async throws {
+    /// - Returns: Where macOS kept files that hadn't uploaded, if it kept any.
+    @discardableResult
+    func remove(_ connection: Connection) async throws -> String? {
         guard let store else { throw DriveError.noSharedFolder }
         var removing = connection
         removing.lifecycle = .removing
         try store.save(removing)
         reload()
-        try await finishRemoving(removing)
+        return try await finishRemoving(removing)
     }
 
-    /// Takes a drive out of Finder. Anything unsent is kept where macOS puts it.
-    private func removeDomain(of connection: Connection) async throws {
-        guard let store else { return }
+    /// Whether macOS still has a drive's domain. If its list can't be read, the domain is taken to
+    /// be there, so removal still asks macOS, as it always has.
+    private func hasDomain(_ connection: Connection) async -> Bool {
+        guard let domains = try? await NSFileProviderManager.domains() else { return true }
+        return domains.contains { $0.identifier.rawValue == connection.id.uuidString }
+    }
+
+    /// Takes a drive out of Finder. Anything unsent is kept where macOS puts it. A domain macOS
+    /// has already dropped is left at that, so its record can still go: asking macOS to remove
+    /// it again could fail, and leave the record behind for good.
+    /// - Returns: Where macOS kept files that hadn't uploaded, if it kept any.
+    @discardableResult
+    private func removeDomain(of connection: Connection) async throws -> String? {
+        guard let store else { return nil }
         open[connection.id] = nil
         states[connection.id] = nil
         offline.remove(connection.id)
@@ -1871,6 +1919,7 @@ final class Drives {
         stalled.remove(connection.id)
         downloading[connection.id] = nil
         problems[connection.id] = nil
+        guard await hasDomain(connection) else { return nil }
         let preserved = try await NSFileProviderManager.remove(
             domain(for: connection), mode: .preserveDirtyUserData)
         if let preserved {
@@ -1884,6 +1933,7 @@ final class Drives {
                     "\(connection.displayName): unsent files are at \(preserved.path), and that couldn't be saved")
             }
         }
+        return preserved?.path
     }
 
     private func saveWaitingPreserved() {
@@ -1905,6 +1955,7 @@ final class Drives {
                 changed.isMounted = false
                 try store.save(changed)
             } else {
+                guard !isUninstalling else { return }
                 changed.isMounted = true
                 try await NSFileProviderManager.add(domain(for: changed))
                 try store.save(changed)
@@ -1932,14 +1983,68 @@ final class Drives {
         return alert.runModal() == .alertFirstButtonReturn
     }
 
-    private func finishRemoving(_ connection: Connection) async throws {
-        guard let store else { return }
-        if connection.isMounted {
-            try await removeDomain(of: connection)
-        }
+    /// An ejected drive normally has no domain, and then this asks macOS nothing. One that has a
+    /// domain anyway loses it too, so nothing of the drive is left in Finder.
+    @discardableResult
+    private func finishRemoving(_ connection: Connection) async throws -> String? {
+        guard let store else { return nil }
+        let preserved = try await removeDomain(of: connection)
         try store.remove(id: connection.id)
         try? store.deleteDatabase(for: connection.id)
         reload()
+        return preserved
+    }
+
+    // MARK: Uninstalling
+
+    /// Stops every check, for an uninstall, and waits for one already under way to end. Nothing
+    /// in the app can then open a drive's database, which would create it again once deleted.
+    /// The app quits after an uninstall, so this is never undone.
+    /// - Returns: Whether everything stopped. A check can wait on macOS for up to two minutes.
+    func stopForUninstall() async -> Bool {
+        isStopped = true
+        transfersTask?.cancel()
+        pollingTask?.cancel()
+        let deadline = Date().addingTimeInterval(180)
+        while isPolling || !readingPending.isEmpty, Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(200))
+        }
+        guard !isPolling, readingPending.isEmpty else { return false }
+        open = [:]
+        states = [:]
+        return true
+    }
+
+    /// Every drive saved, whatever its state, for an uninstall. The list on screen leaves out
+    /// those being added or removed.
+    func everySavedDrive() throws -> [Connection] {
+        guard let store else { throw DriveError.noSharedFolder }
+        return try store.connections()
+    }
+
+    /// What's keeping a drive from being ready to remove, for an uninstall's wait.
+    func hold(on connection: Connection) -> Uninstall.Hold? {
+        guard connection.isMounted, unsentCount(of: connection) > 0 else { return nil }
+        if offline.contains(connection.id) { return .offline }
+        if !(failures[connection.id] ?? []).isEmpty { return .failing }
+        return .uploading
+    }
+
+    /// Reads again which files macOS still has to send, for each mounted drive.
+    func refreshAllPending() async {
+        for connection in mounted {
+            await refreshPending(of: connection)
+        }
+    }
+
+    /// Removes a location macOS has with no drive behind it, keeping anything unsent there.
+    /// - Returns: Where macOS kept files that hadn't uploaded, if it kept any.
+    func removeOrphanLocation(_ identifier: String) async throws -> String? {
+        guard let domain = try await NSFileProviderManager.domains()
+            .first(where: { $0.identifier.rawValue == identifier })
+        else { return nil }
+        let preserved = try await NSFileProviderManager.remove(domain, mode: .preserveDirtyUserData)
+        return preserved?.path
     }
 
     func revealPreserved(_ files: DriveStore.PreservedFiles) {

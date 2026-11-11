@@ -211,6 +211,34 @@ enum LoginAgent {
         end()
     }
 
+    /// Set by an uninstall in the agent's own copy, where unregistering ends this process, so it
+    /// can only happen as the copy ends. It's kept in memory: the app's defaults are deleted by then.
+    private static var unregistersAtEnd = false
+
+    /// The last step of an uninstall: launch at login goes, then the app does. The Quit note is
+    /// written either way, so a copy standing by leaves too.
+    /// - Returns: `false` if launch at login is still on, and the app is still running. In the
+    ///   agent's own copy it can't be checked, because turning it off ends the copy.
+    static func uninstallAndQuit() -> Bool {
+        if launchedByAgent {
+            unregistersAtEnd = true
+        } else if isRegistered {
+            do {
+                try service.unregister()
+            } catch {
+                return false
+            }
+            guard !isRegistered else { return false }
+        }
+        quit()
+        return true
+    }
+
+    /// Whether launch at login is registered, waiting for approval or not, for the uninstall.
+    static var isRegistered: Bool {
+        [.enabled, .requiresApproval].contains(service.status)
+    }
+
     /// Whether `restart()` can bring the app back by itself.
     static var canRestart: Bool { status == .on }
 
@@ -232,8 +260,10 @@ enum LoginAgent {
 
     /// An open sheet makes macOS cancel a Quit, with no sign of why, so they're closed first.
     private static func end() {
-        if isTurningOff {
-            isTurningOff = false
+        if isTurningOff || unregistersAtEnd {
+            if isTurningOff {
+                isTurningOff = false
+            }
             // Unregistering stops this copy with this signal, which is what's wanted by now.
             signal(SIGTERM, SIG_DFL)
             try? service.unregister()

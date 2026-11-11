@@ -45,6 +45,18 @@ public enum Words {
     public static func shown(_ saved: String) -> String {
         text(saved)
     }
+
+    /// A sentence in English whatever the language shown, for text that's kept or exported. Its
+    /// plural forms come from the English table, so it reads "1 drive", not "1 drives".
+    static func english(_ key: String, _ values: [CVarArg]) -> String {
+        guard !values.isEmpty else { return key }
+        let format = englishBundle?.localizedString(forKey: key, value: key, table: nil) ?? key
+        return String(format: format, locale: Locale(identifier: "en_GB"), arguments: values)
+    }
+
+    private static var englishBundle: Bundle? {
+        Bundle.module.path(forResource: "en", ofType: "lproj").flatMap(Bundle.init(path:))
+    }
 }
 
 /// An error this package words itself. The English is what's saved, logged and exported, and what

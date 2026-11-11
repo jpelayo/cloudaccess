@@ -3,10 +3,28 @@
   "strings" : {
     "CFBundleDisplayName" : {
       "comment" : "Bundle display name. macOS names each drive's folder in CloudStorage after it, so it never changes with the language.",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CloudAccess"
+          }
+        }
+      },
       "shouldTranslate" : false
     },
     "CFBundleName" : {
       "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CloudAccess"
+          }
+        }
+      },
       "shouldTranslate" : false
     },
     "CloudAccess Drives" : {
@@ -22,6 +40,15 @@
     },
     "NSHumanReadableCopyright" : {
       "comment" : "Copyright (human-readable)",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      },
       "shouldTranslate" : false
     }
   },

@@ -89,6 +89,24 @@ SFTP drives have three modes, under Advanced in a drive's details. You can switc
 
 The apps follow your device's language, English or Spanish. To choose one yourself, use Language in Settings on the Mac, or in About on the iPhone. The change shows after the app restarts.
 
+### Uninstalling
+
+Deleting an app gives it no chance to clean up, so do this first. Choose Uninstall… in About, on the Mac or the iPhone. The window lists what will go, then shows each step and what its check found.
+
+1. **On the Mac, it waits for uploads.** It goes on by itself once nothing is left to send, and you can cancel until then.
+2. **It removes each drive** the same way as its own Remove button. On the Mac, files that hadn't uploaded are kept, and the last page shows where.
+3. **It deletes what the app keeps on the device:** the drive list, each drive's database, cached downloads, the log and the settings. Then it deletes every saved password.
+4. **It checks again for anything left:** locations in Finder or Files, drives, passwords and files. A step passes only when its check finds nothing. If one fails, the window says what's left and what that means, and Try Again carries on from there.
+5. **Then delete the app:**
+   - On the Mac, Quit also turns off launch at login. Then move CloudAccess to the Bin.
+   - On the iPhone, touch and hold its icon, then choose Remove App.
+
+**Attention:** without its password, an encrypted drive can't be read. Export your drives, or save each recovery kit, before you uninstall.
+
+- **Your servers are not changed.** The files, `.cloudmount` and each encrypted drive's marker stay, so installing again finds everything where it was.
+- **Save Report…** keeps a record of each step, because the log is deleted with the rest. It names drives, never servers or passwords.
+- **macOS keeps each app's own folder** in `~/Library/Containers`, with nothing of your drives in it. An app can't delete its own.
+
 ### Something not working?
 
 On the iPhone, About has the app's log: Show Log reads it, and Share Log sends it to your Mac with AirDrop. The log says what happened to each drive. It never holds file names or passwords.

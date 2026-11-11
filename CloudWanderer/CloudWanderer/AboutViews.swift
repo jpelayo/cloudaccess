@@ -22,10 +22,14 @@ private func megabytes(_ bytes: UInt64) -> String {
 
 struct AboutView: View {
     @Environment(\.dismiss) private var dismiss
+    let places: FilesPlaces
+    let drives: OpenDrives
     @State private var sharedLog: SharedFile?
     @State private var language = AppLanguage.chosen()
     /// iOS reads the language at launch, and an app can't restart itself.
     @State private var languageChanged = false
+    /// Set once Uninstall is pressed, and the sheet shows the uninstall instead.
+    @State private var uninstaller: PhoneUninstaller?
 
     private var languageChoice: Binding<AppLanguage> {
         Binding {
@@ -39,72 +43,100 @@ struct AboutView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    KeyValueRow("Version", version)
-                    KeyValueRow("Licence", String(localized: "Apache 2 licensed software"))
-                    KeyValueRow("Developed by", developer)
-                } header: {
-                    SectionLabel("CloudWanderer")
-                }
-                Section {
-                    Text("Browse your own WebDAV and SFTP servers, and download and export files from them. Nothing is sent anywhere else.")
-                }
-                Section {
-                    Picker("Language", selection: languageChoice) {
-                        ForEach(AppLanguage.allCases, id: \.self) { choice in
-                            Text(verbatim: choice.title).tag(choice)
-                        }
+            Group {
+                if let uninstaller {
+                    UninstallView(uninstaller: uninstaller) {
+                        withAnimation(.easeInOut(duration: 0.2)) { self.uninstaller = nil }
                     }
-                } header: {
-                    SectionLabel("Language")
-                } footer: {
-                    if languageChanged {
-                        Text("Close and reopen CloudWanderer to apply it.")
-                    } else {
-                        Text("System follows your iPhone's language.")
-                    }
-                }
-                Section {
-                    NavigationLink("Show Log") {
-                        LogView()
-                    }
-                    Button("Share Log") {
-                        Task { await shareLog() }
-                    }
-                } header: {
-                    SectionLabel("Log")
-                } footer: {
-                    Text("What happened to your drives, without file names or passwords. It stays on this iPhone unless you share it.")
-                }
-                if let report = PhoneDrives.memoryReport {
-                    Section {
-                        // The event is the extension's own word, kept as it recorded it, and the
-                        // values are built as strings so only the labels are looked up.
-                        KeyValueRow("After", report.event + ", " + report.date.formatted(date: .omitted, time: .standard))
-                        KeyValueRow("Then", megabytes(report.now))
-                        KeyValueRow("Peak that run", megabytes(report.peak))
-                        KeyValueRow("Highest seen", megabytes(report.highest))
-                        if let limit = report.limit {
-                            KeyValueRow("Limit", megabytes(limit))
-                        }
-                        if let drives = report.drives, let threads = report.threads {
-                            KeyValueRow("Drives, threads", drives.formatted() + ", " + threads.formatted())
-                        }
-                    } header: {
-                        SectionLabel("Files extension memory")
-                    }
+                } else {
+                    about
                 }
             }
-            .navigationTitle("About CloudWanderer")
-            .navigationBarTitleDisplayMode(.inline)
+            .transition(.opacity)
             .toolbar {
-                Button("Done") { dismiss() }
+                if !(uninstaller?.isRunning ?? false) {
+                    Button("Done") { dismiss() }
+                }
             }
             .sheet(item: $sharedLog) { shared in
                 ShareSheet(file: shared.url)
             }
         }
+        // Nothing may leave the screen while a drive is being removed.
+        .interactiveDismissDisabled(uninstaller?.isRunning ?? false)
+    }
+
+    private var about: some View {
+        List {
+            Section {
+                KeyValueRow("Version", version)
+                KeyValueRow("Licence", String(localized: "Apache 2 licensed software"))
+                KeyValueRow("Developed by", developer)
+            } header: {
+                SectionLabel("CloudWanderer")
+            }
+            Section {
+                Text("Browse your own WebDAV and SFTP servers, and download and export files from them. Nothing is sent anywhere else.")
+            }
+            Section {
+                Picker("Language", selection: languageChoice) {
+                    ForEach(AppLanguage.allCases, id: \.self) { choice in
+                        Text(verbatim: choice.title).tag(choice)
+                    }
+                }
+            } header: {
+                SectionLabel("Language")
+            } footer: {
+                if languageChanged {
+                    Text("Close and reopen CloudWanderer to apply it.")
+                } else {
+                    Text("System follows your iPhone's language.")
+                }
+            }
+            Section {
+                NavigationLink("Show Log") {
+                    LogView()
+                }
+                Button("Share Log") {
+                    Task { await shareLog() }
+                }
+            } header: {
+                SectionLabel("Log")
+            } footer: {
+                Text("What happened to your drives, without file names or passwords. It stays on this iPhone unless you share it.")
+            }
+            if let report = PhoneDrives.memoryReport {
+                Section {
+                    // The event is the extension's own word, kept as it recorded it, and the
+                    // values are built as strings so only the labels are looked up.
+                    KeyValueRow("After", report.event + ", " + report.date.formatted(date: .omitted, time: .standard))
+                    KeyValueRow("Then", megabytes(report.now))
+                    KeyValueRow("Peak that run", megabytes(report.peak))
+                    KeyValueRow("Highest seen", megabytes(report.highest))
+                    if let limit = report.limit {
+                        KeyValueRow("Limit", megabytes(limit))
+                    }
+                    if let drives = report.drives, let threads = report.threads {
+                        KeyValueRow("Drives, threads", drives.formatted() + ", " + threads.formatted())
+                    }
+                } header: {
+                    SectionLabel("Files extension memory")
+                }
+            }
+            Section {
+                Button("Uninstall CloudWanderer…", role: .destructive) {
+                    let made = PhoneUninstaller(places: places, drives: drives)
+                    withAnimation(.easeInOut(duration: 0.2)) { uninstaller = made }
+                    Task { await made.review() }
+                }
+            } header: {
+                SectionLabel("Uninstall")
+            } footer: {
+                Text("Removes your drives and their passwords from this iPhone. Files on your servers are not changed.")
+            }
+        }
+        .navigationTitle("About CloudWanderer")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     /// Writes the log to a file named for today, redacted on the way out, and offers it to share.

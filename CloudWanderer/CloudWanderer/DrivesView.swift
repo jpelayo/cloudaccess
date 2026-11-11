@@ -456,8 +456,9 @@ struct DrivesView: View {
             .sheet(isPresented: $isAdding, onDismiss: reload) {
                 AddDriveView(store: store)
             }
-            .sheet(isPresented: $isShowingAbout) {
-                AboutView()
+            // After an uninstall the list is read again, and is empty.
+            .sheet(isPresented: $isShowingAbout, onDismiss: reload) {
+                AboutView(places: places, drives: drives)
             }
             .sheet(isPresented: $isExportingDrives) {
                 ExportDrivesView(store: store, drives: connections)

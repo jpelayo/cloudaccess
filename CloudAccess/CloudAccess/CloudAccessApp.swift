@@ -1,6 +1,7 @@
 // Apache 2 license - developer@infinitecontext.com
 
 import CloudCore
+import QuartzCore
 import SwiftUI
 
 @main
@@ -125,6 +126,75 @@ enum AppWindows {
     static func showCloudWanderer() {
         show(&cloudWanderer, title: "CloudWanderer", content: CloudWandererView())
     }
+
+    // MARK: About
+
+    private static var about: NSWindow?
+    private static let aboutGuard = AboutCloseGuard()
+
+    /// About, and the uninstall that starts from it. Unlike the other windows, this one is sized
+    /// by hand rather than by its content, so each change of page can be animated.
+    static func showAbout(drives: Drives) {
+        if about == nil {
+            let content = AboutView { size in fitAbout(to: size) }
+                .environment(drives)
+                .background(WindowBackdrop().ignoresSafeArea())
+            let controller = NSHostingController(rootView: content)
+            controller.sizingOptions = []
+            let made = NSWindow(contentViewController: controller)
+            made.title = String(localized: "About CloudAccess")
+            made.styleMask = [.titled, .closable, .fullSizeContentView]
+            made.titlebarAppearsTransparent = true
+            made.titleVisibility = .hidden
+            made.isOpaque = false
+            made.backgroundColor = .clear
+            made.standardWindowButton(.miniaturizeButton)?.isHidden = true
+            made.standardWindowButton(.zoomButton)?.isHidden = true
+            made.isReleasedWhenClosed = false
+            made.delegate = aboutGuard
+            made.setContentSize(NSSize(width: 340, height: 300))
+            made.center()
+            about = made
+        }
+        if let about {
+            bringForward(about)
+        }
+    }
+
+    /// Grows or shrinks About to fit its page. The top edge stays where it is, so the window
+    /// opens downward, and it stays inside the screen. With Reduce Motion on, it doesn't animate.
+    private static func fitAbout(to size: CGSize) {
+        guard let window = about, size.width > 0, size.height > 0 else { return }
+        let current = window.frame
+        // The content fills the whole window, title bar included, so the two sizes are the same.
+        var frame = NSRect(origin: .zero, size: size)
+        frame.origin.x = current.midX - frame.width / 2
+        frame.origin.y = current.maxY - frame.height
+        if let visible = (window.screen ?? NSScreen.main)?.visibleFrame {
+            frame.size.height = min(frame.height, visible.height)
+            frame.origin.y = max(min(frame.origin.y, visible.maxY - frame.height), visible.minY)
+            frame.origin.x = max(min(frame.origin.x, visible.maxX - frame.width), visible.minX)
+        }
+        guard frame.integral != current.integral else { return }
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || !window.isVisible {
+            window.setFrame(frame, display: true)
+        } else {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.25
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                window.animator().setFrame(frame, display: true)
+            }
+        }
+    }
+}
+
+/// About can't close while a drive is leaving Finder: those few seconds are the only part of an
+/// uninstall that has to be watched through.
+@MainActor
+private final class AboutCloseGuard: NSObject, NSWindowDelegate {
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        !(AppDelegate.drives?.uninstaller?.isRemovingDrive ?? false)
+    }
 }
 
 /// Tells people about the iPhone app, and how a drive gets there.
@@ -144,21 +214,10 @@ struct CloudWandererView: View {
 }
 
 enum About {
-    /// A menu bar app isn't frontmost, so the panel would otherwise open behind other windows.
+    /// The app's own About window, which also holds the uninstall. AppKit's standard panel can't.
     @MainActor
     static func show() {
-        NSApp.activate(ignoringOtherApps: true)
-        let lines = [
-            String(localized: "Apache 2 licensed software"),
-            String(localized: "Developed by InfiniteContext.com"),
-        ]
-        NSApp.orderFrontStandardAboutPanel(options: [
-            .credits: NSAttributedString(
-                string: lines.joined(separator: "\n"),
-                attributes: [
-                    .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
-                    .foregroundColor: NSColor.secondaryLabelColor,
-                ])
-        ])
+        guard let drives = AppDelegate.drives else { return }
+        AppWindows.showAbout(drives: drives)
     }
 }

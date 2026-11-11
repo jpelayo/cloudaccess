@@ -80,6 +80,7 @@ struct SettingsView: View {
                         isAdding = true
                     }
                     .buttonStyle(.pill)
+                    .disabled(drives.isUninstalling)
                 }
                 BoundedList(rows: drives.connections.count, rowHeight: RowHeight.double, visibleRows: 4) {
                     if drives.connections.isEmpty && drives.storeProblem == nil {
@@ -183,6 +184,7 @@ struct SettingsView: View {
                         isChoosingImport = true
                     }
                     .buttonStyle(.pill)
+                    .disabled(drives.isUninstalling)
                 }
                 if let drivesFileProblem {
                     Text(drivesFileProblem)
@@ -237,7 +239,7 @@ struct SettingsView: View {
         }
         .onChange(of: drives.wantsAddForm, initial: true) { _, wanted in
             guard wanted else { return }
-            isAdding = true
+            isAdding = !drives.isUninstalling
             drives.wantsAddForm = false
         }
         .confirmationDialog("Forget all kept files?", isPresented: $isConfirmingForgetAll) {
