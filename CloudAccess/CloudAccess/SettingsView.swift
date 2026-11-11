@@ -9,6 +9,9 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @Environment(Drives.self) private var drives
     @State private var isAdding = false
+    /// The window shows the drives, and the gear swaps them for everything else. It's a page,
+    /// not a sheet, so Export and Import never open a sheet on top of another.
+    @State private var isShowingSettings = false
     /// A new encrypted drive, whose recovery kit is offered once the add form has closed. Offered
     /// on top of the form, closing both sheets together left this window's background pale.
     @State private var addedEncryptedDrive: Connection?
@@ -50,163 +53,10 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Design.sectionGap) {
-            // The window's close button sits to the left of this line.
-            PanelHeader(title: "CloudAccess", detail: version) {
-                OverallPill { connection in
-                    sheet = DriveRequest(driveID: connection.id, sheet: .information)
-                }
-            }
-            .padding(.leading, 26)
-            if drives.needsEnabling {
-                PermissionRow("Turn on CloudAccess in System Settings.") {
-                    drives.openExtensionSettings()
-                }
-            }
-            if loginStatus == .needsApproval {
-                PermissionRow("Allow CloudAccess in Login Items.") {
-                    LoginAgent.openLoginItems()
-                }
-            }
-            if !drives.drivesNeedingTailscale.isEmpty {
-                PermissionRow(
-                    "Some drives need Tailscale. Check that it's on.", button: "Open Tailscale",
-                    action: drives.hasTailscale ? { drives.openTailscale() } : nil)
-            }
-            if let storeProblem = drives.storeProblem {
-                Text(storeProblem)
-                    .foregroundStyle(.red)
-            }
-            VStack(alignment: .leading, spacing: Design.labelGap) {
-                HStack {
-                    SectionLabel("Drives")
-                    Spacer()
-                    Button("Add Drive…", systemImage: "plus") {
-                        isAdding = true
-                    }
-                    .buttonStyle(.pill)
-                    .disabled(drives.isUninstalling)
-                }
-                BoundedList(rows: drives.connections.count, rowHeight: RowHeight.double, visibleRows: 4) {
-                    if drives.connections.isEmpty && drives.storeProblem == nil {
-                        Text("No drives yet.")
-                            .foregroundStyle(.secondary)
-                            .frame(height: RowHeight.double)
-                    }
-                    ForEach(drives.connections) { connection in
-                        DriveRow(connection: connection) { kind in
-                            sheet = DriveRequest(driveID: connection.id, sheet: kind)
-                        }
-                    }
-                }
-            }
-            if !drives.preservedFiles.isEmpty {
-                VStack(alignment: .leading, spacing: Design.labelGap) {
-                    HStack {
-                        SectionLabel("Files kept from removed drives")
-                        Spacer()
-                        Button("Forget All…") { isConfirmingForgetAll = true }
-                            .buttonStyle(.pill)
-                    }
-                    BoundedList(rows: drives.preservedFiles.count, rowHeight: RowHeight.double, visibleRows: 3) {
-                        ForEach(drives.preservedFiles) { files in
-                            ListRow(height: RowHeight.double) {
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(files.driveName)
-                                    Text(files.date.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            } controls: {
-                                Button("Show in Finder", systemImage: "magnifyingglass") {
-                                    drives.revealPreserved(files)
-                                }
-                                .buttonStyle(.icon)
-                                .help("Show in Finder")
-                                Button("Forget", systemImage: "xmark") { drives.forgetPreserved(files) }
-                                    .buttonStyle(.icon)
-                                    .help("Forget")
-                            }
-                        }
-                    }
-                }
-            }
-            if !drives.unknownDomains.isEmpty {
-                Text("macOS has \(drives.unknownDomains.count) drives that CloudAccess doesn't recognise. They've been left alone.")
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            CardSection("General") {
-                IconRow("power", "Launch at login", subtitle: "Keeps your drives up to date") {
-                    RowSwitch(label: "Launch at login", isOn: launchAtLogin)
-                }
-                IconRow("stethoscope", "Diagnostics", subtitle: "A report with secrets removed") {
-                    Button("Export…", systemImage: "square.and.arrow.up") {
-                        diagnostics = TextFile(text: drives.diagnosticsText())
-                    }
-                    .buttonStyle(.pill)
-                }
-                IconRow("globe", "Language", subtitle: "System follows your Mac's language") {
-                    Picker("Language", selection: languageChoice) {
-                        ForEach(AppLanguage.allCases, id: \.self) { choice in
-                            Text(verbatim: choice.title).tag(choice)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(width: 140)
-                }
-                if languageChanged {
-                    if LoginAgent.canRestart {
-                        IconRow("arrow.clockwise", "The new language shows after a restart") {
-                            Button("Restart Now") { LoginAgent.restart() }
-                                .buttonStyle(.pill)
-                        }
-                    } else {
-                        IconRow(
-                            "arrow.clockwise", "The new language shows after a restart",
-                            subtitle: "Quit, then open CloudAccess again"
-                        ) {
-                            Button("Quit") { LoginAgent.quit() }
-                                .buttonStyle(.pill)
-                        }
-                    }
-                }
-                IconRow("square.and.arrow.up.on.square", "Export drives", subtitle: "Drives and passwords, in one encrypted file") {
-                    Button("Export…") {
-                        Task {
-                            drivesFileProblem = nil
-                            if await DrivesFileAccess.confirmOwner() {
-                                isExporting = true
-                            }
-                        }
-                    }
-                    .buttonStyle(.pill)
-                    .disabled(drives.exportable.isEmpty)
-                }
-                IconRow("square.and.arrow.down.on.square", "Import drives", subtitle: "From a drives file, one drive at a time") {
-                    Button("Import…") {
-                        drivesFileProblem = nil
-                        isChoosingImport = true
-                    }
-                    .buttonStyle(.pill)
-                    .disabled(drives.isUninstalling)
-                }
-                if let drivesFileProblem {
-                    Text(drivesFileProblem)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-                IconRow("iphone", "CloudWanderer for iPhone", subtitle: "Your drives on your phone") {
-                    Button("Learn More…") {
-                        AppWindows.showCloudWanderer()
-                    }
-                    .buttonStyle(.pill)
-                }
-                IconRow("info.circle", "About CloudAccess") {
-                    Button("Show…") {
-                        About.show()
-                    }
-                    .buttonStyle(.pill)
-                }
+            if isShowingSettings {
+                settingsPage
+            } else {
+                drivesPage
             }
         }
         .padding(.horizontal, 16)
@@ -260,6 +110,188 @@ struct SettingsView: View {
         .sheet(item: $importing) { file in
             ImportDrivesView(file: file)
                 .presentationBackground(.regularMaterial)
+        }
+    }
+
+    /// The drives, and anything macOS is still waiting for.
+    @ViewBuilder
+    private var drivesPage: some View {
+        // The window's close button sits to the left of this line.
+        PanelHeader(title: "CloudAccess", detail: version) {
+            OverallPill { connection in
+                sheet = DriveRequest(driveID: connection.id, sheet: .information)
+            }
+            Button("Settings", systemImage: "gearshape") {
+                isShowingSettings = true
+            }
+            .buttonStyle(.icon)
+            .help("Settings")
+        }
+        .padding(.leading, 26)
+        if drives.needsEnabling {
+            PermissionRow("Turn on CloudAccess in System Settings.") {
+                drives.openExtensionSettings()
+            }
+        }
+        if loginStatus == .needsApproval {
+            PermissionRow("Allow CloudAccess in Login Items.") {
+                LoginAgent.openLoginItems()
+            }
+        }
+        if !drives.drivesNeedingTailscale.isEmpty {
+            PermissionRow(
+                "Some drives need Tailscale. Check that it's on.", button: "Open Tailscale",
+                action: drives.hasTailscale ? { drives.openTailscale() } : nil)
+        }
+        if let storeProblem = drives.storeProblem {
+            Text(storeProblem)
+                .foregroundStyle(.red)
+        }
+        VStack(alignment: .leading, spacing: Design.labelGap) {
+            HStack {
+                SectionLabel("Drives")
+                Spacer()
+                Button("Add Drive…", systemImage: "plus") {
+                    isAdding = true
+                }
+                .buttonStyle(.pill)
+                .disabled(drives.isUninstalling)
+            }
+            BoundedList(rows: drives.connections.count, rowHeight: RowHeight.double, visibleRows: 4) {
+                if drives.connections.isEmpty && drives.storeProblem == nil {
+                    Text("No drives yet.")
+                        .foregroundStyle(.secondary)
+                        .frame(height: RowHeight.double)
+                }
+                ForEach(drives.connections) { connection in
+                    DriveRow(connection: connection) { kind in
+                        sheet = DriveRequest(driveID: connection.id, sheet: kind)
+                    }
+                }
+            }
+        }
+        if !drives.preservedFiles.isEmpty {
+            VStack(alignment: .leading, spacing: Design.labelGap) {
+                HStack {
+                    SectionLabel("Files kept from removed drives")
+                    Spacer()
+                    Button("Forget All…") { isConfirmingForgetAll = true }
+                        .buttonStyle(.pill)
+                }
+                BoundedList(rows: drives.preservedFiles.count, rowHeight: RowHeight.double, visibleRows: 3) {
+                    ForEach(drives.preservedFiles) { files in
+                        ListRow(height: RowHeight.double) {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(files.driveName)
+                                Text(files.date.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } controls: {
+                            Button("Show in Finder", systemImage: "magnifyingglass") {
+                                drives.revealPreserved(files)
+                            }
+                            .buttonStyle(.icon)
+                            .help("Show in Finder")
+                            Button("Forget", systemImage: "xmark") { drives.forgetPreserved(files) }
+                                .buttonStyle(.icon)
+                                .help("Forget")
+                        }
+                    }
+                }
+            }
+        }
+        if !drives.unknownDomains.isEmpty {
+            Text("macOS has \(drives.unknownDomains.count) drives that CloudAccess doesn't recognise. They've been left alone.")
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Everything that isn't a drive: the app's own settings, drives files, and help.
+    @ViewBuilder
+    private var settingsPage: some View {
+        // The window's close button sits to the left of this line.
+        PanelHeader(title: "Settings", detail: nil) {
+            Button("Done") {
+                isShowingSettings = false
+            }
+            .buttonStyle(.pill)
+            .keyboardShortcut(.cancelAction)
+        }
+        .padding(.leading, 26)
+        CardSection("General") {
+            IconRow("power", "Launch at login", subtitle: "Keeps your drives up to date") {
+                RowSwitch(label: "Launch at login", isOn: launchAtLogin)
+            }
+            IconRow("stethoscope", "Diagnostics", subtitle: "A report with secrets removed") {
+                Button("Export…", systemImage: "square.and.arrow.up") {
+                    diagnostics = TextFile(text: drives.diagnosticsText())
+                }
+                .buttonStyle(.pill)
+            }
+            IconRow("globe", "Language", subtitle: "System follows your Mac's language") {
+                Picker("Language", selection: languageChoice) {
+                    ForEach(AppLanguage.allCases, id: \.self) { choice in
+                        Text(verbatim: choice.title).tag(choice)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 140)
+            }
+            if languageChanged {
+                if LoginAgent.canRestart {
+                    IconRow("arrow.clockwise", "The new language shows after a restart") {
+                        Button("Restart Now") { LoginAgent.restart() }
+                            .buttonStyle(.pill)
+                    }
+                } else {
+                    IconRow(
+                        "arrow.clockwise", "The new language shows after a restart",
+                        subtitle: "Quit, then open CloudAccess again"
+                    ) {
+                        Button("Quit") { LoginAgent.quit() }
+                            .buttonStyle(.pill)
+                    }
+                }
+            }
+            IconRow("square.and.arrow.up.on.square", "Export drives", subtitle: "Drives and passwords, in one encrypted file") {
+                Button("Export…") {
+                    Task {
+                        drivesFileProblem = nil
+                        if await DrivesFileAccess.confirmOwner() {
+                            isExporting = true
+                        }
+                    }
+                }
+                .buttonStyle(.pill)
+                .disabled(drives.exportable.isEmpty)
+            }
+            IconRow("square.and.arrow.down.on.square", "Import drives", subtitle: "From a drives file, one drive at a time") {
+                Button("Import…") {
+                    drivesFileProblem = nil
+                    isChoosingImport = true
+                }
+                .buttonStyle(.pill)
+                .disabled(drives.isUninstalling)
+            }
+            if let drivesFileProblem {
+                Text(drivesFileProblem)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+            IconRow("iphone", "CloudWanderer for iPhone", subtitle: "Your drives on your phone") {
+                Button("Learn More…") {
+                    AppWindows.showCloudWanderer()
+                }
+                .buttonStyle(.pill)
+            }
+            IconRow("info.circle", "About CloudAccess") {
+                Button("Show…") {
+                    About.show()
+                }
+                .buttonStyle(.pill)
+            }
         }
     }
 }
