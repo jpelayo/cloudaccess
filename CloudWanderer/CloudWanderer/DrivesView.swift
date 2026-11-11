@@ -141,7 +141,7 @@ struct OfflineBar: View {
 
 extension View {
     /// Fills the row of a list, so the whole row takes the tap, not only the words.
-    fileprivate func wholeRow() -> some View {
+    func wholeRow() -> some View {
         frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
     }
@@ -187,53 +187,6 @@ struct DrivePills: View {
 }
 
 /// Read-only: list drives, browse, download and export.
-/// What the drives list keeps out of the way: drives files, the Mac app and About. The sheets these
-/// open belong to the drives list, which also opens a drives file sent with AirDrop.
-private struct PhoneSettingsView: View {
-    let canExport: Bool
-    @Binding var drivesFileProblem: String?
-    let exportDrives: () -> Void
-    let importDrives: () -> Void
-    let showCloudAccess: () -> Void
-    let showAbout: () -> Void
-
-    var body: some View {
-        List {
-            Section {
-                Button(action: exportDrives) {
-                    Label("Export Drives…", systemImage: "square.and.arrow.up")
-                        .wholeRow()
-                }
-                .disabled(!canExport)
-                Button(action: importDrives) {
-                    Label("Import Drives…", systemImage: "square.and.arrow.down")
-                        .wholeRow()
-                }
-            } header: {
-                SectionLabel("Drives file")
-            } footer: {
-                if let drivesFileProblem {
-                    Text(drivesFileProblem)
-                        .foregroundStyle(.red)
-                } else {
-                    Text("Moves drives and their passwords to another iPhone or Mac, in one encrypted file.")
-                }
-            }
-            Section {
-                Button(action: showCloudAccess) {
-                    Label("CloudAccess for Mac", systemImage: "laptopcomputer")
-                        .wholeRow()
-                }
-                Button(action: showAbout) {
-                    Label("About", systemImage: "info.circle")
-                        .wholeRow()
-                }
-            }
-        }
-        .navigationTitle("Settings")
-    }
-}
-
 struct DrivesView: View {
     private let store = PhoneDrives.store
     @State private var connections: [Connection] = []

@@ -86,7 +86,7 @@ WebDAV drives have only Safe and Read-only, because WebDAV servers can't replace
 
 ### Language
 
-The apps follow your device's language, English or Spanish. To choose one yourself, use Language in Settings on the Mac. On the iPhone, tap the gear, then About. The change takes effect when the app restarts.
+The apps follow your device's language, English or Spanish. To choose one yourself, use Language in Settings on the Mac. On the iPhone, tap the gear. The change takes effect when the app restarts.
 
 ### Uninstalling
 
@@ -106,7 +106,7 @@ Deleting an app gives it no chance to clean up after itself, so uninstall from i
 
 ### Something not working?
 
-On the Mac, choose Export… in the Diagnostics row in Settings. On the iPhone, tap the gear, then About, which has the app's log. Show Log displays it, and Share Log sends it to your Mac with AirDrop. The log records what happened to each drive, and never holds file names or passwords.
+On the Mac, choose Export… in the Diagnostics row in Settings. On the iPhone, tap the gear and use the Log section. Show Log displays the log, and Share Log sends it to your Mac with AirDrop. The log records what happened to each drive, and never holds file names or passwords.
 
 ## Good to know
 
