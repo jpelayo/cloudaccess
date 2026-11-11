@@ -187,6 +187,53 @@ struct DrivePills: View {
 }
 
 /// Read-only: list drives, browse, download and export.
+/// What the drives list keeps out of the way: drives files, the Mac app and About. The sheets these
+/// open belong to the drives list, which also opens a drives file sent with AirDrop.
+private struct PhoneSettingsView: View {
+    let canExport: Bool
+    @Binding var drivesFileProblem: String?
+    let exportDrives: () -> Void
+    let importDrives: () -> Void
+    let showCloudAccess: () -> Void
+    let showAbout: () -> Void
+
+    var body: some View {
+        List {
+            Section {
+                Button(action: exportDrives) {
+                    Label("Export Drives…", systemImage: "square.and.arrow.up")
+                        .wholeRow()
+                }
+                .disabled(!canExport)
+                Button(action: importDrives) {
+                    Label("Import Drives…", systemImage: "square.and.arrow.down")
+                        .wholeRow()
+                }
+            } header: {
+                SectionLabel("Drives file")
+            } footer: {
+                if let drivesFileProblem {
+                    Text(drivesFileProblem)
+                        .foregroundStyle(.red)
+                } else {
+                    Text("Moves drives and their passwords to another iPhone or Mac, in one encrypted file.")
+                }
+            }
+            Section {
+                Button(action: showCloudAccess) {
+                    Label("CloudAccess for Mac", systemImage: "laptopcomputer")
+                        .wholeRow()
+                }
+                Button(action: showAbout) {
+                    Label("About", systemImage: "info.circle")
+                        .wholeRow()
+                }
+            }
+        }
+        .navigationTitle("Settings")
+    }
+}
+
 struct DrivesView: View {
     private let store = PhoneDrives.store
     @State private var connections: [Connection] = []
@@ -196,6 +243,8 @@ struct DrivesView: View {
     @State private var isAdding = false
     @State private var isShowingAbout = false
     @State private var isShowingCloudAccess = false
+    /// Drives files, the Mac app and About, kept off the drives list behind the gear.
+    @State private var isShowingSettings = false
     /// A drive whose removal would delete changes kept only on this iPhone, waiting for a yes.
     @State private var removing: Connection?
     @State private var signingIn: Connection?
@@ -381,48 +430,6 @@ struct DrivesView: View {
                         Text(filesFooter)
                     }
                 }
-                Section {
-                    Button {
-                        Task {
-                            drivesFileProblem = nil
-                            if await DrivesFileAccess.confirmOwner() {
-                                isExportingDrives = true
-                            }
-                        }
-                    } label: {
-                        Label("Export Drives…", systemImage: "square.and.arrow.up")
-                            .wholeRow()
-                    }
-                    .disabled(connections.isEmpty)
-                    Button {
-                        drivesFileProblem = nil
-                        isChoosingDrivesFile = true
-                    } label: {
-                        Label("Import Drives…", systemImage: "square.and.arrow.down")
-                            .wholeRow()
-                    }
-                } header: {
-                    SectionLabel("Drives file")
-                } footer: {
-                    if let drivesFileProblem {
-                        Text(drivesFileProblem)
-                            .foregroundStyle(.red)
-                    } else {
-                        Text("Moves drives and their passwords to another iPhone or Mac, in one encrypted file.")
-                    }
-                }
-                Section {
-                    HStack(spacing: 8) {
-                        Tile("CloudAccess for Mac", symbol: "laptopcomputer") {
-                            isShowingCloudAccess = true
-                        }
-                        Tile("About", symbol: "info.circle") {
-                            isShowingAbout = true
-                        }
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                }
             }
             .safeAreaInset(edge: .top, spacing: 0) {
                 if drives.isAnythingOffline {
@@ -432,6 +439,24 @@ struct DrivesView: View {
             .navigationTitle("Drives")
             .navigationDestination(for: Place.self) { place in
                 FolderView(place: place, store: store, drives: drives, trail: $trail)
+            }
+            .navigationDestination(isPresented: $isShowingSettings) {
+                PhoneSettingsView(
+                    canExport: !connections.isEmpty, drivesFileProblem: $drivesFileProblem,
+                    exportDrives: {
+                        Task {
+                            drivesFileProblem = nil
+                            if await DrivesFileAccess.confirmOwner() {
+                                isExportingDrives = true
+                            }
+                        }
+                    },
+                    importDrives: {
+                        drivesFileProblem = nil
+                        isChoosingDrivesFile = true
+                    },
+                    showCloudAccess: { isShowingCloudAccess = true },
+                    showAbout: { isShowingAbout = true })
             }
             .toolbar {
                 // iOS puts a toolbar item in a round glass button the size of an icon, which
@@ -447,43 +472,19 @@ struct DrivesView: View {
                     .fixedSize()
                 }
                 .sharedBackgroundVisibility(.hidden)
-                ToolbarItem(placement: .primaryAction) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Add Drive", systemImage: "plus") {
                         isAdding = true
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Settings", systemImage: "gearshape") {
+                        isShowingSettings = true
                     }
                 }
             }
             .sheet(isPresented: $isAdding, onDismiss: reload) {
                 AddDriveView(store: store)
-            }
-            // After an uninstall the list is read again, and is empty.
-            .sheet(isPresented: $isShowingAbout, onDismiss: reload) {
-                AboutView(places: places, drives: drives)
-            }
-            .sheet(isPresented: $isExportingDrives) {
-                ExportDrivesView(store: store, drives: connections)
-            }
-            .fileImporter(isPresented: $isChoosingDrivesFile, allowedContentTypes: [.drivesFile]) { result in
-                do {
-                    importing = DrivesFileToImport(data: try DrivesFileAccess.read(result.get(), deletingCopy: false))
-                } catch {
-                    drivesFileProblem = error.localizedDescription
-                }
-            }
-            .sheet(item: $importing, onDismiss: reload) { file in
-                ImportDrivesView(store: store, file: file) { updated in
-                    for connection in connections where updated.contains(connection.id) {
-                        drives.reconnect(connection)
-                    }
-                    reload()
-                    if !updated.isEmpty {
-                        let all = (try? store.connections()) ?? []
-                        Task { await places.tryAgain(drives: all) }
-                    }
-                }
-            }
-            .sheet(isPresented: $isShowingCloudAccess) {
-                CloudAccessView()
             }
             .sheet(item: $signingIn) { connection in
                 SignInView(connection: connection, store: store) {
@@ -509,6 +510,37 @@ struct DrivesView: View {
                 // One key, with a form for one change and one for more in the catalog.
                 Text("\(count) changes saved into it by other apps are only on this iPhone. Removing the drive deletes them.")
             }
+        }
+        // These open from Settings, a page pushed over the list, so they hang on the stack itself,
+        // which is always on screen. A drives file sent with AirDrop opens the import from here too.
+        // After an uninstall the list is read again, and is empty.
+        .sheet(isPresented: $isShowingAbout, onDismiss: reload) {
+            AboutView(places: places, drives: drives)
+        }
+        .sheet(isPresented: $isExportingDrives) {
+            ExportDrivesView(store: store, drives: connections)
+        }
+        .fileImporter(isPresented: $isChoosingDrivesFile, allowedContentTypes: [.drivesFile]) { result in
+            do {
+                importing = DrivesFileToImport(data: try DrivesFileAccess.read(result.get(), deletingCopy: false))
+            } catch {
+                drivesFileProblem = error.localizedDescription
+            }
+        }
+        .sheet(item: $importing, onDismiss: reload) { file in
+            ImportDrivesView(store: store, file: file) { updated in
+                for connection in connections where updated.contains(connection.id) {
+                    drives.reconnect(connection)
+                }
+                reload()
+                if !updated.isEmpty {
+                    let all = (try? store.connections()) ?? []
+                    Task { await places.tryAgain(drives: all) }
+                }
+            }
+        }
+        .sheet(isPresented: $isShowingCloudAccess) {
+            CloudAccessView()
         }
         .onAppear(perform: reload)
         // A drives file sent with AirDrop, or opened from Files. iOS hands over a copy.

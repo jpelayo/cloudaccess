@@ -59,7 +59,7 @@ To change a drive later, swipe it and choose Edit. To add several drives at once
 
 ### Moving drives to another Mac or iPhone
 
-1. **Export.** On the Mac, open Settings and choose Export… in the Export drives row. In CloudWanderer, use the Drives file section. The device first asks for Touch ID, Face ID or its password.
+1. **Export.** On the Mac, open Settings and choose Export… in the Export drives row. In CloudWanderer, tap the gear and use the Drives file section. The device first asks for Touch ID, Face ID or its password.
 2. **Choose and seal.** Pick the drives to include. The file is sealed with its own password. Use the one offered, or your own of at least 12 characters.
 3. **Send it** with AirDrop, or save it.
 4. **Import.** On another Mac, choose Import… in the Import drives row in Settings. On an iPhone, open the file from AirDrop in CloudWanderer.
@@ -85,11 +85,11 @@ WebDAV drives have only Safe and Read-only, because WebDAV servers can't replace
 
 ### Language
 
-The apps follow your device's language, English or Spanish. To choose one yourself, use Language in Settings on the Mac, or in About on the iPhone. The change takes effect when the app restarts.
+The apps follow your device's language, English or Spanish. To choose one yourself, use Language in Settings on the Mac. On the iPhone, tap the gear, then About. The change takes effect when the app restarts.
 
 ### Uninstalling
 
-Deleting an app gives it no chance to clean up after itself, so uninstall from inside the app first. Choose Uninstall… in About, on the Mac or the iPhone. The window lists what will be removed, then shows each step and the result of its check.
+Deleting an app gives it no chance to clean up after itself, so uninstall from inside the app first. Choose Uninstall… in About, on the Mac or the iPhone. On the iPhone, About is behind the gear. The window lists what will be removed, then shows each step and the result of its check.
 
 1. **On the Mac, it waits for uploads to finish.** It continues by itself when nothing is left to send. You can cancel until then.
 2. **It removes each drive** the same way the drive's own Remove button does. On the Mac, files that hadn't uploaded are kept, and the last page shows where.
@@ -105,7 +105,7 @@ Deleting an app gives it no chance to clean up after itself, so uninstall from i
 
 ### Something not working?
 
-On the Mac, choose Export… in the Diagnostics row in Settings. On the iPhone, About has the app's log. Show Log displays it, and Share Log sends it to your Mac with AirDrop. The log records what happened to each drive, and never holds file names or passwords.
+On the Mac, choose Export… in the Diagnostics row in Settings. On the iPhone, tap the gear, then About, which has the app's log. Show Log displays it, and Share Log sends it to your Mac with AirDrop. The log records what happened to each drive, and never holds file names or passwords.
 
 ## Good to know
 
