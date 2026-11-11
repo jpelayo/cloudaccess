@@ -9,6 +9,10 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @Environment(Drives.self) private var drives
     @State private var isAdding = false
+    /// A new encrypted drive, whose recovery kit is offered once the add form has closed. Offered
+    /// on top of the form, closing both sheets together left this window's background pale.
+    @State private var addedEncryptedDrive: Connection?
+    @State private var recoveryKitDrive: Connection?
     @State private var sheet: DriveRequest?
     @State private var isConfirmingForgetAll = false
     @State private var loginStatus = LoginAgent.status
@@ -211,26 +215,20 @@ struct SettingsView: View {
         .frame(width: 480)
         .fixedSize(horizontal: false, vertical: true)
         .ignoresSafeArea(.container, edges: .top)
-        .sheet(isPresented: $isAdding) {
-            AddDriveView()
+        .sheet(isPresented: $isAdding, onDismiss: {
+            recoveryKitDrive = addedEncryptedDrive
+            addedEncryptedDrive = nil
+        }) {
+            AddDriveView { addedEncryptedDrive = $0 }
+                .presentationBackground(.regularMaterial)
+        }
+        .sheet(item: $recoveryKitDrive) { connection in
+            RecoveryKitOffer(connection: connection)
                 .presentationBackground(.regularMaterial)
         }
         .sheet(item: $sheet) { request in
-            Group {
-                if let connection = drives.connections.first(where: { $0.id == request.driveID }) {
-                    switch request.sheet {
-                    case .settings:
-                        DriveDetailView(connection: connection)
-                    case .deletedFiles:
-                        DriveDetailView(connection: connection, startingPage: .deleted)
-                    case .information:
-                        DriveDetailView(connection: connection, startingPage: .information)
-                    case .code:
-                        ConnectionCodeView(connection: connection, signsInWithKey: drives.signsInWithKey(connection))
-                    }
-                }
-            }
-            .presentationBackground(.regularMaterial)
+            DriveSheet(request: request)
+                .presentationBackground(.regularMaterial)
         }
         .onChange(of: drives.request, initial: true) { _, request in
             guard let request else { return }
@@ -262,6 +260,36 @@ struct SettingsView: View {
         .sheet(item: $importing) { file in
             ImportDrivesView(file: file)
                 .presentationBackground(.regularMaterial)
+        }
+    }
+}
+
+/// A drive's sheet. The drive list leaves a drive out as soon as its removal starts, so the sheet
+/// keeps the drive it opened with, or it would go blank while the removal shows its progress.
+private struct DriveSheet: View {
+    @Environment(Drives.self) private var drives
+
+    let request: DriveRequest
+
+    @State private var openedWith: Connection?
+
+    var body: some View {
+        Group {
+            if let connection = drives.connections.first(where: { $0.id == request.driveID }) ?? openedWith {
+                switch request.sheet {
+                case .settings:
+                    DriveDetailView(connection: connection)
+                case .deletedFiles:
+                    DriveDetailView(connection: connection, startingPage: .deleted)
+                case .information:
+                    DriveDetailView(connection: connection, startingPage: .information)
+                case .code:
+                    ConnectionCodeView(connection: connection, signsInWithKey: drives.signsInWithKey(connection))
+                }
+            }
+        }
+        .onAppear {
+            openedWith = drives.connections.first { $0.id == request.driveID }
         }
     }
 }
@@ -423,6 +451,9 @@ struct AddDriveView: View {
     @Environment(Drives.self) private var drives
     @Environment(\.dismiss) private var dismiss
 
+    /// Told about a new encrypted drive just before this closes, so its recovery kit is offered.
+    let addedEncryptedDrive: (Connection) -> Void
+
     @State private var form = ConnectionForm()
     @State private var password = ""
     @State private var privateKey: String?
@@ -437,8 +468,6 @@ struct AddDriveView: View {
     @State private var allowsInsecure = false
     @State private var isConnecting = false
     @State private var problem: String?
-    /// A new encrypted drive, whose recovery kit is offered before this closes.
-    @State private var newEncryptedDrive: Connection?
     @State private var browsing: FolderBrowsing?
     /// The folder has things in it, and an encrypted drive can't share one.
     @State private var needsOwnFolder = false
@@ -594,10 +623,6 @@ struct AddDriveView: View {
             }
             .presentationBackground(.regularMaterial)
         }
-        .sheet(item: $newEncryptedDrive, onDismiss: { dismiss() }) { connection in
-            RecoveryKitOffer(connection: connection)
-                .presentationBackground(.regularMaterial)
-        }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }
@@ -710,10 +735,9 @@ struct AddDriveView: View {
                 }
                 let saved = try await drives.add(connection, credentials: signIn)
                 if saved.isEncrypted {
-                    newEncryptedDrive = saved
-                } else {
-                    dismiss()
+                    addedEncryptedDrive(saved)
                 }
+                dismiss()
             } catch RemoteError.vault(.encrypted) {
                 // The folder already holds an encrypted drive, so only its password is needed.
                 isEncrypted = true

@@ -203,6 +203,8 @@ struct DriveDetailView: View {
     @State private var isConfirmingRetire = false
     @State private var recoveryKit: TextFile?
     @State private var isWorking = false
+    /// What the spinner beside Done says, for work that takes a while.
+    @State private var activity: LocalizedStringKey?
     @State private var problem: String?
     @State private var message: String?
     @State private var hasUnsavedEdits = false
@@ -330,18 +332,22 @@ struct DriveDetailView: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             // Each page is rebuilt when it's shown, so leaving this one would drop the edit.
-            .disabled(hasUnsavedEdits)
+            .disabled(hasUnsavedEdits || isWorking)
 
-            switch page {
-            case .general:
-                general
-            case .advanced:
-                advanced
-            case .deleted:
-                TrashView(connection: current)
-            case .information:
-                DriveInformationView(connection: current)
+            // A change made while the drive is being removed would save it back.
+            Group {
+                switch page {
+                case .general:
+                    general
+                case .advanced:
+                    advanced
+                case .deleted:
+                    TrashView(connection: current)
+                case .information:
+                    DriveInformationView(connection: current)
+                }
             }
+            .disabled(isWorking)
 
             if let message {
                 Text(message)
@@ -352,6 +358,14 @@ struct DriveDetailView: View {
                     .foregroundStyle(.red)
             }
             HStack {
+                if isWorking {
+                    ProgressView()
+                        .controlSize(.small)
+                    if let activity {
+                        Text(activity)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Spacer()
                 if hasUnsavedEdits {
                     Button("Cancel") { dismiss() }
@@ -374,6 +388,12 @@ struct DriveDetailView: View {
         .task {
             await loadFolders()
         }
+        // Removed from somewhere else, such as an uninstall. Its own removal closes it at the end.
+        .onChange(of: drives.connections.contains { $0.id == connection.id }) { _, isSaved in
+            if !isSaved, !isWorking {
+                dismiss()
+            }
+        }
         .sheet(isPresented: $isShowingCode) {
             ConnectionCodeView(connection: current, signsInWithKey: drives.signsInWithKey(current))
         }
@@ -382,7 +402,7 @@ struct DriveDetailView: View {
             "Remove \(connection.displayName)?", isPresented: $isConfirmingRemove
         ) {
             Button("Remove", role: .destructive) {
-                perform { try await drives.remove(current); dismiss() }
+                perform("Removing the drive…") { try await drives.remove(current); dismiss() }
             }
         } message: {
             removeMessage
@@ -391,7 +411,7 @@ struct DriveDetailView: View {
             "Reset \(connection.displayName)?", isPresented: $isConfirmingReset
         ) {
             Button("Reset", role: .destructive) {
-                perform { try await drives.reset(current); dismiss() }
+                perform("Resetting the drive…") { try await drives.reset(current); dismiss() }
             }
         } message: {
             Text("The drive is removed and added again. Files that haven't uploaded are kept, and Settings shows where.")
@@ -622,12 +642,18 @@ struct DriveDetailView: View {
         }
     }
 
-    private func perform(_ work: @escaping @MainActor () async throws -> Void) {
+    private func perform(
+        _ activity: LocalizedStringKey? = nil, _ work: @escaping @MainActor () async throws -> Void
+    ) {
         isWorking = true
+        self.activity = activity
         problem = nil
         message = nil
         Task {
-            defer { isWorking = false }
+            defer {
+                isWorking = false
+                self.activity = nil
+            }
             do {
                 try await work()
             } catch {

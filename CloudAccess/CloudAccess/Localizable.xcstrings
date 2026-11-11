@@ -2971,6 +2971,26 @@
         }
       }
     },
+    "Removing the drive…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitando la unidad…"
+          }
+        }
+      }
+    },
+    "Resetting the drive…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restableciendo la unidad…"
+          }
+        }
+      }
+    },
     "Restart Now" : {
       "localizations" : {
         "es" : {

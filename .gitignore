@@ -22,7 +22,7 @@ Tools/
 # SwiftPM
 .build/
 .swiftpm/
-
+Captura*
 # Test server credentials
 Tools/test-webdav.env
 
