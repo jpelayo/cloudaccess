@@ -246,7 +246,7 @@ Run the tests with:
 
 ```sh
 go -C Engine test ./...
-bash Scripts/swift-test.sh     # the Swift tests, in English whatever the Mac's language
+CLOUDACCESS_TEST_LANGUAGE=en swift test --package-path Packages/CloudCore     # the Swift tests, in English whatever the Mac's language
 ```
 
 The Swift tests link the built engine, so build it again after changing anything in `Engine/`.
@@ -266,6 +266,6 @@ The Swift tests link the built engine, so build it again after changing anything
 
 ## Licence
 
-Apache 2 licensed software. See [LICENSE.md](LICENSE.md) and [NOTICE](NOTICE).
+Apache 2 licensed software. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 Developed by InfiniteContext.com.
