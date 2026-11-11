@@ -16,7 +16,6 @@ enum LoginAgent {
 
     private static let plistName = "com.infinitecontext.CloudAccess.agent.plist"
     private static let environmentKey = "CLOUDACCESS_AGENT"
-    private static let offeredKey = "launchAgentOffered"
     private static let turningOffKey = "launchAgentTurningOff"
     /// Sent by a copy that's leaving, so the one that stays shows its settings.
     static let showSettingsNotification = Notification.Name("com.infinitecontext.CloudAccess.showSettings")
@@ -92,16 +91,6 @@ enum LoginAgent {
                 exit(0)
             }
         }
-    }
-
-    /// Turns launch at login on the first time the app runs. Debug builds skip this, because
-    /// a test that stops the app would find launchd starting it again.
-    static func offerOnFirstLaunch() {
-        #if !DEBUG
-        guard !UserDefaults.standard.bool(forKey: offeredKey) else { return }
-        UserDefaults.standard.set(true, forKey: offeredKey)
-        set(true)
-        #endif
     }
 
     /// Registering the agent starts its copy, because it runs at load. This app can't call

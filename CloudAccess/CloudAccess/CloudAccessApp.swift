@@ -54,8 +54,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         StatusPanel.current = panel
         #endif
-        // Not before now: it can end this copy, and there's no app to end until launch finishes.
-        LoginAgent.offerOnFirstLaunch()
         // The notch can hide the icon, and then nothing shows the app is running. Give the menu
         // bar a moment to settle before judging. Settings only opens if moving it didn't help.
         Task { @MainActor in
