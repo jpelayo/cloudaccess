@@ -2,9 +2,10 @@
 
 import Foundation
 
-/// What importing a drives file may do with each drive in it. A person chooses every step, one
-/// drive at a time, and every row starts on Skip, so nothing happens that wasn't chosen. Nothing
-/// is ever removed: an import only adds drives or updates ones already here.
+/// What importing a drives file may do with each drive in it. A drive that isn't here yet starts on
+/// Add, and every other on Skip, so one server folder never becomes two drives. A person can change
+/// any step before importing. Nothing is ever removed: an import only adds drives or updates ones
+/// already here.
 public enum DrivesFileImport {
     public enum Platform: Sendable {
         case mac
@@ -19,6 +20,8 @@ public enum DrivesFileImport {
         case alreadyHere(UUID)
         /// Another drive here has its name, so it can only be added under this one.
         case nameTaken(suggested: String)
+        /// An earlier drive in the same file is on the same server folder, and that one is added.
+        case listedTwice
         /// It can't be added on this device, for this reason, in the language shown.
         case notPossible(String)
     }
@@ -49,13 +52,25 @@ public enum DrivesFileImport {
         /// Plain http sends the password readably, so each device asks for its own consent.
         public let needsInsecureConsent: Bool
 
-        /// The steps a person can choose. Skip is always first, and is where every row starts.
+        /// The steps a person can choose. Skip is always first. A drive already here, or listed
+        /// twice, is never offered Add, so its server folder can't become a second drive.
         public var steps: [Step] {
             switch situation {
             case .new: [.skip, .add]
             case .alreadyHere: [.skip, .updatePasswords, .updatePasswordsAndSettings]
             case .nameTaken(let suggested): [.skip, .addAs(suggested)]
-            case .notPossible: [.skip]
+            case .listedTwice, .notPossible: [.skip]
+            }
+        }
+
+        /// Where the row starts: a drive that isn't here yet is added, under a free name if its
+        /// own is taken. Anything else starts on Skip, including a drive already here, whose
+        /// passwords are only replaced when a person chooses that.
+        public var startingStep: Step {
+            switch situation {
+            case .new: .add
+            case .nameTaken(let suggested): .addAs(suggested)
+            case .alreadyHere, .listedTwice, .notPossible: .skip
             }
         }
 
@@ -65,20 +80,42 @@ public enum DrivesFileImport {
             case .new: nil
             case .alreadyHere: Words.text("Already on this device.")
             case .nameTaken: Words.text("Another drive here has this name.")
+            case .listedTwice: Words.text("Listed earlier in this file.")
             case .notPossible(let reason): reason
             }
         }
     }
 
-    /// Sorts every drive in a file against the drives on this device.
+    /// Sorts every drive in a file against the drives on this device, and against the drives
+    /// earlier in the file that start on Add, so neither a server folder nor a name is added twice.
     public static func rows(
         for entries: [DrivesFile.Entry], among existing: [Connection], on platform: Platform
     ) -> [Row] {
-        entries.enumerated().map { index, entry in
-            Row(
-                id: index, entry: entry, situation: situation(of: entry, among: existing, on: platform),
-                needsInsecureConsent: isPlainHTTP(entry.endpoint))
+        var rows: [Row] = []
+        // What the rows so far add if they're left as they start.
+        var adding: [Connection] = []
+        for (index, entry) in entries.enumerated() {
+            var found = situation(of: entry, among: existing, on: platform)
+            switch found {
+            case .new, .nameTaken:
+                let incoming = entry.connection()
+                if adding.contains(where: { !$0.requiresNewDrive(comparedTo: incoming) }) {
+                    found = .listedTwice
+                } else if (existing + adding).contains(where: { $0.displayName == entry.name }) {
+                    found = .nameTaken(suggested: freeName(for: entry.name, among: existing + adding))
+                }
+            case .alreadyHere, .listedTwice, .notPossible:
+                break
+            }
+            switch found {
+            case .new: adding.append(entry.connection())
+            case .nameTaken(let name): adding.append(entry.connection(named: name))
+            case .alreadyHere, .listedTwice, .notPossible: break
+            }
+            rows.append(Row(
+                id: index, entry: entry, situation: found, needsInsecureConsent: isPlainHTTP(entry.endpoint)))
         }
+        return rows
     }
 
     static func situation(of entry: DrivesFile.Entry, among existing: [Connection], on platform: Platform) -> Situation {

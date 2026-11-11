@@ -172,11 +172,12 @@ struct ExportDrivesView: View {
                 } header: {
                     SectionLabel("Password")
                 } footer: {
-                    Text("Attention: this file and its password open every drive in it. Give the password another way than the file.")
+                    Text("Attention: this file and its password open every drive in it. Send the password separately, never with the file.")
                 }
                 Section {
                     Button("Share…") { share() }
-                        .disabled(chosen.isEmpty || password.count < DrivesFile.shortestPassword)
+                        // A password that's too short is refused with the reason, shown below.
+                        .disabled(chosen.isEmpty)
                 } footer: {
                     if let problem {
                         Text(problem)
@@ -215,8 +216,13 @@ struct ImportDrivesView: View {
     @State private var isWorking = false
     @State private var problem: String?
 
+    /// The step chosen, or the one the row starts on.
+    private func chosenStep(for row: DrivesFileImport.Row) -> DrivesFileImport.Step {
+        steps[row.id] ?? row.startingStep
+    }
+
     private func step(for row: DrivesFileImport.Row) -> Binding<DrivesFileImport.Step> {
-        Binding { steps[row.id] ?? .skip } set: { steps[row.id] = $0 }
+        Binding { chosenStep(for: row) } set: { steps[row.id] = $0 }
     }
 
     private func allowed(_ row: DrivesFileImport.Row) -> Binding<Bool> {
@@ -227,8 +233,19 @@ struct ImportDrivesView: View {
         }
     }
 
+    private var chosenRows: [DrivesFileImport.Row] {
+        (rows ?? []).filter { chosenStep(for: $0) != .skip }
+    }
+
     private var chosenCount: Int {
-        steps.values.filter { $0 != .skip }.count
+        chosenRows.count
+    }
+
+    /// Every drive chosen was imported, so there's nothing left to see here.
+    private var everyChosenDriveWorked: Bool {
+        !chosenRows.isEmpty && chosenRows.allSatisfy { row in
+            if case .success = results[row.id] { true } else { false }
+        }
     }
 
     private func open() {
@@ -253,7 +270,7 @@ struct ImportDrivesView: View {
         Task {
             defer { isWorking = false }
             for row in rows {
-                let chosen = steps[row.id] ?? .skip
+                let chosen = chosenStep(for: row)
                 guard chosen != .skip, results[row.id] == nil else { continue }
                 do {
                     try await DrivesFileAccess.perform(chosen, for: row, allowsInsecure: consent.contains(row.id), store: store)
@@ -264,6 +281,11 @@ struct ImportDrivesView: View {
                 } catch {
                     results[row.id] = .failure(error)
                 }
+            }
+            // A failure stays on screen with its reason.
+            if everyChosenDriveWorked {
+                finished(updated)
+                dismiss()
             }
         }
     }
@@ -285,7 +307,7 @@ struct ImportDrivesView: View {
                                 }
                             }
                             .disabled(results[row.id] != nil || isWorking)
-                            if row.needsInsecureConsent, (steps[row.id] ?? .skip) != .skip {
+                            if row.needsInsecureConsent, chosenStep(for: row) != .skip {
                                 Toggle("Send its password over plain http", isOn: allowed(row))
                             }
                         } footer: {

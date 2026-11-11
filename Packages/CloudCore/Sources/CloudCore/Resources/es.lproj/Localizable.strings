@@ -56,6 +56,7 @@
 "Update passwords and settings" = "Actualizar las contraseñas y los ajustes";
 "Already on this device." = "Ya está en este dispositivo.";
 "Another drive here has this name." = "Otra unidad de este dispositivo tiene este nombre.";
+"Listed earlier in this file." = "Ya aparece antes en este archivo.";
 "A local test folder can't be moved to another device." = "Una carpeta local de prueba no se puede mover a otro dispositivo.";
 
 /* DriveStore.swift */

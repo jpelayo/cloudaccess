@@ -974,12 +974,12 @@
         }
       }
     },
-    "Attention: this file and its password open every drive in it. Give the password another way than the file, and type it on the other device." : {
+    "Attention: this file and its password open every drive in it. Send the password separately, never with the file, and type it on the other device." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Atención: este archivo y su contraseña abren todas las unidades que contiene. Dé la contraseña por otra vía distinta del archivo, y escríbala en el otro dispositivo."
+            "value" : "Atención: este archivo y su contraseña abren todas las unidades que contiene. Envíe la contraseña por separado, nunca junto al archivo, y escríbala en el otro dispositivo."
           }
         }
       }

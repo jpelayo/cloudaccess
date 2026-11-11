@@ -67,7 +67,8 @@ To change a drive later, swipe it and choose Edit. To add several drives at once
 
 **Attention: the file and its password together open every drive in it.** Keep them apart.
 
-- **Nothing changes unless you choose it.** Every drive starts on Skip.
+- **New drives are added, and nothing is added twice.** A drive that isn't on the device yet starts on Add, under a free name if its own is taken. A drive already there, or listed twice in the file, starts on Skip. You can change any of them before importing.
+- **The window closes by itself** once every drive you chose has been imported. If one fails, it stays open and says why.
 - **Nothing is left half-done, and nothing is removed.** Each drive's step either completes or changes nothing, and an import never removes a drive.
 - **Each device decides for itself.** Imported drives get new IDs, and the device asks again before sending a password over plain http.
 

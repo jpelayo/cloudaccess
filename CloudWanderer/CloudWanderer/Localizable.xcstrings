@@ -88,9 +88,9 @@
         "es" : { "stringUnit" : { "state" : "translated", "value" : "Software con licencia Apache 2" } }
       }
     },
-    "Attention: this file and its password open every drive in it. Give the password another way than the file." : {
+    "Attention: this file and its password open every drive in it. Send the password separately, never with the file." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Atención: este archivo y su contraseña abren todas las unidades que contiene. Entregue la contraseña por otra vía que no sea el archivo." } }
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Atención: este archivo y su contraseña abren todas las unidades que contiene. Envíe la contraseña por separado, nunca junto al archivo." } }
       }
     },
     "Browse your own WebDAV and SFTP servers, and download and export files from them. Nothing is sent anywhere else." : {

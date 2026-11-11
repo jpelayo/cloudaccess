@@ -142,7 +142,9 @@ import Testing
         ])
     }
 
-    @Test func everyRowStartsOnSkip() {
+    /// A drive that isn't here yet starts on Add, under a free name if its own is taken. One
+    /// already here starts on Skip, and is never offered Add.
+    @Test func aDriveNotHereYetStartsOnAddAndOneHereOnSkip() {
         let rows = DrivesFileImport.rows(for: [
             entry(drive("New", folder: "/new/cloudmount-test")),
             entry(drive("Office", folder: "/work/cloudmount-test")),
@@ -150,10 +152,33 @@ import Testing
         ], among: here, on: .mac)
         for row in rows {
             #expect(row.steps.first == .skip)
+            #expect(row.steps.contains(row.startingStep))
         }
+        #expect(rows.map(\.startingStep) == [.add, .skip, .addAs("Photos 3")])
         #expect(rows[0].steps == [.skip, .add])
         #expect(rows[1].steps == [.skip, .updatePasswords, .updatePasswordsAndSettings])
         #expect(rows[2].steps == [.skip, .addAs("Photos 3")])
+    }
+
+    /// A file can list one server folder twice, or two drives under one name. Left as they start,
+    /// the folder is added once, and the second name gets a number.
+    @Test func aFileNeverAddsOneFolderOrOneNameTwice() {
+        let rows = DrivesFileImport.rows(for: [
+            entry(drive("Trips", folder: "/trips/cloudmount-test")),
+            entry(drive("Trips copy", folder: "/trips/cloudmount-test")),
+            entry(drive("Trips", folder: "/more-trips/cloudmount-test")),
+            entry(drive("Office", folder: "/work/cloudmount-test")),
+            entry(drive("Office again", folder: "/work/cloudmount-test")),
+        ], among: here, on: .mac)
+        #expect(rows.map(\.situation) == [
+            .new,
+            .listedTwice,
+            .nameTaken(suggested: "Trips 2"),
+            .alreadyHere(here[0].id),
+            .alreadyHere(here[0].id),
+        ])
+        #expect(rows.map(\.startingStep) == [.add, .skip, .addAs("Trips 2"), .skip, .skip])
+        #expect(rows[1].steps == [.skip])
     }
 
     @Test func anAddedDriveHasAnIDOfItsOwn() throws {

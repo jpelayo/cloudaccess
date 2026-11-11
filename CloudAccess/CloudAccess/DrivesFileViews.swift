@@ -133,14 +133,14 @@ struct ExportDrivesView: View {
                     TextField("Password", text: $password)
                         .textFieldStyle(.roundedBorder)
                         .font(.body.monospaced())
-                        .frame(width: 270)
+                        .frame(width: 240)
                 }
                 SettingRow("A new strong password") {
                     Button("New Password") { password = Passphrase.generate() }
                         .buttonStyle(.pill)
                 }
             }
-            Text("Attention: this file and its password open every drive in it. Give the password another way than the file, and type it on the other device.")
+            Text("Attention: this file and its password open every drive in it. Send the password separately, never with the file, and type it on the other device.")
                 .font(.caption)
                 .foregroundStyle(.orange)
                 .fixedSize(horizontal: false, vertical: true)
@@ -159,7 +159,9 @@ struct ExportDrivesView: View {
                         .buttonStyle(.pill)
                 }
             }
-            .disabled(chosen.isEmpty || password.count < DrivesFile.shortestPassword)
+            // A password that's too short is refused with the reason when pressed, not by a
+            // button that's greyed out with nothing to say why.
+            .disabled(chosen.isEmpty)
             if let message {
                 Text(message)
                     .foregroundStyle(.secondary)
@@ -174,8 +176,8 @@ struct ExportDrivesView: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(16)
-        .frame(width: 480)
+        .padding(20)
+        .frame(width: 540)
         .fixedSize(horizontal: false, vertical: true)
         .fileExporter(
             isPresented: $isSaving, document: document, contentType: .drivesFile,
@@ -203,8 +205,13 @@ struct ImportDrivesView: View {
     @State private var isWorking = false
     @State private var problem: String?
 
+    /// The step chosen, or the one the row starts on.
+    private func chosenStep(for row: DrivesFileImport.Row) -> DrivesFileImport.Step {
+        steps[row.id] ?? row.startingStep
+    }
+
     private func step(for row: DrivesFileImport.Row) -> Binding<DrivesFileImport.Step> {
-        Binding { steps[row.id] ?? .skip } set: { steps[row.id] = $0 }
+        Binding { chosenStep(for: row) } set: { steps[row.id] = $0 }
     }
 
     private func allowed(_ row: DrivesFileImport.Row) -> Binding<Bool> {
@@ -215,8 +222,19 @@ struct ImportDrivesView: View {
         }
     }
 
+    private var chosenRows: [DrivesFileImport.Row] {
+        (rows ?? []).filter { chosenStep(for: $0) != .skip }
+    }
+
     private var chosenCount: Int {
-        steps.values.filter { $0 != .skip }.count
+        chosenRows.count
+    }
+
+    /// Every drive chosen was imported, so there's nothing left to see here.
+    private var everyChosenDriveWorked: Bool {
+        !chosenRows.isEmpty && chosenRows.allSatisfy { row in
+            if case .success = results[row.id] { true } else { false }
+        }
     }
 
     private func open() {
@@ -241,7 +259,7 @@ struct ImportDrivesView: View {
         Task {
             defer { isWorking = false }
             for row in rows {
-                let chosen = steps[row.id] ?? .skip
+                let chosen = chosenStep(for: row)
                 guard chosen != .skip, results[row.id] == nil else { continue }
                 do {
                     try await drives.importStep(chosen, for: row, allowsInsecure: consent.contains(row.id))
@@ -249,6 +267,10 @@ struct ImportDrivesView: View {
                 } catch {
                     results[row.id] = .failure(error)
                 }
+            }
+            // A failure stays on screen with its reason.
+            if everyChosenDriveWorked {
+                dismiss()
             }
         }
     }
@@ -317,7 +339,7 @@ struct ImportDrivesView: View {
                         .frame(width: 210)
                         .disabled(results[row.id] != nil || isWorking)
                     }
-                    if row.needsInsecureConsent, (steps[row.id] ?? .skip) != .skip {
+                    if row.needsInsecureConsent, chosenStep(for: row) != .skip {
                         ListRow(height: RowHeight.single) {
                             Text("Send its password over plain http")
                                 .font(.caption)
