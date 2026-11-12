@@ -50,6 +50,24 @@
         }
       },
       "shouldTranslate" : false
+    },
+    "NSLocalNetworkUsageDescription" : {
+      "comment" : "Privacy - Local Network Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CloudAccess connects to the servers you add, including ones on your local network."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudAccess se conecta a los servidores que añada, incluidos los de su red local."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

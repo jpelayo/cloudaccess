@@ -26,6 +26,10 @@ struct AboutView: View {
             .fixedSize(horizontal: false, vertical: true)
             .onGeometryChange(for: CGSize.self) { $0.size } action: { fit($0) }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            // The window is sized to this content, title bar included, as Settings is. Left in the
+            // safe area, the content sat 28 points lower than measured, and the bottom margin and
+            // the edge of the last card fell outside the window.
+            .ignoresSafeArea(.container, edges: .top)
     }
 
     @ViewBuilder private var page: some View {

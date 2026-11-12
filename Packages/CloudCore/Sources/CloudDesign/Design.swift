@@ -429,3 +429,30 @@ extension ButtonStyle where Self == IconButtonStyle {
 extension ButtonStyle where Self == BarButtonStyle {
     public static func bar(_ tint: Color) -> BarButtonStyle { BarButtonStyle(tint: tint) }
 }
+
+/// The loop button: checks a connection again now, while the app goes on checking by itself. Its
+/// words come from the app's own strings.
+public struct CheckAgainButton: View {
+    let isChecking: Bool
+    let action: () -> Void
+
+    public init(isChecking: Bool, action: @escaping () -> Void) {
+        self.isChecking = isChecking
+        self.action = action
+    }
+
+    public var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                if isChecking {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                }
+                Text(isChecking ? LocalizedStringKey("Checking…") : LocalizedStringKey("Check Again"))
+            }
+        }
+        .disabled(isChecking)
+    }
+}

@@ -66,6 +66,9 @@ struct OverallPill: View {
         if !drives.connections.contains(where: \.isMounted) { return (String(localized: "Ejected"), .gray) }
         if drives.needsHelp { return (String(localized: "Attention"), .orange) }
         if drives.isSyncing { return (String(localized: "Syncing"), .blue) }
+        // A drive whose own server fails isn't a warning for the whole app, but the app can't
+        // say it's connected either.
+        if drives.isPartlyConnected { return (String(localized: "Partly connected"), .gray) }
         return (String(localized: "Connected"), .green)
     }
 
@@ -349,26 +352,52 @@ struct StatusPanelView: View {
                 }
             }
         }
-        if drives.isAnyDriveOffline {
+        // Only a problem with this Mac is shown here. A drive whose own server fails says so on
+        // its own row, and nowhere else.
+        if let title = appWideTitle {
             Card {
                 IconRow(
-                    "exclamationmark.triangle.fill", "Not connected",
-                    subtitle: "Files on this Mac are still available.", tint: .red
+                    "exclamationmark.triangle.fill", title,
+                    subtitle: String(localized: "Files on this Mac are still available."),
+                    tint: drives.hasConnectionProblem ? .red : .orange
                 ) {
-                    EmptyView()
+                    CheckAgainButton(isChecking: drives.isCheckingAgain) {
+                        Task { await drives.checkAgain(drives.offlineDrives) }
+                    }
+                    .buttonStyle(.pill)
                 }
-                if !drives.drivesNeedingTailscale.isEmpty {
-                    IconRow("network", "Some drives need Tailscale", subtitle: "Check that it's on.") {
-                        if drives.hasTailscale {
-                            Button("Open") {
-                                panel.leave { drives.openTailscale() }
-                            }
-                            .buttonStyle(.pill)
+                if drives.appWideWarning.finding?.kind == .tailscaleOff, drives.hasTailscale {
+                    IconRow("network", "Tailscale", subtitle: String(localized: "Turn it on, and these drives connect by themselves.")) {
+                        Button("Open") {
+                            panel.leave { drives.openTailscale() }
                         }
+                        .buttonStyle(.pill)
+                    }
+                }
+                if drives.appWideWarning.finding?.action == .openLocalNetworkSettings {
+                    IconRow(
+                        "network", String(localized: "Local Network"),
+                        subtitle: String(localized: "Allow CloudAccess there, and these drives connect by themselves.")
+                    ) {
+                        Button("Open") {
+                            panel.leave { drives.openLocalNetworkSettings() }
+                        }
+                        .buttonStyle(.pill)
                     }
                 }
             }
         }
+    }
+
+    /// What the app-wide row says, or nil when there's nothing app-wide to say.
+    private var appWideTitle: String? {
+        if let title = drives.appWideWarning.title {
+            return title
+        }
+        if drives.hasConnectionProblem, drives.storeProblem == nil {
+            return String(localized: "This Mac isn't connected to a network.")
+        }
+        return nil
     }
 
     private var driveSection: some View {
@@ -498,10 +527,31 @@ struct DriveSidePanel: View {
                     KeyValueRow(detail.key, detail.value)
                 }
             }
+            if drives.offline.contains(connection.id) {
+                // This drive's own problem stays here, with what was checked.
+                Text(drives.offlineMessage(of: connection))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             CardSection("Actions") {
-                if drives.hasTailscale, drives.drivesNeedingTailscale.contains(connection) {
+                if drives.offline.contains(connection.id) {
+                    ActionRow(drives.isCheckingAgain ? LocalizedStringKey("Checking…") : LocalizedStringKey("Check Again"), symbol: "arrow.clockwise") {
+                        Task { await drives.checkAgain([connection]) }
+                    }
+                    .disabled(drives.isCheckingAgain)
+                }
+                if drives.hasTailscale, drives.drivesWithTailscaleOff.contains(connection) {
                     ActionRow("Open Tailscale", symbol: "network") {
                         panel.leave { drives.openTailscale() }
+                    }
+                }
+                // A finding fixed by changing the drive's address or port needs no row of its own:
+                // Drive Settings, further down, is where that's done.
+                if drives.offline.contains(connection.id),
+                   drives.checks.findings[connection.id]?.action == .openLocalNetworkSettings {
+                    ActionRow("Open Local Network Settings", symbol: "network") {
+                        panel.leave { drives.openLocalNetworkSettings() }
                     }
                 }
                 ActionRow("Show in Finder", symbol: "magnifyingglass") {

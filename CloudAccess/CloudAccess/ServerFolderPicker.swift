@@ -11,135 +11,219 @@ struct FolderBrowsing: Identifiable {
     /// What the folders here are relative to.
     let start: ConnectionForm
     let engine: RemoteEngine
+    /// The folder already in the form, relative to `start`, if it's inside it.
+    let typed: RemotePath?
 }
 
-/// Chooses where a new drive goes, from the folders on its server. Looking writes nothing, and
-/// New Folder is the only thing here that changes the server.
+/// Chooses where a new drive goes, from the folders on its server. A folder's name goes inside
+/// it, and its checkmark chooses it. Looking writes nothing; + is the only thing here that changes
+/// the server.
 struct ServerFolderPicker: View {
     @Environment(\.dismiss) private var dismiss
 
-    let engine: RemoteEngine
+    let session: FolderBrowsing
     let chosen: (RemotePath) -> Void
 
-    @State private var folder = RemotePath.root
-    @State private var folders: [String] = []
-    @State private var isLoading = true
+    @State private var tree: FolderTree
+    @State private var isNaming = false
     @State private var newName = ""
-    @State private var isCreating = false
-    @State private var problem: String?
+    @FocusState private var isNameFocused: Bool
 
+    init(session: FolderBrowsing, chosen: @escaping (RemotePath) -> Void) {
+        self.session = session
+        self.chosen = chosen
+        let engine = session.engine
+        _tree = State(initialValue: FolderTree(
+            chosen: session.typed,
+            list: { try await engine.list($0) },
+            make: { try await engine.createDirectory($0) }))
+    }
+
+    private var isSFTP: Bool {
+        session.start.kind == .sftp
+    }
+
+    /// The top, named for what it is on this protocol.
+    private var topName: String {
+        isSFTP ? String(localized: "Home folder") : String(localized: "Top folder")
+    }
+
+    /// One line for each folder, and one each for the top, the new name, and a message.
     private var rows: Int {
-        folders.count + (folder.isRoot ? 0 : 1)
+        var count = tree.folders.count
+        if tree.folder.isRoot { count += 1 }
+        if isNaming { count += 1 }
+        if tree.isLoading || tree.problem != nil || tree.folders.isEmpty { count += 1 }
+        return count
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Design.sectionGap) {
-            VStack(alignment: .leading, spacing: Design.labelGap) {
-                SectionLabel("Folders on the server")
-                Text(folder.isRoot ? String(localized: "Top folder") : folder.description)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.head)
-                BoundedList(rows: rows, rowHeight: RowHeight.single, visibleRows: 8) {
-                    if let parent = folder.parent {
-                        folderRow(String(localized: "Up one level"), symbol: "arrow.up") { folder = parent }
+            header
+            BoundedList(rows: rows, rowHeight: RowHeight.single, visibleRows: 10) {
+                if isNaming {
+                    nameRow
+                }
+                if tree.isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, minHeight: RowHeight.single)
+                } else {
+                    if tree.folder.isRoot {
+                        row(topName, symbol: isSFTP ? "house" : "externaldrive", path: .root, opens: false)
                     }
-                    ForEach(folders, id: \.self) { name in
-                        folderRow(name, symbol: "folder") {
-                            if let inside = folder.appending(name) {
-                                folder = inside
-                            }
+                    ForEach(tree.folders, id: \.self) { name in
+                        if let path = tree.folder.appending(name) {
+                            row(name, symbol: "folder", path: path, opens: true)
                         }
                     }
-                    if folders.isEmpty {
-                        Text(isLoading ? "Loading…" : "No folders here.")
+                    if let problem = tree.problem {
+                        Text(verbatim: problem)
+                            .foregroundStyle(.red)
+                            .lineLimit(2)
+                            .frame(minHeight: RowHeight.single)
+                    } else if tree.folders.isEmpty {
+                        Text("No folders here.")
                             .foregroundStyle(.secondary)
                             .frame(height: RowHeight.single)
                     }
                 }
             }
-            CardSection("New folder") {
-                FieldRow(label: "Name", text: $newName)
-                SettingRow("Make it inside this folder") {
-                    Button("Create") { create() }
-                        .buttonStyle(.pill)
-                        .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty || isCreating)
-                }
-            }
-            if let problem {
-                Text(problem)
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
+            // The chosen folder's place, shown only once one is chosen.
+            if let chosenPlace {
+                Text(verbatim: chosenPlace)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .truncationMode(.head)
             }
         }
         .padding(16)
         .frame(width: 480)
         .fixedSize(horizontal: false, vertical: true)
-        .task(id: folder) { await load() }
+        .task { await tree.load() }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Use This Folder") {
-                    chosen(folder)
-                    dismiss()
+                    if let folder = tree.chosen {
+                        chosen(folder)
+                        dismiss()
+                    }
                 }
+                .disabled(tree.chosen == nil)
             }
         }
     }
 
-    /// A folder's name, or words already in the language shown, as they are.
-    private func folderRow(_ name: String, symbol: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                Text(verbatim: name)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
+    /// Back on the left, where the list is in the middle, and + on the right.
+    private var header: some View {
+        HStack(spacing: 8) {
+            Button {
+                isNaming = false
+                Task { await tree.back() }
+            } label: {
+                Image(systemName: "chevron.left")
             }
-            .frame(height: RowHeight.single)
-            .contentShape(Rectangle())
+            .buttonStyle(.icon)
+            .disabled(tree.folder.isRoot)
+            .help("Back")
+            .accessibilityLabel(Text("Back"))
+            Text(verbatim: tree.folder.isRoot ? topName : tree.folder.name)
+                .font(.system(size: 13, weight: .semibold))
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 8)
+            Button {
+                isNaming = true
+                isNameFocused = true
+            } label: {
+                Image(systemName: "plus")
+            }
+            .buttonStyle(.icon)
+            .disabled(tree.isLoading)
+            .help("New Folder")
+            .accessibilityLabel(Text("New Folder"))
         }
-        .buttonStyle(.plain)
     }
 
-    private func load() async {
-        isLoading = true
-        problem = nil
-        defer { isLoading = false }
-        do {
-            let items = try await engine.list(folder)
-            folders = items.filter { $0.kind == .directory }.map(\.path.name)
-                .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
-        } catch {
-            folders = []
-            let reason = error.localizedDescription
-            problem = String(localized: "This folder can't be read: \(reason)")
+    /// A new folder's name. Return makes it here and chooses it, and Escape leaves it.
+    private var nameRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "folder.badge.plus")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField("Folder name", text: $newName)
+                .textFieldStyle(.plain)
+                .focused($isNameFocused)
+                .onSubmit {
+                    Task {
+                        if await tree.create(newName) {
+                            newName = ""
+                            isNaming = false
+                        }
+                    }
+                }
+                .onExitCommand {
+                    newName = ""
+                    isNaming = false
+                }
         }
+        .frame(height: RowHeight.single)
     }
 
-    private func create() {
-        let name = newName.trimmingCharacters(in: .whitespaces)
-        guard let path = folder.appending(name), !RemotePath.isReservedName(name) else {
-            problem = String(localized: "That name can't be used for a folder.")
-            return
-        }
-        isCreating = true
-        problem = nil
-        Task {
-            defer { isCreating = false }
-            do {
-                try await engine.createDirectory(path)
-                newName = ""
-                folder = path
-            } catch {
-                let reason = error.localizedDescription
-                problem = String(localized: "That folder couldn't be made: \(reason)")
+    /// A folder: its name goes inside it, and its checkmark chooses it.
+    private func row(_ name: String, symbol: String, path: RemotePath, opens: Bool) -> some View {
+        let isChosen = tree.chosen == path
+        return HStack(spacing: 8) {
+            Button {
+                if opens {
+                    isNaming = false
+                    Task { await tree.open(name) }
+                } else {
+                    tree.choose(path)
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: symbol)
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                    Text(verbatim: name)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                    if opens {
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .accessibilityHidden(true)
+                    }
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            Button {
+                tree.choose(path)
+            } label: {
+                Image(systemName: isChosen ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isChosen ? Color.accentColor : .secondary)
+                    .font(.system(size: 15))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(isChosen ? LocalizedStringKey("Chosen") : LocalizedStringKey("Choose")))
         }
+        .frame(height: RowHeight.single)
+    }
+
+    /// Where the chosen folder is, as the drive will use it.
+    private var chosenPlace: String? {
+        guard let folder = tree.chosen else { return nil }
+        var form = session.start
+        form.path = session.start.folderField(for: folder)
+        if let place = form.shownPlace {
+            return place
+        }
+        return form.path.isEmpty ? String(localized: "Top folder") : form.path
     }
 }

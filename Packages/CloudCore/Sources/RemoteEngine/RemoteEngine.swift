@@ -749,6 +749,8 @@ private struct EngineFailure: Decodable {
     var kind: String
     var message: String
     var status: Int?
+    /// Which part of reaching the server failed, for an unreachable server only.
+    var reason: String?
 
     func remoteError(at path: RemotePath) -> RemoteError {
         switch kind {
@@ -762,7 +764,7 @@ private struct EngineFailure: Decodable {
         case "cancelled": return .cancelled
         case "unauthorized": return .unauthorized
         case "insufficientStorage": return .insufficientStorage
-        case "unreachable": return .unreachable(message)
+        case "unreachable": return .unreachable(message, reason: reason.flatMap(UnreachableReason.init(rawValue:)) ?? .unknown)
         case "tooSlow": return .tooSlow(path)
         case "tooLarge": return .tooLarge(path)
         case "tooManyItems": return .tooManyItems(path)

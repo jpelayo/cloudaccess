@@ -102,5 +102,39 @@
 			<string>Deleted %lld passwords.</string>
 		</dict>
 	</dict>
+	<!-- AppWideWarning.swift -->
+	<key>Tailscale is off on this Mac. %lld drives need it.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@drives@</string>
+		<key>drives</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Tailscale is off on this Mac. %lld drive needs it.</string>
+			<key>other</key>
+			<string>Tailscale is off on this Mac. %lld drives need it.</string>
+		</dict>
+	</dict>
+	<!-- AppWideWarning.swift -->
+	<key>Tailscale is off on this iPhone. %lld drives need it.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@drives@</string>
+		<key>drives</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Tailscale is off on this iPhone. %lld drive needs it.</string>
+			<key>other</key>
+			<string>Tailscale is off on this iPhone. %lld drives need it.</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

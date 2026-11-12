@@ -39,6 +39,7 @@ struct EditDriveView: View {
     @State private var problem: String?
     @State private var isSaving = false
     @State private var confirmingMove: Connection?
+    @State private var browsing: FolderBrowsing?
 
     init(connection: Connection, store: DriveStore, keptChanges: Int, saved: @escaping (DriveEditOutcome) -> Void) {
         self.connection = connection
@@ -55,9 +56,53 @@ struct EditDriveView: View {
             privateKeyPassphrase: privateKey == nil || keyPassphrase.isEmpty ? nil : keyPassphrase)
     }
 
+    /// The fields as they'll be used, so a pasted address counts before it's been split up.
     private var change: DriveEdit.Change {
         DriveEdit.change(
-            from: connection, form: form, signIn: signIn, among: (try? store.connections()) ?? [])
+            from: connection, form: form.tidied, signIn: signIn, among: (try? store.connections()) ?? [])
+    }
+
+    private var canBrowse: Bool {
+        !isSaving && form.tidied.browsingConnection() != nil && (!needsConsent || allowsInsecure)
+    }
+
+    /// Connects to the server alone, with nothing saved, to look through its folders. The same
+    /// server keeps its trusted identity; another one shows its own first.
+    private func browse() {
+        form = form.tidied
+        let start = form.browseStart
+        guard var probe = start.browsingConnection() else {
+            problem = DriveEdit.badAddress
+            return
+        }
+        probe.hostKey = probe.endpoint == connection.endpoint ? connection.hostKey : hostKey?.key
+        probe.allowsInsecure = connection.allowsInsecure || allowsInsecure
+        let credentials = signIn.applied(to: (try? store.credentials(for: connection.id)) ?? Credentials())
+        isSaving = true
+        problem = nil
+        Task {
+            defer { isSaving = false }
+            do {
+                #if DEBUG
+                guard probe.isTestDrive else {
+                    // A test guard, so it stays English.
+                    problem = "This test build only connects to a folder named \(Connection.testFolderName)."
+                    return
+                }
+                #endif
+                if case .sftp(let host, let port) = probe.endpoint, probe.hostKey == nil {
+                    hostKey = try await RemoteEngine.hostKey(host: host, port: port)
+                    problem = String(localized: "Check the server's identity below, then press Browse again.")
+                    return
+                }
+                var signIn = credentials
+                signIn.vaultPassword = nil
+                let engine = try await RemoteEngine(connection: probe, credentials: signIn)
+                browsing = FolderBrowsing(start: start, engine: engine, typed: form.typedFolder(inside: start))
+            } catch {
+                problem = await ConnectionChecks.explain(error, for: probe, device: .iPhone)
+            }
+        }
     }
 
     private var isMove: Bool {
@@ -115,33 +160,9 @@ struct EditDriveView: View {
                 } header: {
                     SectionLabel("Drive")
                 }
-                Section {
-                    Picker("Protocol", selection: $form.kind) {
-                        ForEach(ConnectionForm.Kind.allCases, id: \.self) { kind in
-                            Text(kind.title).tag(kind)
-                        }
-                    }
-                    TextField("Host", text: $form.host)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
-                        // A whole address pasted here is read into the fields it belongs in.
-                        .onSubmit { form.tidyHost() }
-                    TextField("Port", text: $form.port, prompt: Text("Usual (\(form.kind.defaultPort))"))
-                        .keyboardType(.numberPad)
-                    TextField("Folder", text: $form.path)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("Username", text: $form.username)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                } header: {
-                    SectionLabel("Server")
-                } footer: {
-                    if isMove {
-                        Text(moveNote)
-                    }
-                }
+                DriveFormFields(
+                    form: $form, insecureConsent: needsConsent ? $allowsInsecure : nil,
+                    serverNote: isMove ? moveNote : nil, canBrowse: canBrowse, browse: browse)
                 Section {
                     SecretField("Password", text: $password, prompt: "Unchanged")
                     if form.kind == .sftp {
@@ -167,9 +188,6 @@ struct EditDriveView: View {
                     } footer: {
                         Text("Chosen when the drive was added. It can't be changed.")
                     }
-                }
-                if needsConsent {
-                    Toggle("Send my password unencrypted over http", isOn: $allowsInsecure)
                 }
                 if let hostKey {
                     Section {
@@ -197,6 +215,11 @@ struct EditDriveView: View {
                 problem = nil
             }
             .fileImporter(isPresented: $isChoosingKey, allowedContentTypes: [.item], onCompletion: loadKey)
+            .sheet(item: $browsing) { session in
+                ServerFolderPicker(session: session) { folder in
+                    form.path = session.start.folderField(for: folder)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -235,13 +258,9 @@ struct EditDriveView: View {
 
     private func loadKey(_ result: Result<URL, Error>) {
         do {
-            let url = try result.get()
-            let isAllowed = url.startAccessingSecurityScopedResource()
-            defer {
-                if isAllowed { url.stopAccessingSecurityScopedResource() }
-            }
-            privateKey = try String(contentsOf: url, encoding: .utf8)
-            privateKeyName = url.lastPathComponent
+            let key = try PrivateKeyFile(result)
+            privateKey = key.text
+            privateKeyName = key.name
             problem = nil
         } catch {
             problem = String(localized: "That key can't be read: \(error.localizedDescription)")
@@ -284,7 +303,7 @@ struct EditDriveView: View {
                     do {
                         hostKey = try await RemoteEngine.hostKey(host: host, port: port)
                     } catch {
-                        problem = Tailnet.explain(error, for: connecting.endpoint)
+                        problem = await ConnectionChecks.explain(error, for: connecting, device: .iPhone)
                     }
                     return
                 }
@@ -330,7 +349,7 @@ struct EditDriveView: View {
             dismiss()
         } catch {
             AppLog.record("\(connection.displayName): edit didn't connect: \(Diagnostics.kind(of: error))")
-            problem = Tailnet.explain(error, for: edited.endpoint)
+            problem = await ConnectionChecks.explain(error, for: edited, device: .iPhone)
         }
     }
 }

@@ -83,15 +83,29 @@ public enum DrivesFile {
             self.credentials = credentials
         }
 
-        /// The drive as a new one on this device, with an ID of its own.
+        /// The drive as a new one on this device, with an ID of its own. Its folder is tidied
+        /// the way a typed one is, so another device's spelling can't make it a second drive.
         public func connection(named displayName: String? = nil) -> Connection {
             var connection = Connection(
                 displayName: displayName ?? name, endpoint: endpoint, username: username,
-                rootPath: rootPath, isEncrypted: isEncrypted, hostKey: hostKey)
+                rootPath: ServerFolder.tidied(rootPath, for: endpoint) ?? rootPath,
+                isEncrypted: isEncrypted, hostKey: hostKey)
             connection.vaultID = vaultID
             connection.vaultRevision = vaultRevision
             connection.settings = settings
             return connection
+        }
+
+        /// Where the drive is, for a person to recognise it, as an address. No passwords.
+        public var shownAddress: String {
+            ConnectionSummary.address(of: connection())
+        }
+
+        /// The address, then on SFTP where its folder is in plain words, on a line of its own,
+        /// such as "Documents, in the home folder". The two SFTP folders look alike otherwise.
+        public var shownLocation: String {
+            guard let place = ServerFolder.shownPlace(of: connection()) else { return shownAddress }
+            return shownAddress + "\n" + place
         }
     }
 

@@ -161,7 +161,10 @@ extension Diagnostics {
         switch error {
         case RemoteError.server(let status):
             return "server \(status)"
-        case RemoteError.unreachable(let message):
+        case RemoteError.unreachable(let message, let reason):
+            if reason != .unknown {
+                return "unreachable (\(reason.rawValue))"
+            }
             let found = causes.filter { message.localizedCaseInsensitiveContains($0) }
             return "unreachable (\(found.isEmpty ? "other" : found.joined(separator: ", ")))"
         case RemoteError.vault(let problem):

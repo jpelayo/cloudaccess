@@ -96,6 +96,7 @@
         "INFOPLIST_KEY_CFBundleDisplayName": "CloudAccess",
         "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.productivity",
         "INFOPLIST_KEY_LSUIElement": "YES",
+        "INFOPLIST_KEY_NSLocalNetworkUsageDescription": "CloudAccess connects to the servers you add, including ones on your local network.",
         "INFOPLIST_KEY_NSHumanReadableCopyright": "",
         "LD_RUNPATH_SEARCH_PATHS": [
           "$(inherited)",

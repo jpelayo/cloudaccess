@@ -33,6 +33,17 @@ type errorResult struct {
 	Kind    string `json:"kind"`
 	Message string `json:"message"`
 	Status  int    `json:"status,omitempty"`
+	// Reason says which part of reaching the server failed, for an unreachable server only,
+	// so the apps can say what's wrong instead of guessing. It never changes the kind.
+	Reason string `json:"reason,omitempty"`
+}
+
+func classify(err error) errorResult {
+	result := classifyKind(err)
+	if result.Kind == "unreachable" {
+		result.Reason = unreachableReason(err)
+	}
+	return result
 }
 
 type callResult struct {
@@ -40,7 +51,7 @@ type callResult struct {
 	Error *errorResult `json:"error,omitempty"`
 }
 
-func classify(err error) errorResult {
+func classifyKind(err error) errorResult {
 	result := errorResult{Kind: "other", Message: err.Error()}
 
 	// First, because it's wrapped in a failed request, and that isn't what happened.

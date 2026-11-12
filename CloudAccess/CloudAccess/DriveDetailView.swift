@@ -319,10 +319,6 @@ struct DriveDetailView: View {
                 Label(drives.offlineMessage(of: current), systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
-                if current.usesTailnet {
-                    Text(Tailnet.hint)
-                        .foregroundStyle(.secondary)
-                }
             }
             Picker("Page", selection: $page) {
                 ForEach(Page.allCases, id: \.self) { page in

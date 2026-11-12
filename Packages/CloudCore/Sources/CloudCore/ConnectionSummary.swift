@@ -4,13 +4,30 @@ import Foundation
 
 /// Plain descriptions of a drive, safe to show and to include in diagnostics.
 public enum ConnectionSummary {
-    /// An address a person can read. Connections never hold secrets, so this can't leak one.
+    /// An address a person can read, in the form `ServerAddress` reads back, so it can be pasted.
+    /// On SFTP a folder in the home folder is `sftp://host/~/Documents`, and one from the server's
+    /// top is `sftp://host/Documents`. The usual port is left out. Connections never hold
+    /// secrets, so this can't leak one.
     public static func address(of connection: Connection) -> String {
         switch connection.endpoint {
         case .webDAV(let url):
             return url.absoluteString
         case .sftp(let host, let port):
-            return "sftp://\(host):\(port)\(connection.rootPath)"
+            // A colon in a host can only be IPv6, which an address has to bracket.
+            var address = "sftp://" + (host.contains(":") ? "[\(host)]" : host)
+            if port != 22 {
+                address += ":\(port)"
+            }
+            // Encoded as WebDAV's address is, so a space can be pasted back. The plain-words
+            // line beside it shows the folder as it's named.
+            let tidy = ServerFolder.sftp(connection.rootPath) ?? connection.rootPath
+            let folder = tidy.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? tidy
+            if folder.hasPrefix("/") {
+                address += folder
+            } else if !folder.isEmpty {
+                address += "/~/" + folder
+            }
+            return address
         case .localFolder:
             return connection.rootPath
         }
@@ -39,9 +56,15 @@ public enum ConnectionSummary {
         details(of: connection, word: { $0 })
     }
 
-    /// The same, in the language shown, for the side panel.
+    /// The same, in the language shown, for the side panel. On SFTP it also says where the folder
+    /// is in plain words, because `sftp://host/Documents` and `sftp://host/~/Documents` are two
+    /// different folders that look alike.
     public static func shownDetails(of connection: Connection) -> [Detail] {
-        details(of: connection, word: Words.text)
+        var shown = details(of: connection, word: Words.text)
+        if let place = ServerFolder.shownPlace(of: connection) {
+            shown.insert(Detail(key: Words.text("Folder"), value: place), at: 1)
+        }
+        return shown
     }
 
     /// What kind of drive this is, in the language shown, such as "SFTP, encrypted".

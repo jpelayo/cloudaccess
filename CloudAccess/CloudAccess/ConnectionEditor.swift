@@ -213,7 +213,7 @@ struct ConnectionEditor: View {
                     try await apply(edited)
                 }
             } catch {
-                let reason = Tailnet.explain(error, for: edited.endpoint)
+                let reason = await ConnectionChecks.explain(error, for: edited, device: .mac)
                 problem = String(localized: "Not saved: \(reason)")
             }
         }
@@ -227,7 +227,7 @@ struct ConnectionEditor: View {
             do {
                 try await apply(edited)
             } catch {
-                let reason = Tailnet.explain(error, for: edited.endpoint)
+                let reason = await ConnectionChecks.explain(error, for: edited, device: .mac)
                 problem = String(localized: "Not saved: \(reason)")
             }
         }
@@ -294,7 +294,7 @@ private struct HostKeyReview: View {
             do {
                 offered = try await RemoteEngine.hostKey(host: host, port: port)
             } catch {
-                problem = Tailnet.explain(error, for: connection.endpoint)
+                problem = await ConnectionChecks.explain(error, for: connection, device: .mac)
             }
         }
     }

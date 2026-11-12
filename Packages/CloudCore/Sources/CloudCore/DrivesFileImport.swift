@@ -123,6 +123,10 @@ public enum DrivesFileImport {
         if case .localFolder = entry.endpoint {
             return .notPossible(Words.text("A local test folder can't be moved to another device."))
         }
+        // A file is untrusted input, held to the rules of a typed folder.
+        guard ServerFolder.tidied(entry.rootPath, for: entry.endpoint) != nil else {
+            return .notPossible(ServerFolder.refusal)
+        }
         #if DEBUG
         guard incoming.isTestDrive else {
             return .notPossible(Words.format(

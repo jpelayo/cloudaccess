@@ -73,6 +73,30 @@ public struct FileProblem: Equatable, Sendable {
     }
 }
 
+/// Which part of reaching a server failed, as the engine saw it. The raw values are the engine's.
+public enum UnreachableReason: String, Equatable, Sendable, CaseIterable {
+    case nameNotFound
+    case nameLookupFailed
+    case refused
+    case hostDown
+    case hostUnreachable
+    case networkUnreachable
+    case timedOut
+    case connectionReset
+    case connectionLost
+    case tooSlow
+    case notWebDAV
+    case certificateUntrusted
+    case certificateExpired
+    case certificateWrongName
+    case notTLS
+    case sshHandshake
+    /// The app had marked the drive offline, so the extension didn't try.
+    case markedOffline
+    /// Nothing said which part failed.
+    case unknown
+}
+
 /// A failure from a server, independent of the protocol that produced it.
 public enum RemoteError: Error, Equatable, Sendable {
     case notFound(RemotePath)
@@ -107,7 +131,9 @@ public enum RemoteError: Error, Equatable, Sendable {
 
     case unauthorized
     case insufficientStorage
-    case unreachable(String)
+    /// The server couldn't be reached. The message is the engine's own, for the log, and the reason says
+    /// which part of reaching it failed.
+    case unreachable(String, reason: UnreachableReason = .unknown)
     case server(status: Int)
     case vault(VaultProblem)
     /// An SFTP server's key hasn't been confirmed yet.
@@ -224,7 +250,7 @@ public enum RemoteError: Error, Equatable, Sendable {
             return FileProblem(
                 cause: "Another device is saving this file, or a save was interrupted.",
                 fix: "Nothing to do. This clears by itself within 10 minutes.")
-        case .unreachable(let message):
+        case .unreachable(let message, _):
             let said = message.components(separatedBy: ": ").last ?? ""
             return FileProblem(
                 cause: "The connection failed while sending this file\(said.isEmpty ? "" : " (\(said))").",

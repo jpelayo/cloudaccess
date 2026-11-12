@@ -84,6 +84,7 @@ public struct ConnectionSetup: Codable, Equatable, Sendable {
             return ServerAddress(url.absoluteString) != nil
         case .sftp(let host, let port):
             return !host.isEmpty && (1...65_535).contains(port) && hostKey != nil
+                && ServerFolder.sftp(rootPath) != nil
         case .localFolder:
             return false
         }
@@ -92,7 +93,8 @@ public struct ConnectionSetup: Codable, Equatable, Sendable {
     /// The drive this describes, with a new identity on this device.
     public func connection() -> Connection {
         var connection = Connection(
-            displayName: name, endpoint: endpoint, username: username, rootPath: rootPath,
+            displayName: name, endpoint: endpoint, username: username,
+            rootPath: ServerFolder.tidied(rootPath, for: endpoint) ?? rootPath,
             isEncrypted: isEncrypted, hostKey: hostKey)
         connection.vaultID = vaultID
         connection.vaultRevision = vaultRevision

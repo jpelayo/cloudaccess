@@ -78,6 +78,7 @@
         "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.productivity",
         "INFOPLIST_KEY_NSCameraUsageDescription": "CloudWanderer uses the camera to scan the setup code your Mac shows.",
         "INFOPLIST_KEY_NSFaceIDUsageDescription": "CloudWanderer asks for Face ID before your drives and their passwords leave this iPhone.",
+        "INFOPLIST_KEY_NSLocalNetworkUsageDescription": "CloudWanderer connects to the servers you add, including ones on your local network.",
         "INFOPLIST_KEY_UIApplicationSceneManifest_Generation": "YES",
         "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents": "YES",
         "INFOPLIST_KEY_UILaunchScreen_Generation": "YES",

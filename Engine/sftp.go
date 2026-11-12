@@ -276,7 +276,7 @@ func sftpRequest[Result any](
 		}
 		s.disconnect(client)
 		if !repeatable || attempt == 2 {
-			return none, fmt.Errorf("%w: %v", errServerGone, result.err)
+			return none, withCause(fmt.Errorf("%w: %v", errServerGone, result.err), result.err)
 		}
 	}
 }

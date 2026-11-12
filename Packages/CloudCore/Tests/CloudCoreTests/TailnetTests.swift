@@ -31,19 +31,13 @@ import Testing
         #expect(!Connection(displayName: "D", endpoint: .localFolder).usesTailnet)
     }
 
-    @Test func anUnreachableTailnetServerSaysWhatToCheck() {
-        let message = Tailnet.explain(RemoteError.unreachable("No route to host."), for: .sftp(host: "100.64.0.1", port: 22))
-        #expect(message.contains("can't be reached"))
-        #expect(message.contains("Tailscale"))
-    }
-
-    @Test func aWrongPasswordIsntBlamedOnTailscale() {
-        let message = Tailnet.explain(RemoteError.unauthorized, for: .sftp(host: "100.64.0.1", port: 22))
-        #expect(!message.contains("Tailscale"))
-    }
-
-    @Test func anOrdinaryServerDoesntMentionTailscale() {
-        let message = Tailnet.explain(RemoteError.unreachable("No route to host."), for: .sftp(host: "example.com", port: 22))
-        #expect(!message.contains("Tailscale"))
+    /// 100.64.0.0/10 is Tailscale's, and other VPNs' and mobile carriers' too, so only a `.ts.net`
+    /// name or Tailscale's own IPv6 range can be said to need Tailscale and nothing else.
+    @Test func onlyTailscalesOwnNamesAndRangeAreTailscaleOnly() {
+        #expect(Tailnet.isTailscaleOnly(host: "nas.tail1234.ts.net"))
+        #expect(Tailnet.isTailscaleOnly(host: "NAS.TAIL1234.TS.NET."))
+        #expect(Tailnet.isTailscaleOnly(host: "fd7a:115c:a1e0::1"))
+        #expect(!Tailnet.isTailscaleOnly(host: "100.64.0.1"))
+        #expect(!Tailnet.isTailscaleOnly(host: "example.com"))
     }
 }

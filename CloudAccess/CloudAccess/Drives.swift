@@ -99,9 +99,9 @@ final class Drives {
             case .insecureNotAllowed:
                 return String(localized: "This drive uses plain http, which sends its password readably. Allow that first.")
             case .duplicateName:
-                return String(localized: "A drive with that name already exists.")
+                return DriveEdit.Clash.name.reason
             case .duplicateDrive:
-                return String(localized: "Another drive already uses this folder on this server.")
+                return DriveEdit.Clash.place.reason
             #if DEBUG
             case .notATestFolder:
                 // A test guard, so it stays English.
@@ -178,6 +178,12 @@ final class Drives {
     private(set) var connections: [Connection] = []
     /// Drives with a whole-connection problem. A failed file never puts a drive here.
     private(set) var offline: Set<UUID> = []
+    /// Why each offline drive can't reach its server, as far as checking proved it.
+    let checks = ConnectionChecks(device: .mac)
+    /// Whether this Mac has a network at all, straight from the system.
+    private(set) var isNetworkUp = true
+    /// Check Again is running.
+    private(set) var isCheckingAgain = false
     /// A problem reading the saved drives, which must never look like having no drives.
     private(set) var storeProblem: String?
     /// Domains macOS has registered that no saved drive matches. They're kept, not removed.
@@ -297,6 +303,7 @@ final class Drives {
     /// The drive worth opening when someone asks what's going on: the worst off, then the busiest.
     var driveToReport: Connection? {
         connections.first(where: needsHelp(on:))
+            ?? offlineDrives.first
             ?? connections.first(where: isTransferring)
             ?? connections.first(where: \.isMounted)
             ?? connections.first
@@ -310,14 +317,61 @@ final class Drives {
             failures[connection.id]?.count ?? 0)
     }
 
-    var isAnyDriveOffline: Bool {
-        !offline.isEmpty
+    /// What the whole app shows about connections. A drive that fails because of its own server
+    /// says so only in its own places. Only a problem with this Mac is shown app-wide.
+    var appWideWarning: AppWideWarning {
+        AppWideWarning.from(mounted.filter { offline.contains($0.id) }.compactMap { checks.findings[$0.id] })
     }
 
-    /// Offline drives whose server is on a tailnet, where Tailscale being off looks the same as
-    /// the server being down.
-    var drivesNeedingTailscale: [Connection] {
-        connections.filter { offline.contains($0.id) && $0.usesTailnet }
+    /// Drives that can't connect because Tailscale is off on this Mac, which a check proved. A
+    /// tailnet address alone proves nothing: the server may be the one that's off.
+    var drivesWithTailscaleOff: [Connection] {
+        connections.filter { offline.contains($0.id) && checks.findings[$0.id]?.kind == .tailscaleOff }
+    }
+
+    /// Each problem with this Mac that some drives feel, for Settings, which lists them all.
+    var deviceProblems: [AppWideWarning] {
+        AppWideWarning.deviceProblems(in: offlineDrives.compactMap { checks.findings[$0.id] })
+    }
+
+    /// The Local Network list in Privacy & Security, where CloudAccess is allowed to reach
+    /// devices on this network. macOS asks once, and a person may have said no.
+    func openLocalNetworkSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Some drives connect and some don't, each for its own server's reasons.
+    var isPartlyConnected: Bool {
+        !offline.isEmpty && !hasConnectionProblem
+    }
+
+    /// Whether another drive, on another server, connected at the last poll. That's evidence this
+    /// Mac's network works.
+    private func connectsToAnotherServer(than connection: Connection) -> Bool {
+        let target = ConnectionCheck.Target(connection)
+        return mounted.contains { !offline.contains($0.id) && ConnectionCheck.Target($0) != target }
+    }
+
+    /// Check Again: drops each drive's connection, checks why it can't connect, then polls. The
+    /// poll every 30 seconds keeps checking without it.
+    func checkAgain(_ chosen: [Connection]) async {
+        guard !isCheckingAgain else { return }
+        isCheckingAgain = true
+        defer { isCheckingAgain = false }
+        for connection in chosen {
+            open[connection.id] = nil
+        }
+        await checks.check(
+            chosen.filter { offline.contains($0.id) }, byAPerson: true,
+            otherServersOnline: { [weak self] in self?.connectsToAnotherServer(than: $0) ?? false })
+        await pollOnce(force: true)
+    }
+
+    /// The drives that can't connect now.
+    var offlineDrives: [Connection] {
+        mounted.filter { offline.contains($0.id) }
     }
 
     /// The App Store and standalone builds have different identifiers.
@@ -344,20 +398,37 @@ final class Drives {
         if state == .offline, let label = problems[connection.id]?.attentionLabel {
             return label
         }
-        if state == .offline && connection.usesTailnet {
-            return String(localized: "offline, check Tailscale")
+        if state == .offline {
+            if checks.isSettling {
+                return String(localized: "reconnecting")
+            }
+            if let finding = checks.findings[connection.id] {
+                let reason = finding.shortLabel
+                return String(localized: "offline, \(reason)")
+            }
+            if checks.checking.contains(connection.id) {
+                let reason = String(localized: "checking…")
+                return String(localized: "offline, \(reason)")
+            }
         }
         return state.shownLabel
     }
 
-    /// What's wrong with a drive that isn't connected. Saves only wait out an outage: with a
-    /// wrong password or a retired vault, they wait for a person.
+    /// What's wrong with a drive that isn't connected, as far as checking proved it. Saves only
+    /// wait out an outage: with a wrong password or a retired vault, they wait for a person.
     func offlineMessage(of connection: Connection) -> String {
-        guard let problem = problems[connection.id], problem.attentionLabel != nil else {
-            return String(localized: "Not connected. Files on this Mac are still available, and saves upload when the connection returns.")
+        if let problem = problems[connection.id], problem.attentionLabel != nil {
+            let reason = problem.localizedDescription
+            return String(localized: "\(reason) Files on this Mac are still available, and nothing uploads until this is fixed.")
         }
-        let reason = problem.localizedDescription
-        return String(localized: "\(reason) Files on this Mac are still available, and nothing uploads until this is fixed.")
+        if checks.isSettling {
+            return String(localized: "Reconnecting…")
+        }
+        if let finding = checks.findings[connection.id] {
+            let reason = finding.sentence
+            return String(localized: "\(reason) Files on this Mac are still available, and saves upload when the connection returns.")
+        }
+        return String(localized: "Not connected. Files on this Mac are still available, and saves upload when the connection returns.")
     }
 
     /// The first drive a person has to act on. A changed host key has its own card.
@@ -444,8 +515,10 @@ final class Drives {
         return notMoving > 0 ? .notMoving(notMoving) : .connected
     }
 
+    /// Nothing can connect: no network, or the drive list itself can't be read. A server that's
+    /// off is only its own drives' problem, and never turns the whole app gray.
     var hasConnectionProblem: Bool {
-        !offline.isEmpty || storeProblem != nil
+        (!isNetworkUp && !mounted.isEmpty) || appWideWarning.stopsEveryDrive || storeProblem != nil
     }
 
     private let store: DriveStore?
@@ -497,6 +570,7 @@ final class Drives {
 
     init() {
         store = try? DriveStore.shared()
+        checks.log = { [store] line in store?.diagnostics.record(line) }
         reload()
         memory = MemoryWatcher { [weak self] level in
             self?.memoryLevelChanged(to: level)
@@ -619,6 +693,8 @@ final class Drives {
             MainActor.assumeIsolated {
                 // Nothing moved during the sleep, and that says nothing about the files.
                 self?.lastMoved = [:]
+                // Interfaces take a moment after waking, so a failure meanwhile isn't judged.
+                self?.checks.settle(for: 10)
                 Task { await self?.pollOnce() }
             }
         }
@@ -626,7 +702,9 @@ final class Drives {
 
     private func networkChanged(isUp: Bool) async {
         store?.diagnostics.record(isUp ? "Network available" : "Network lost")
+        isNetworkUp = isUp
         guard !isUp else {
+            checks.settle(for: 5)
             await pollOnce()
             return
         }
@@ -634,6 +712,8 @@ final class Drives {
         for connection in mounted {
             await noteConnection(of: connection, isOffline: true)
         }
+        // The check stops at this Mac's own network, so it contacts nothing.
+        await checks.check(mounted, byAPerson: false, otherServersOnline: { _ in false })
     }
 
     /// Tells the extension, through the drive's database, so it can answer Finder at once. After
@@ -682,6 +762,8 @@ final class Drives {
     private func pollDrives(force: Bool) async {
         saveWaitingPreserved()
         var failed = Set<UUID>()
+        // Why each drive failed, for the check that explains it once the poll is done.
+        var lost: [UUID: Error] = [:]
         for connection in mounted {
             do {
                 let drive = try await opened(connection)
@@ -709,11 +791,12 @@ final class Drives {
                     result.checked, result.changed ? 1 : 0, String(describing: result.failures))
                 #endif
                 // One failed folder isn't a connection problem, but a lost connection is.
-                if result.failures.contains(where: { ($0 as? RemoteError)?.scope == .connection }) {
+                if let folderError = result.failures.first(where: { ($0 as? RemoteError)?.scope == .connection }) {
                     #if DEBUG
                     NSLog("CM_OFFLINE: %@: a folder couldn't be reached", connection.displayName)
                     #endif
                     failed.insert(connection.id)
+                    lost[connection.id] = folderError
                     await noteConnection(of: connection, isOffline: true)
                     continue
                 }
@@ -739,6 +822,7 @@ final class Drives {
                     store?.diagnostics.record("\(connection.displayName): offline: \(error)")
                 }
                 failed.insert(connection.id)
+                lost[connection.id] = error
                 if let engine = open[connection.id]?.engine {
                     await pinVaultRevision(of: connection, engine: engine)
                 }
@@ -751,6 +835,11 @@ final class Drives {
             }
         }
         offline = failed
+        checks.keep(only: failed)
+        // Beside the poll: each new failure is checked once, and the poll is the recheck.
+        checks.noteFailures(
+            mounted.compactMap { connection in lost[connection.id].map { (connection, $0) } },
+            otherServersOnline: { [weak self] in self?.connectsToAnotherServer(than: $0) ?? false })
         await updateEnabledState()
     }
 

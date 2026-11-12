@@ -115,13 +115,9 @@ struct SignInView: View {
 
     private func loadKey(_ result: Result<URL, Error>) {
         do {
-            let url = try result.get()
-            let isAllowed = url.startAccessingSecurityScopedResource()
-            defer {
-                if isAllowed { url.stopAccessingSecurityScopedResource() }
-            }
-            privateKey = try String(contentsOf: url, encoding: .utf8)
-            privateKeyName = url.lastPathComponent
+            let key = try PrivateKeyFile(result)
+            privateKey = key.text
+            privateKeyName = key.name
             problem = nil
         } catch {
             problem = String(localized: "That key can't be read: \(error.localizedDescription)")
@@ -152,7 +148,7 @@ struct SignInView: View {
                 dismiss()
             } catch {
                 AppLog.record("\(connection.displayName): sign-in didn't work: \(Diagnostics.kind(of: error))")
-                problem = Tailnet.explain(error, for: connection.endpoint)
+                problem = await ConnectionChecks.explain(error, for: connection, device: .iPhone)
             }
         }
     }

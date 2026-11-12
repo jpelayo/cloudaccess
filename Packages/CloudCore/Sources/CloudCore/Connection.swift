@@ -96,18 +96,16 @@ public struct Connection: Identifiable, Hashable, Sendable, Codable {
     /// Whether a change needs a different local drive. Renaming a connection or updating
     /// a password must never touch local files, so only the server location qualifies. Another
     /// account on the same server sees different files, so that's a location too.
+    /// The folders are compared tidied, so `Documents`, `~/Documents` and `Documents/` are one
+    /// place, while `/Documents`, from the server's top, is another.
     public func requiresNewDrive(comparedTo other: Connection) -> Bool {
         endpoint.location != other.endpoint.location
-            || Self.withoutTrailingSlash(rootPath) != Self.withoutTrailingSlash(other.rootPath)
+            || comparableFolder != other.comparableFolder
             || username != other.username
     }
 
-    fileprivate static func withoutTrailingSlash(_ path: String) -> String {
-        var trimmed = Substring(path)
-        while trimmed.hasSuffix("/") {
-            trimmed = trimmed.dropLast()
-        }
-        return String(trimmed)
+    private var comparableFolder: String {
+        ServerFolder.tidied(rootPath, for: endpoint) ?? rootPath
     }
 
     #if DEBUG
@@ -134,14 +132,15 @@ public struct Connection: Identifiable, Hashable, Sendable, Codable {
 }
 
 extension Connection.Endpoint {
-    /// Where this leads, the same however it was written. Letter case in a host, a default port
-    /// and a trailing slash don't make it another server, or two drives could share one folder.
+    /// Where this leads, the same however it was written. Letter case in a host, a default port,
+    /// a doubled or trailing slash don't make it another server, or two drives could share one
+    /// folder.
     public var location: String {
         switch self {
         case .webDAV(let url):
             let scheme = url.scheme?.lowercased() ?? ""
             let port = url.port ?? (scheme == "https" ? 443 : 80)
-            let path = Connection.withoutTrailingSlash(url.path)
+            let path = ServerFolder.webDAV(url.path) ?? url.path
             return "\(scheme)://\(url.host?.lowercased() ?? ""):\(port)\(path)"
         case .sftp(let host, let port):
             return "sftp://\(host.lowercased()):\(port)"
@@ -342,15 +341,21 @@ public struct ServerAddress: Equatable, Sendable {
         switch scheme {
         case "https", "http":
             components.scheme = scheme
+            guard let folder = ServerFolder.webDAV(components.path) else { return nil }
+            // Only a folder that needed tidying is rewritten, so nothing else is respelled.
+            if folder != components.path {
+                components.path = folder
+            }
             guard let url = components.url else { return nil }
             endpoint = .webDAV(url: url)
             rootPath = ""
             isInsecure = scheme == "http"
         case "sftp":
             endpoint = .sftp(host: host, port: components.port ?? 22)
-            // sftp://host/~/docs means docs in the user's home folder.
-            let path = components.path
-            rootPath = path.hasPrefix("/~/") ? String(path.dropFirst(3)) : path
+            // sftp://host/~/docs means docs in the user's home folder, and sftp://host/docs
+            // means docs from the server's top.
+            guard let folder = ServerFolder.sftp(components.path) else { return nil }
+            rootPath = folder
         default:
             return nil
         }

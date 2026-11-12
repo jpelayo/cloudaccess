@@ -90,12 +90,32 @@ public struct ConnectionForm: Equatable, Sendable {
             guard let number = Int(port), (1...65_535).contains(number), String(number) == port else { return nil }
             address += ":\(number)"
         }
-        guard let folder = path.addingPercentEncoding(withAllowedCharacters: Self.pathCharacters) else { return nil }
+        guard let tidy = tidiedFolder,
+              let folder = tidy.addingPercentEncoding(withAllowedCharacters: Self.pathCharacters)
+        else { return nil }
         if !folder.isEmpty {
             // On SFTP a path with no leading slash is inside the user's home folder.
-            address += folder.hasPrefix("/") ? folder : (kind == .sftp ? "/~/" : "/") + folder
+            address += folder.hasPrefix("/") ? folder : "/~/" + folder
         }
         return ServerAddress(address)
+    }
+
+    /// The Folder field in the form this protocol stores, or nil if it can't be a folder.
+    private var tidiedFolder: String? {
+        kind == .sftp ? ServerFolder.sftp(path) : ServerFolder.webDAV(path)
+    }
+
+    /// Why the Folder field can't be used, in the language shown, or nil if it can.
+    public var folderProblem: String? {
+        tidiedFolder == nil ? ServerFolder.refusal : nil
+    }
+
+    /// Where the Folder field leads on SFTP, in plain words, such as "Documents, in the home
+    /// folder". Nil on WebDAV, or for a folder that can't be one.
+    public var shownPlace: String? {
+        guard kind == .sftp, let tidy = tidiedFolder else { return nil }
+        return ServerFolder.shownPlace(
+            of: Connection(displayName: "", endpoint: .sftp(host: "", port: 22), rootPath: tidy))
     }
 
     /// `?` and `#` are ordinary characters in a folder's name, not parts of an address.
@@ -143,12 +163,16 @@ public struct ConnectionForm: Equatable, Sendable {
         if let number = parts.port {
             port = String(number)
         }
-        var folder = parts.path
-        while folder.hasSuffix("/") {
-            folder.removeLast()
-        }
-        if !folder.isEmpty {
-            path = folder
+        // A pasted sftp://host/~/docs fills in docs, the home folder's. A bare slash after the
+        // host is how addresses are pasted, not a choice of folder, so it changes nothing.
+        let pasted = parts.path
+        if let folder = kind == .sftp ? ServerFolder.sftp(pasted) : ServerFolder.webDAV(pasted) {
+            if !folder.isEmpty, folder != "/" {
+                path = folder
+            }
+        } else {
+            // Kept as pasted, so the Folder field shows what can't be used, and why.
+            path = pasted
         }
         if username.isEmpty, let user = parts.user {
             username = user
@@ -171,11 +195,53 @@ public struct ConnectionForm: Equatable, Sendable {
             rootPath: server.rootPath, isEncrypted: isEncrypted, hostKey: hostKey)
     }
 
+    /// These fields as they'll be used: a whole address pasted as the host counts before it's
+    /// been split up.
+    public var tidied: ConnectionForm {
+        var copy = self
+        copy.tidyHost()
+        return copy
+    }
+
+    /// Whether Connect can be pressed: the fields make a drive, an encrypted one has its
+    /// password, and plain http has a person's say-so. Both apps' add forms use it.
+    public func canConnect(isEncrypted: Bool, hasVaultPassword: Bool, allowsInsecure: Bool) -> Bool {
+        let tidy = tidied
+        guard tidy.newConnection(isEncrypted: isEncrypted) != nil else { return false }
+        if isEncrypted && !hasVaultPassword {
+            return false
+        }
+        return tidy.kind != .http || allowsInsecure
+    }
+
     /// These fields pointed at the server's top folder, to look around from.
     public var atTopFolder: ConnectionForm {
         var top = self
         top.path = ""
         return top
+    }
+
+    /// Where looking through folders starts: the server's top, or the home folder on SFTP. A test
+    /// build stays inside its test folder, the only place it may look.
+    public var browseStart: ConnectionForm {
+        #if DEBUG
+        tidied
+        #else
+        tidied.atTopFolder
+        #endif
+    }
+
+    /// The Folder field as a path inside where looking starts, so a picker shows it chosen. Nil
+    /// when nothing is typed, or it's outside, such as /srv seen from the home folder.
+    public func typedFolder(inside start: ConnectionForm) -> RemotePath? {
+        let typed = tidied
+        guard !typed.path.isEmpty else { return nil }
+        if typed.path == start.path {
+            return .root
+        }
+        guard start.path.isEmpty, let folder = typed.tidiedFolder else { return nil }
+        guard !(typed.kind == .sftp && folder.hasPrefix("/")) else { return nil }
+        return RemotePath(folder)
     }
 
     /// A connection for looking through folders. It's never saved, so it needs no name yet.
@@ -195,9 +261,9 @@ public struct ConnectionForm: Equatable, Sendable {
     public func folderField(for folder: RemotePath) -> String {
         guard !folder.isRoot else { return path }
         let inside = folder.components.joined(separator: "/")
-        var base = path
-        while base.hasSuffix("/") {
-            base.removeLast()
+        let base = tidiedFolder ?? path
+        if base == "/" {
+            return "/\(inside)"
         }
         if !base.isEmpty {
             return "\(base)/\(inside)"

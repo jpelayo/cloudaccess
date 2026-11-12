@@ -37,14 +37,6 @@ enum DrivesFileAccess {
         return data
     }
 
-    static func place(of entry: DrivesFile.Entry) -> String {
-        switch entry.endpoint {
-        case .webDAV(let url): url.absoluteString
-        case .sftp(let host, let port): "sftp://\(host)\(port == 22 ? "" : ":\(port)")\(entry.rootPath)"
-        case .localFolder: entry.rootPath
-        }
-    }
-
     /// Carries out the step a person chose for one drive. Like adding a drive by hand, the drive is
     /// connected and its passwords checked first. Saving then either finishes or is taken back.
     static func perform(
@@ -311,7 +303,7 @@ struct ImportDrivesView: View {
                                 Toggle("Send its password over plain http", isOn: allowed(row))
                             }
                         } footer: {
-                            Text(result(of: row) ?? row.note ?? DrivesFileAccess.place(of: row.entry))
+                            Text(result(of: row) ?? row.note ?? row.entry.shownLocation)
                                 .foregroundStyle(isFailed(row) ? .red : .secondary)
                         }
                     }

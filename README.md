@@ -42,9 +42,12 @@ There's no download yet. For now, build it from source, as described in [For dev
 ### On your Mac
 
 1. Click the CloudAccess icon in the menu bar, choose Settings, then choose Add Drive.
-2. Enter your storage's address, username and password. Turn on **Enable encryption** if you want it. You can't change this later.
-3. Turn CloudAccess on in System Settings, under General, Login Items & Extensions. The CloudAccess menu has a shortcut to it.
-4. The drive appears in Finder's sidebar.
+2. Choose WebDAV or SFTP, and enter your storage's host, username and password. Pasting a whole address into Host fills in the other fields. Turn on **Enable encryption** if you want it. You can't change this later.
+3. Type a folder, or choose Browse… to pick one: a folder's name opens it, its checkmark chooses it, and + makes a new one.
+4. Turn CloudAccess on in System Settings, under General, Login Items & Extensions. The CloudAccess menu has a shortcut to it.
+5. The drive appears in Finder's sidebar.
+
+**How to write a folder on SFTP.** `Documents`, `~/Documents` and `/~/Documents` all mean Documents in your home folder. `/Documents` means Documents at the top of the server, which is a different folder. The form says which one you've typed, and if the one you typed isn't there but the other is, it offers that one. On WebDAV the folder is part of the address, so `Documents` and `/Documents` are the same.
 
 In a drive's details, you choose how long downloaded copies stay, how much space they can use, and which folders stay downloaded.
 
@@ -55,7 +58,18 @@ To start CloudAccess when you log in, turn on **Launch at login** in Settings.
 1. On your Mac, open the drive's details and choose Show QR Code.
 2. In CloudWanderer, add a drive, scan the code and type the passwords.
 
+You can also add a drive by hand, with the same fields as on the Mac: WebDAV or SFTP, host, port, username, password or private key, and a folder you can type or choose with Browse…. CloudWanderer joins an encrypted drive made with CloudAccess, but can't create one.
+
 To change a drive later, swipe it and choose Edit. To add several drives at once, passwords included, use a drives file.
+
+### When a drive can't connect
+
+Both apps check what's wrong, step by step: this device's network, Tailscale, the server's name, the route, the server's port, and the server's answer. They say only what they found. For example, with Tailscale on and the server turned off, they say Tailscale is on and the server doesn't answer through it. They don't tell you to check Tailscale.
+
+- **A drive whose server fails shows it only on that drive,** in its row and its details. The menu bar icon and the status in the panel change only for a problem with the device itself, such as no network, or Tailscale turned off.
+- **Check Again** checks at once. Both apps also keep checking by themselves: the Mac every 30 seconds, and the iPhone while it's open. After a change of network, or waking up, they check every drive again.
+- **When the fix is a setting,** the warning has a button for it. On the Mac, that's Open Tailscale, or the Local Network setting. On the iPhone, it's Open Settings, and a drive whose address or port is wrong offers Edit Drive.
+- **The checks only contact the drive's own server,** on its own port. Nothing is sent anywhere else.
 
 ### Moving drives to another Mac or iPhone
 

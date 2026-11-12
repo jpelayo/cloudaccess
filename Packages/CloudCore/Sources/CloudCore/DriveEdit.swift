@@ -24,8 +24,8 @@ public enum DriveEdit {
 
         public var reason: String {
             switch self {
-            case .name: Words.text("Another drive is called that.")
-            case .place: Words.text("This server folder is already a drive here.")
+            case .name: Words.text("A drive with that name already exists.")
+            case .place: Words.text("Another drive already uses this folder on this server.")
             }
         }
     }
@@ -41,6 +41,23 @@ public enum DriveEdit {
     /// replace, and quietly falling back to Safe would write the folder a person chose to avoid.
     public static func modeRefusal(for drive: Connection) -> String? {
         DriveMode.available(for: drive.endpoint).contains(drive.settings.mode) ? nil : unsafeNeedsSFTP
+    }
+
+    /// Why a new drive can't be added here, or nil if it can, in the language shown. Both apps add
+    /// by these rules, so they refuse the same things in the same words, before anything connects.
+    public static func addRefusal(_ drive: Connection, among others: [Connection]) -> String? {
+        if let refusal = modeRefusal(for: drive) {
+            return refusal
+        }
+        if let clash = clash(drive, among: others) {
+            return clash.reason
+        }
+        #if DEBUG
+        guard drive.isTestDrive else {
+            return Words.format("This test build only connects to a folder named %@.", Connection.testFolderName)
+        }
+        #endif
+        return nil
     }
 
     /// Whether a drive would clash with another one already on this device. A drive never clashes

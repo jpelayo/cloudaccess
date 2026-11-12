@@ -49,15 +49,6 @@ enum DrivesFileAccess {
         }
         return try Data(contentsOf: url)
     }
-
-    /// Where a drive is, for a person to recognise it. No passwords.
-    static func place(of entry: DrivesFile.Entry) -> String {
-        switch entry.endpoint {
-        case .webDAV(let url): url.absoluteString
-        case .sftp(let host, let port): "sftp://\(host)\(port == 22 ? "" : ":\(port)")\(entry.rootPath)"
-        case .localFolder: entry.rootPath
-        }
-    }
 }
 
 /// Chooses drives and a password, then saves the file or sends it with AirDrop.
@@ -324,7 +315,7 @@ struct ImportDrivesView: View {
                     ListRow(height: RowHeight.double) {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(row.entry.name)
-                            Text(result(of: row) ?? row.note ?? DrivesFileAccess.place(of: row.entry))
+                            Text(result(of: row) ?? row.note ?? row.entry.shownLocation)
                                 .font(.caption)
                                 .foregroundStyle(isFailed(row) ? .red : .secondary)
                                 .lineLimit(2)

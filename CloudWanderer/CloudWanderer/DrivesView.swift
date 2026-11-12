@@ -5,6 +5,7 @@ import CloudDesign
 import Foundation
 import RemoteEngine
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 /// Somewhere a person can be: a folder on a drive. Navigation is a list of these, which is what
@@ -30,9 +31,21 @@ final class OpenDrives {
     private(set) var unreachable: Set<UUID> = []
     /// Moves on when the network returns, so whatever's on screen tries again.
     private(set) var retry = 0
+    /// Why each drive that can't be reached can't, as far as checking proved it.
+    let checks = ConnectionChecks(device: .iPhone)
+    /// Why this iPhone has no network, read when it went.
+    private(set) var deviceNetwork: DeviceNetwork?
+    /// Check Again is running.
+    private(set) var isCheckingAgain = false
+    /// The drives that can't be reached, to try again by themselves.
+    private var unreachableDrives: [UUID: Connection] = [:]
+    /// The server each reachable drive is on, which is evidence this iPhone's network works.
+    private var reachableServers: [UUID: ConnectionCheck.Target] = [:]
+    private var rechecking: Task<Void, Never>?
 
     init() {
         library.clearAbandoned()
+        checks.log = { AppLog.record($0) }
         watcher = NetworkWatcher { [weak self] isUp in
             Task { @MainActor [weak self] in self?.networkChanged(isUp: isUp) }
         }
@@ -46,33 +59,168 @@ final class OpenDrives {
             AppLog.record(isUp ? "Network available" : "Network lost")
         }
         isNetworkUp = isUp
+        if isUp {
+            deviceNetwork = nil
+            // Interfaces take a moment after a change, so a failure meanwhile isn't judged.
+            checks.settle(for: 5)
+        } else {
+            Task { deviceNetwork = await ConnectionCheck.currentNetwork() }
+        }
         if shouldRetry {
             unreachable = []
+            unreachableDrives = [:]
+            checks.keep(only: [])
             engines = [:]
             retry += 1
         }
+        restartRechecking()
     }
 
-    var isAnythingOffline: Bool {
-        !isNetworkUp || !unreachable.isEmpty
+    /// What the whole app shows about connections. A drive whose own server fails says so only on
+    /// its row and in its folders. Only a problem with this iPhone is shown app-wide.
+    var appWideWarning: AppWideWarning {
+        if !isNetworkUp {
+            let network = deviceNetwork.flatMap { $0.isUp ? nil : $0 } ?? DeviceNetwork(isUp: false, unsatisfied: .notAvailable)
+            return .cannotConnect(ConnectionFinding.forDevice(network, device: .iPhone))
+        }
+        return AppWideWarning.from(unreachable.compactMap { checks.findings[$0] })
     }
 
     func isOffline(_ connection: Connection) -> Bool {
         !isNetworkUp || unreachable.contains(connection.id)
     }
 
+    /// Why a drive can't connect, in a few words, or nil while that's not known yet.
+    func shortReason(for connection: Connection) -> String? {
+        if !isNetworkUp {
+            return appWideWarning.finding?.shortLabel
+        }
+        if checks.isSettling || (checks.checking.contains(connection.id) && checks.findings[connection.id] == nil) {
+            return String(localized: "checking…")
+        }
+        return checks.findings[connection.id]?.shortLabel
+    }
+
+    /// Why a drive can't connect, in a sentence, or nil while that's not known yet.
+    func reason(for connection: Connection) -> String? {
+        if !isNetworkUp {
+            return appWideWarning.title
+        }
+        if checks.isSettling {
+            return String(localized: "Reconnecting…")
+        }
+        return checks.findings[connection.id]?.sentence
+    }
+
     func noteReachable(_ connection: Connection) {
         if unreachable.remove(connection.id) != nil {
             AppLog.record("\(connection.displayName): connected again")
         }
+        unreachableDrives[connection.id] = nil
+        reachableServers[connection.id] = ConnectionCheck.Target(connection)
+        checks.keep(only: unreachable)
     }
 
-    /// Logged only when it changes, so a folder opened again while offline adds nothing.
+    /// Logged only when it changes, so a folder opened again while offline adds nothing. A new
+    /// failure is checked once, beside whatever's on screen.
     func noteUnreachable(_ connection: Connection, because error: Error) {
         if unreachable.insert(connection.id).inserted {
             AppLog.record("\(connection.displayName): can't connect: \(Diagnostics.kind(of: error))")
         }
         engines[connection.id] = nil
+        unreachableDrives[connection.id] = connection
+        reachableServers[connection.id] = nil
+        checks.noteFailures([(connection, error)]) { [weak self] in self?.connectsToAnotherServer(than: $0) ?? false }
+    }
+
+    private func connectsToAnotherServer(than connection: Connection) -> Bool {
+        let target = ConnectionCheck.Target(connection)
+        return reachableServers.values.contains { $0 != target }
+    }
+
+    /// Tries a drive's server again: a new connection and a look at its top folder.
+    private func reconnect(_ connection: Connection, store: DriveStore) async -> Bool {
+        engines[connection.id] = nil
+        do {
+            let engine = try await engine(for: connection, store: store)
+            _ = try await engine.list(.root)
+            noteReachable(connection)
+            return true
+        } catch {
+            if ConnectionFinding.isFor(error) || (error as? RemoteError)?.scope == .connection {
+                noteUnreachable(connection, because: error)
+            }
+            return false
+        }
+    }
+
+    /// Check Again: connects to each drive again, and checks why any still can't. Whatever is on
+    /// screen then loads again.
+    func checkAgain(_ chosen: [Connection], store: DriveStore) async {
+        guard !isCheckingAgain else { return }
+        isCheckingAgain = true
+        defer { isCheckingAgain = false }
+        if !isNetworkUp {
+            deviceNetwork = await ConnectionCheck.currentNetwork()
+            return
+        }
+        var stillDown: [Connection] = []
+        for connection in chosen {
+            if await !reconnect(connection, store: store) {
+                stillDown.append(connection)
+            }
+        }
+        await checks.check(stillDown, byAPerson: true) { [weak self] in self?.connectsToAnotherServer(than: $0) ?? false }
+        retry += 1
+        restartRechecking()
+    }
+
+    /// The drives that can't be reached now.
+    var unreachableConnections: [Connection] {
+        Array(unreachableDrives.values)
+    }
+
+    /// The store the rechecks sign in with, while the app is on screen.
+    private var recheckStore: DriveStore?
+
+    /// While the app is in front, a drive that can't be reached is tried again by itself: after
+    /// 10, 20 and 40 seconds, then every minute. Check Again does the same at once.
+    func startRechecking(store: DriveStore) {
+        recheckStore = store
+        restartRechecking()
+    }
+
+    func stopRechecking() {
+        recheckStore = nil
+        rechecking?.cancel()
+        rechecking = nil
+    }
+
+    private func restartRechecking() {
+        rechecking?.cancel()
+        guard let store = recheckStore else { return }
+        rechecking = Task { [weak self] in
+            var wait = 10.0
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(wait))
+                guard !Task.isCancelled, let self else { return }
+                let down = self.unreachableConnections
+                guard self.isNetworkUp, !down.isEmpty else {
+                    wait = 10
+                    continue
+                }
+                var anyBack = false
+                for connection in down {
+                    if await self.reconnect(connection, store: store) {
+                        anyBack = true
+                    }
+                }
+                if anyBack {
+                    self.retry += 1
+                }
+                wait = min(wait * 2, 60)
+            }
+        }
     }
 
     func engine(for connection: Connection, store: DriveStore) async throws -> RemoteEngine {
@@ -99,21 +247,18 @@ final class OpenDrives {
     }
 }
 
-/// The red warning shown while a drive can't be reached.
+/// The red warning shown while a drive can't be reached: app-wide only for a problem with this
+/// iPhone, and otherwise only in that drive's own folders.
 struct OfflineBar: View {
-    /// What to check, when there's more to say.
-    private let hint: Text?
-
-    /// Words from this app's catalog.
-    init(hint: LocalizedStringKey? = nil) {
-        self.hint = hint.map { Text($0) }
-    }
-
-    /// Words already in the language shown, such as the package's, which are shown as they are.
-    @_disfavoredOverload
-    init(hint: String?) {
-        self.hint = hint.map { Text(verbatim: $0) }
-    }
+    /// Why, as far as checking proved it, already in the language shown.
+    let reason: String?
+    /// When that was found, if a check found it.
+    var checked: Date? = nil
+    let isChecking: Bool
+    let checkAgain: () -> Void
+    /// When the fix is a switch in Settings, the bar opens it instead of checking again: coming
+    /// back to the app checks by itself.
+    var openSettings: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 10) {
@@ -122,20 +267,51 @@ struct OfflineBar: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text("Not connected")
                     .fontWeight(.semibold)
-                Text("Files on this iPhone are still available.")
-                    .font(.footnote)
-                if let hint {
-                    hint
+                if let reason {
+                    Text(verbatim: reason)
                         .font(.footnote)
                 }
+                if let checked {
+                    CheckedLine(checked: checked)
+                        .font(.footnote)
+                }
+                Text("Files on this iPhone are still available.")
+                    .font(.footnote)
             }
             Spacer(minLength: 0)
+            Group {
+                if let openSettings {
+                    Button("Open Settings", action: openSettings)
+                } else {
+                    CheckAgainButton(isChecking: isChecking, action: checkAgain)
+                }
+            }
+            .buttonStyle(.bordered)
+            .tint(.white)
+            .font(.footnote)
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         // Darker than system red, so white text stays readable on it.
         .background(Color(red: 0.72, green: 0.11, blue: 0.09))
+    }
+}
+
+/// When a drive's connection was last checked, and that the app keeps checking.
+struct CheckedLine: View {
+    let checked: Date
+
+    var body: some View {
+        let time = checked.formatted(date: .omitted, time: .shortened)
+        Text("Checked at \(time). CloudWanderer also checks while it's open.")
+    }
+}
+
+extension ConnectionFinding.Action {
+    /// The app's page in Settings, where Local Network, mobile data and Wi-Fi are allowed.
+    var opensSettings: Bool {
+        self == .openLocalNetworkSettings || self == .openAppSettings
     }
 }
 
@@ -207,6 +383,7 @@ struct DrivesView: View {
     @State private var importing: DrivesFileToImport?
     @State private var drivesFileProblem: String?
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openURL) private var openURL
 
     /// Encrypted drives say so in a pill instead.
     private func kind(of connection: Connection) -> String {
@@ -260,27 +437,12 @@ struct DrivesView: View {
         }
     }
 
-    private var isTailnetDriveOffline: Bool {
-        connections.contains { $0.usesTailnet && drives.isOffline($0) }
-    }
-
-    /// An offline drive can still be opened if something from it is on this phone.
-    private func canOpen(_ connection: Connection) -> Bool {
-        !drives.isOffline(connection) || drives.library.hasListing(of: .root, drive: connection.id)
-    }
-
+    /// Every drive can be opened, even one that can't be reached with nothing on this phone: its
+    /// folder says why, and has Check Again.
     @ViewBuilder
     private func row(for connection: Connection) -> some View {
-        Group {
-            if canOpen(connection) {
-                NavigationLink(value: Place(connection: connection, path: .root)) {
-                    rowLabel(for: connection)
-                }
-            } else {
-                // Not a disabled link: a drive whose server moved is the one that most needs
-                // editing, and a disabled row takes no swipe.
-                rowLabel(for: connection)
-            }
+        NavigationLink(value: Place(connection: connection, path: .root)) {
+            rowLabel(for: connection)
         }
         .swipeActions {
             Button("Remove", role: .destructive) { remove(connection) }
@@ -302,8 +464,14 @@ struct DrivesView: View {
         return Label {
             Text(connection.displayName)
             if isOffline {
-                (connection.usesTailnet ? Text("Not connected. Check Tailscale.") : Text("Not connected"))
-                    .foregroundStyle(.red)
+                Group {
+                    if let reason = drives.shortReason(for: connection) {
+                        Text("Not connected: \(reason)")
+                    } else {
+                        Text("Not connected")
+                    }
+                }
+                .foregroundStyle(.red)
             } else if !pills.isEmpty {
                 DrivePills(pills: pills)
             } else {
@@ -384,14 +552,22 @@ struct DrivesView: View {
                     }
                 }
             }
+            // Only a problem with this iPhone is shown here. A drive whose own server fails says
+            // so on its own row, and in its folders.
             .safeAreaInset(edge: .top, spacing: 0) {
-                if drives.isAnythingOffline {
-                    OfflineBar(hint: isTailnetDriveOffline ? Tailnet.hint : nil)
+                if let warning = drives.appWideWarning.title {
+                    OfflineBar(
+                        reason: warning, isChecking: drives.isCheckingAgain,
+                        checkAgain: { Task { await drives.checkAgain(drives.unreachableConnections, store: store) } },
+                        openSettings: drives.appWideWarning.finding?.action?.opensSettings == true ? openAppSettings : nil)
                 }
+            }
+            .refreshable {
+                await drives.checkAgain(drives.unreachableConnections, store: store)
             }
             .navigationTitle("Drives")
             .navigationDestination(for: Place.self) { place in
-                FolderView(place: place, store: store, drives: drives, trail: $trail)
+                FolderView(place: place, store: store, drives: drives, trail: $trail) { editing = $0 }
             }
             .navigationDestination(isPresented: $isShowingSettings) {
                 PhoneSettingsView(
@@ -416,7 +592,7 @@ struct DrivesView: View {
                 // squeezed this to one letter. The pill keeps its own width and its own background.
                 ToolbarItem(placement: .topBarLeading) {
                     Group {
-                        if drives.isAnythingOffline {
+                        if drives.appWideWarning.stopsEveryDrive {
                             StatusPill(text: "Not connected", color: .red)
                         } else {
                             StatusPill(text: "Ready", color: .green)
@@ -508,13 +684,29 @@ struct DrivesView: View {
         .onChange(of: scenePhase) {
             if scenePhase == .active {
                 updatePlaces()
+                // A switch in Settings, such as Local Network, may have changed while away.
+                drives.checks.checkAgainOnNextFailure()
+                drives.startRechecking(store: store)
+            } else {
+                // A drive that can't be reached is only tried again while the app is in front.
+                drives.stopRechecking()
             }
+        }
+        .task {
+            drives.startRechecking(store: store)
         }
     }
 
     private func reload() {
         connections = (try? store.connections()) ?? []
         updatePlaces()
+    }
+
+    /// CloudWanderer's page in Settings, with its Local Network, mobile data and Wi-Fi switches.
+    private func openAppSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            openURL(url)
+        }
     }
 
     /// Puts the drives in the Files app, or takes them away, to match the list here.
@@ -606,7 +798,10 @@ struct FolderView: View {
     let store: DriveStore
     let drives: OpenDrives
     @Binding var trail: [Place]
+    /// Opens the drive's settings, for a finding fixed by changing its address or port.
+    let edit: (Connection) -> Void
 
+    @Environment(\.openURL) private var openURL
     @State private var engine: RemoteEngine?
     @State private var items: [RemoteItem] = []
     /// One choice for every folder, kept between launches.
@@ -617,9 +812,20 @@ struct FolderView: View {
     @State private var isShowingOptions = false
     @State private var isLoading = true
     @State private var problem: String?
+    /// The server couldn't be reached and nothing from here is on this phone.
+    @State private var cannotConnect = false
 
     private var isOffline: Bool {
         drives.isOffline(place.connection)
+    }
+
+    private func checkAgain() {
+        Task { await drives.checkAgain([place.connection], store: store) }
+    }
+
+    /// What the last check of this drive found, while it can't connect.
+    private var finding: ConnectionFinding? {
+        isOffline ? drives.checks.findings[place.connection.id] : nil
     }
 
     @ViewBuilder
@@ -649,7 +855,29 @@ struct FolderView: View {
             await load()
         }
         .overlay {
-            if let problem {
+            if cannotConnect {
+                ContentUnavailableView {
+                    Label("Couldn't Connect", systemImage: "cloud.slash")
+                } description: {
+                    VStack {
+                        Text(verbatim: drives.reason(for: place.connection) ?? problem ?? "")
+                        if let finding {
+                            CheckedLine(checked: finding.checked)
+                        }
+                    }
+                } actions: {
+                    // One under the other: what fixes it, then checking again.
+                    if finding?.action?.opensSettings == true, let url = URL(string: UIApplication.openSettingsURLString) {
+                        Button("Open Settings") { openURL(url) }
+                            .buttonStyle(.borderedProminent)
+                    } else if finding?.action == .editDrive {
+                        Button("Edit Drive…") { edit(place.connection) }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    CheckAgainButton(isChecking: drives.isCheckingAgain, action: checkAgain)
+                        .buttonStyle(.bordered)
+                }
+            } else if let problem {
                 ContentUnavailableView("Couldn't Connect", systemImage: "cloud.slash", description: Text(problem))
             } else if isLoading {
                 ProgressView()
@@ -664,8 +892,11 @@ struct FolderView: View {
         .safeAreaInset(edge: .top, spacing: 0) {
             VStack(spacing: 0) {
                 LocationBar(trail: $trail)
-                if isOffline {
-                    OfflineBar(hint: place.connection.usesTailnet ? Tailnet.hint : nil)
+                // This drive's own bar, unless the message in the middle already says it.
+                if isOffline, !cannotConnect {
+                    OfflineBar(
+                        reason: drives.reason(for: place.connection), checked: finding?.checked,
+                        isChecking: drives.isCheckingAgain, checkAgain: checkAgain)
                 }
             }
         }
@@ -701,13 +932,16 @@ struct FolderView: View {
             engine = opened
             items = fresh
             problem = nil
+            cannotConnect = false
             drives.noteReachable(place.connection)
             try? drives.library.save(listing: fresh, of: place.path, drive: drive)
         } catch let error as RemoteError where error.scope == .connection {
             drives.noteUnreachable(place.connection, because: error)
             engine = nil
             if kept == nil {
-                problem = Tailnet.explain(error, for: place.connection.endpoint)
+                // Words of its own, until a check says which part failed.
+                problem = error.localizedDescription
+                cannotConnect = ConnectionFinding.isFor(error)
             }
         } catch {
             if !Task.isCancelled, !(error is CancellationError) {
@@ -729,7 +963,6 @@ struct FileRow: View {
     let isOffline: Bool
 
     private var drive: UUID { connection.id }
-    private var endpoint: Connection.Endpoint { connection.endpoint }
 
     @State private var kept: URL?
     @State private var download: Task<Void, Never>?
@@ -848,7 +1081,7 @@ struct FileRow: View {
                     on: connection, progress: watch.progress, started: started,
                     error: Task.isCancelled ? CancellationError() : error)
                 if let incoming { try? FileManager.default.removeItem(at: incoming) }
-                if !Task.isCancelled { problem = Tailnet.explain(error, for: endpoint) }
+                if !Task.isCancelled { problem = await ConnectionChecks.explain(error, for: connection, device: .iPhone) }
             }
             download = nil
             self.watch = nil

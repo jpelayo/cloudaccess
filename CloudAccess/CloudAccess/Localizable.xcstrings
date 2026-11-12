@@ -1,6 +1,236 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "checking…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "comprobando…"
+          }
+        }
+      }
+    },
+    "Local Network" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Red local"
+          }
+        }
+      }
+    },
+    "Allow CloudAccess there, and these drives connect by themselves." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permita CloudAccess ahí, y estas unidades se conectarán solas."
+          }
+        }
+      }
+    },
+    "Open Local Network Settings" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir los ajustes de Red local"
+          }
+        }
+      }
+    },
+    "reconnecting" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "reconectando"
+          }
+        }
+      }
+    },
+    "offline, %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sin conexión, %@"
+          }
+        }
+      }
+    },
+    "Reconnecting…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconectando…"
+          }
+        }
+      }
+    },
+    "%@ Files on this Mac are still available, and saves upload when the connection returns." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Los archivos de este Mac siguen disponibles, y lo que se guarde se subirá cuando vuelva la conexión."
+          }
+        }
+      }
+    },
+    "Turn it on, and these drives connect by themselves." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actívelo, y estas unidades se conectarán solas."
+          }
+        }
+      }
+    },
+    "This Mac isn't connected to a network." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este Mac no está conectado a ninguna red."
+          }
+        }
+      }
+    },
+    "Partly connected" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conexión parcial"
+          }
+        }
+      }
+    },
+    "Couldn't connect. Checking why…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido conectar. Comprobando por qué…"
+          }
+        }
+      }
+    },
+    "Home folder" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carpeta de inicio"
+          }
+        }
+      }
+    },
+    "Couldn't connect: that folder isn't on the server." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido conectar: esa carpeta no está en el servidor."
+          }
+        }
+      }
+    },
+    "Checking…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobando…"
+          }
+        }
+      }
+    },
+    "Check Again" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobar de nuevo"
+          }
+        }
+      }
+    },
+    "Checked at %@. CloudAccess also checks every 30 seconds." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobado a las %@. CloudAccess también comprueba cada 30 segundos."
+          }
+        }
+      }
+    },
+    "Not reached" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No alcanzado"
+          }
+        }
+      }
+    },
+    "Back" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atrás"
+          }
+        }
+      }
+    },
+    "New Folder" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nueva carpeta"
+          }
+        }
+      }
+    },
+    "Folder name" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre de la carpeta"
+          }
+        }
+      }
+    },
+    "Chosen" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegida"
+          }
+        }
+      }
+    },
+    "Choose" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir"
+          }
+        }
+      }
+    },
     "**What to do:** %@" : {
       "localizations" : {
         "es" : {
@@ -2621,16 +2851,6 @@
         }
       }
     },
-    "offline, check Tailscale" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "sin conexión, compruebe Tailscale"
-          }
-        }
-      }
-    },
     "On" : {
       "localizations" : {
         "es" : {
@@ -3457,26 +3677,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Muestra qué archivos y por qué"
-          }
-        }
-      }
-    },
-    "Some drives need Tailscale" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Algunas unidades necesitan Tailscale"
-          }
-        }
-      }
-    },
-    "Some drives need Tailscale. Check that it's on." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Algunas unidades necesitan Tailscale. Compruebe que está activado."
           }
         }
       }

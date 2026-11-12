@@ -35,8 +35,8 @@
 "Downloading %@" = "Descargando %@";
 
 /* DriveEdit.swift */
-"Another drive is called that." = "Ya hay otra unidad con ese nombre.";
-"This server folder is already a drive here." = "Esta carpeta del servidor ya es una unidad en este dispositivo.";
+"A drive with that name already exists." = "Ya existe una unidad con ese nombre.";
+"Another drive already uses this folder on this server." = "Otra unidad ya usa esta carpeta en este servidor.";
 "The drive needs a name." = "La unidad necesita un nombre.";
 "That address isn't valid." = "Esa dirección no es válida.";
 "Only SFTP drives can use Unsafe mode. Choose Safe or Read-only under Advanced first." = "Solo las unidades SFTP pueden usar el modo Inseguro. Elija antes Seguro o Solo lectura en Avanzado.";
@@ -170,10 +170,6 @@
 "To have it on the server, replace the link with a copy of the real file." = "Para tenerlo en el servidor, sustituya el enlace por una copia del archivo real.";
 "This isn't a regular file, so nothing was sent." = "Esto no es un archivo normal, así que no se ha enviado nada.";
 "Copy what it holds into a normal file if you need it on the server." = "Copie su contenido en un archivo normal si lo necesita en el servidor.";
-
-/* Tailnet.swift */
-"This server is on a tailnet. Check that Tailscale is on." = "Este servidor está en una tailnet. Compruebe que Tailscale está activado.";
-"The server can't be reached. This server is on a tailnet. Check that Tailscale is on." = "No se puede conectar con el servidor. Este servidor está en una tailnet. Compruebe que Tailscale está activado.";
 
 /* TrashRetention.swift */
 "1 minute" = "1 minuto";
@@ -317,3 +313,107 @@
 "Some passwords are still in the Keychain." = "Algunas contraseñas siguen en el llavero.";
 "The data on this Mac hasn't been deleted yet." = "Los datos de este Mac aún no se han eliminado.";
 "The data on this iPhone hasn't been deleted yet." = "Los datos de este iPhone aún no se han eliminado.";
+
+/* ServerFolder.swift: where a drive's folder is. */
+"Folder" = "Carpeta";
+"A folder can't contain . or .. in its path." = "Una carpeta no puede contener . ni .. en su ruta.";
+"The home folder" = "La carpeta de inicio";
+"The top of the server" = "La raíz del servidor";
+"%@, from the top of the server" = "%@, desde la raíz del servidor";
+"%@, in the home folder" = "%@, en la carpeta de inicio";
+
+/* ConnectionFinding.swift: the steps of a connection check, on a drive's Connection card. */
+"This Mac's network" = "Red de este Mac";
+"This iPhone's network" = "Red de este iPhone";
+"Not connected" = "Sin conexión";
+"Connected" = "Conectada";
+"On" = "Activado";
+"Off" = "Desactivado";
+"Name" = "Nombre";
+"Found" = "Encontrado";
+"Doesn't exist" = "No existe";
+"No answer" = "Sin respuesta";
+"Route" = "Ruta";
+"Through Tailscale" = "A través de Tailscale";
+"Through a VPN" = "A través de una VPN";
+"On this network" = "En esta red";
+"Through the router" = "A través del router";
+"None" = "Ninguna";
+"Port %lld" = "Puerto %lld";
+"Accepts connections" = "Acepta conexiones";
+"Refused" = "Rechazado";
+"Not allowed" = "No permitido";
+"No route" = "Sin ruta";
+"Not checked" = "Sin comprobar";
+"SFTP service" = "Servicio SFTP";
+"Answered" = "Ha respondido";
+"Not SFTP" = "No es SFTP";
+"Closed the connection" = "Ha cerrado la conexión";
+"Certificate expired" = "Certificado caducado";
+"Certificate not trusted" = "Certificado no fiable";
+"Certificate for another name" = "Certificado para otro nombre";
+"Not HTTPS" = "No es HTTPS";
+
+/* ConnectionFinding.swift: why a server can't be reached, as far as a check proved it. */
+"This Mac isn't connected to a network." = "Este Mac no está conectado a ninguna red.";
+"This iPhone isn't connected to a network." = "Este iPhone no está conectado a ninguna red.";
+"CloudWanderer isn't allowed to use mobile data. Turn it on in Settings, CloudWanderer." = "CloudWanderer no tiene permiso para usar datos móviles. Actívelo en Ajustes, CloudWanderer.";
+"CloudWanderer isn't allowed to use Wi-Fi. Turn it on in Settings, CloudWanderer." = "CloudWanderer no tiene permiso para usar la Wi-Fi. Actívelo en Ajustes, CloudWanderer.";
+"Tailscale is off on this Mac. %@ can only be reached through Tailscale." = "Tailscale está desactivado en este Mac. Solo se puede conectar con %@ a través de Tailscale.";
+"Tailscale is off on this iPhone. %@ can only be reached through Tailscale." = "Tailscale está desactivado en este iPhone. Solo se puede conectar con %@ a través de Tailscale.";
+"Tailscale is off on this Mac. %@ can only be reached through Tailscale or the VPN that reaches it." = "Tailscale está desactivado en este Mac. Solo se puede conectar con %@ a través de Tailscale o de la VPN que llega a él.";
+"Tailscale is off on this iPhone. %@ can only be reached through Tailscale or the VPN that reaches it." = "Tailscale está desactivado en este iPhone. Solo se puede conectar con %@ a través de Tailscale o de la VPN que llega a él.";
+"CloudAccess isn't allowed to reach devices on your local network. Turn it on in System Settings, Privacy & Security, Local Network." = "CloudAccess no tiene permiso para acceder a dispositivos de su red local. Actívelo en Ajustes del Sistema, Privacidad y seguridad, Red local.";
+"CloudWanderer isn't allowed to reach devices on your local network. Turn it on in Settings, CloudWanderer, Local Network." = "CloudWanderer no tiene permiso para acceder a dispositivos de su red local. Actívelo en Ajustes, CloudWanderer, Red local.";
+"Tailscale is on, but this Mac sends traffic for %@ another way. Another VPN may be in the way." = "Tailscale está activado, pero este Mac envía el tráfico hacia %@ por otra vía. Puede que otra VPN se interponga.";
+"Tailscale is on, but this iPhone sends traffic for %@ another way. Another VPN may be in the way." = "Tailscale está activado, pero este iPhone envía el tráfico hacia %@ por otra vía. Puede que otra VPN se interponga.";
+"Tailscale is on, but %@ doesn't answer through it. It may be off, asleep, or signed out of Tailscale." = "Tailscale está activado, pero %@ no responde a través de él. Puede que esté apagado, en reposo o con la sesión de Tailscale cerrada.";
+"Tailscale is on, but it doesn't know a device named %@. It may have been renamed or removed from your tailnet." = "Tailscale está activado, pero no conoce ningún dispositivo llamado %@. Puede que se haya renombrado o eliminado de su tailnet.";
+"No server named %@ exists. Check the address in the drive's settings." = "No existe ningún servidor llamado %@. Compruebe la dirección en los ajustes de la unidad.";
+"Looking up the name %@ got no answer, though your other drives connect. The name's own server may be down." = "La búsqueda del nombre %@ no ha obtenido respuesta, aunque sus otras unidades se conectan. Puede que el servidor de ese nombre no funcione.";
+"Looking up the name %@ got no answer. The network may need a sign-in page, its router may be down, or the name's own server may be." = "La búsqueda del nombre %@ no ha obtenido respuesta. Puede que la red necesite una página de inicio de sesión, que su router no funcione o que no funcione el servidor de ese nombre.";
+"No device named %@ answered on this network. It may be off, or on another network." = "Ningún dispositivo llamado %@ ha respondido en esta red. Puede que esté apagado o en otra red.";
+"%@ is on a different local network from the one this Mac is on. Connect to that network, or to a VPN that reaches it." = "%@ está en una red local distinta de la de este Mac. Conéctese a esa red o a una VPN que llegue a ella.";
+"%@ is on a different local network from the one this iPhone is on. Connect to that network, or to a VPN that reaches it." = "%@ está en una red local distinta de la de este iPhone. Conéctese a esa red o a una VPN que llegue a ella.";
+"This Mac has no way to reach %@ from the network it's on." = "Este Mac no tiene forma de llegar a %@ desde la red en la que está.";
+"This iPhone has no way to reach %@ from the network it's on." = "Este iPhone no tiene forma de llegar a %@ desde la red en la que está.";
+"Nothing answers at %@ on this network. It may be off or asleep, or have a new address." = "Nada responde en %@ en esta red. Puede que esté apagado o en reposo, o que tenga una dirección nueva.";
+"%1$@ is on, but nothing accepts connections on port %2$lld. Check that its SFTP service is running, and the port." = "%1$@ está encendido, pero nada acepta conexiones en el puerto %2$lld. Compruebe que su servicio SFTP está en marcha, y el puerto.";
+"%1$@ is on, but nothing accepts connections on port %2$lld. Check that its WebDAV service is running, and the port." = "%1$@ está encendido, pero nada acepta conexiones en el puerto %2$lld. Compruebe que su servicio WebDAV está en marcha, y el puerto.";
+"%1$@ doesn't answer on port %2$lld. The server or its network may be down, or a firewall may be blocking the port." = "%1$@ no responde en el puerto %2$lld. Puede que el servidor o su red no funcionen, o que un cortafuegos bloquee el puerto.";
+"Your other drives connect, so this Mac's network is working." = "Sus otras unidades se conectan, así que la red de este Mac funciona.";
+"Your other drives connect, so this iPhone's network is working." = "Sus otras unidades se conectan, así que la red de este iPhone funciona.";
+"Something answers on port %2$lld at %1$@, but it isn't an SFTP server." = "Algo responde en el puerto %2$lld de %1$@, pero no es un servidor SFTP.";
+"%@ closed the connection straight away. It may limit connections, or be blocking this Mac." = "%@ ha cerrado la conexión de inmediato. Puede que limite las conexiones o que esté bloqueando este Mac.";
+"%@ closed the connection straight away. It may limit connections, or be blocking this iPhone." = "%@ ha cerrado la conexión de inmediato. Puede que limite las conexiones o que esté bloqueando este iPhone.";
+"%1$@ accepts connections on port %2$lld, but doesn't answer. It may be busy, or it isn't an SFTP server." = "%1$@ acepta conexiones en el puerto %2$lld, pero no responde. Puede que esté ocupado, o que no sea un servidor SFTP.";
+"%1$@ accepts connections on port %2$lld, but doesn't answer. It may be busy, or it isn't a WebDAV server." = "%1$@ acepta conexiones en el puerto %2$lld, pero no responde. Puede que esté ocupado, o que no sea un servidor WebDAV.";
+"The certificate of %@ has expired." = "El certificado de %@ ha caducado.";
+"The certificate of %1$@ expired on %2$@." = "El certificado de %1$@ caducó el %2$@.";
+"The certificate of %@ isn't trusted by this Mac." = "Este Mac no confía en el certificado de %@.";
+"The certificate of %@ isn't trusted by this iPhone." = "Este iPhone no confía en el certificado de %@.";
+"The certificate presented isn't for %@. The network may be redirecting traffic, for example to a sign-in page." = "El certificado presentado no es para %@. Puede que la red esté redirigiendo el tráfico, por ejemplo a una página de inicio de sesión.";
+"%1$@ doesn't use HTTPS on port %2$lld." = "%1$@ no usa HTTPS en el puerto %2$lld.";
+"Something other than the WebDAV server answered at %@. The network may need a sign-in page." = "En %@ ha respondido algo que no es el servidor WebDAV. Puede que la red necesite una página de inicio de sesión.";
+"%@ answers, but too slowly. It may be busy, or the connection is very slow." = "%@ responde, pero con demasiada lentitud. Puede que esté ocupado o que la conexión sea muy lenta.";
+"%@ can't be reached, and CloudAccess couldn't tell why. The details are in the log." = "No se puede conectar con %@, y CloudAccess no ha podido averiguar por qué. Los detalles están en el registro.";
+"%@ can't be reached, and CloudWanderer couldn't tell why. What it checked is in the log." = "No se puede conectar con %@, y CloudWanderer no ha podido averiguar por qué. Lo que ha comprobado está en el registro.";
+
+/* ConnectionFinding.swift: a few words for a drive's row. */
+"no network" = "sin red";
+"Tailscale off" = "Tailscale desactivado";
+"local network not allowed" = "red local no permitida";
+"service stopped" = "servicio detenido";
+"certificate problem" = "problema de certificado";
+"name not found" = "nombre no encontrado";
+"on another network" = "en otra red";
+"server not answering" = "el servidor no responde";
+
+/* AppWideWarning.swift */
+"There's no %1$@ at the top of the server, but the home folder has %2$@." = "No hay %1$@ en la raíz del servidor, pero la carpeta de inicio tiene %2$@.";
+"There's no %1$@ in the home folder, but the top of the server has %2$@." = "No hay %1$@ en la carpeta de inicio, pero la raíz del servidor tiene %2$@.";
+
+/* FolderTree.swift: choosing a folder on the server. */
+"This folder can't be read: %@" = "No se puede leer esta carpeta: %@";
+"That name can't be used for a folder." = "Ese nombre no se puede usar para una carpeta.";
+"That folder couldn't be made: %@" = "No se ha podido crear esa carpeta: %@";

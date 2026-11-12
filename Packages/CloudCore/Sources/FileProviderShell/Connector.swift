@@ -142,7 +142,7 @@ public actor Connector {
     public func open() async throws -> OpenDrive {
         let local = try await local()
         if (try? local.store.isOffline()) == true {
-            throw RemoteError.unreachable("The drive is offline.")
+            throw RemoteError.unreachable("The drive is offline.", reason: .markedOffline)
         }
         // A connection made before a new password was saved would go on failing. Calls already
         // running on it finish, and each one is safe to replay if the server refuses it.

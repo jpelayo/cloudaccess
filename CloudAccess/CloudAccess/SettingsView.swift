@@ -67,10 +67,17 @@ struct SettingsView: View {
                     LoginAgent.openLoginItems()
                 }
             }
-            if !drives.drivesNeedingTailscale.isEmpty {
-                PermissionRow(
-                    "Some drives need Tailscale. Check that it's on.", button: "Open Tailscale",
-                    action: drives.hasTailscale ? { drives.openTailscale() } : nil)
+            ForEach(drives.deviceProblems, id: \.title) { problem in
+                if let title = problem.title {
+                    switch problem.finding?.action {
+                    case .openTailscale?:
+                        PermissionRow(title, button: "Open Tailscale", action: drives.hasTailscale ? { drives.openTailscale() } : nil)
+                    case .openLocalNetworkSettings?:
+                        PermissionRow(title, action: { drives.openLocalNetworkSettings() })
+                    default:
+                        PermissionRow(title, action: nil)
+                    }
+                }
             }
             if let storeProblem = drives.storeProblem {
                 Text(storeProblem)
@@ -431,22 +438,6 @@ private struct RecoveryKitOffer: View {
     }
 }
 
-/// A key chosen in a file panel, which only gives access for as long as it's being read.
-struct PrivateKeyFile {
-    let text: String
-    let name: String
-
-    init(_ result: Result<URL, Error>) throws {
-        let url = try result.get()
-        let isAllowed = url.startAccessingSecurityScopedResource()
-        defer {
-            if isAllowed { url.stopAccessingSecurityScopedResource() }
-        }
-        text = try String(contentsOf: url, encoding: .utf8)
-        name = url.lastPathComponent
-    }
-}
-
 struct AddDriveView: View {
     @Environment(Drives.self) private var drives
     @Environment(\.dismiss) private var dismiss
@@ -471,6 +462,8 @@ struct AddDriveView: View {
     @State private var browsing: FolderBrowsing?
     /// The folder has things in it, and an encrypted drive can't share one.
     @State private var needsOwnFolder = false
+    /// The other reading of an SFTP folder that isn't there, when that one is.
+    @State private var otherFolder: String?
 
     /// The fields as they'll be used, so a pasted address counts before it's been split up.
     private var tidied: ConnectionForm {
@@ -491,10 +484,9 @@ struct AddDriveView: View {
         tidied.browsingConnection() != nil && (!isInsecure || allowsInsecure) && !isConnecting
     }
 
+    /// The same rule as the iPhone's add form.
     private var canConnect: Bool {
-        guard tidied.newConnection(isEncrypted: isEncrypted) != nil, !isEncrypted || !vaultPassword.isEmpty
-        else { return false }
-        return !isInsecure || allowsInsecure
+        form.canConnect(isEncrypted: isEncrypted, hasVaultPassword: !vaultPassword.isEmpty, allowsInsecure: allowsInsecure)
     }
 
     private var signIn: Credentials {
@@ -508,15 +500,6 @@ struct AddDriveView: View {
     /// Which server these fields reach. A different one can't inherit a trusted identity.
     private var serverIdentity: String {
         "\(form.kind.rawValue) \(form.host) \(form.port)"
-    }
-
-    /// Where looking starts. A test build stays inside its test folder.
-    private var browseStart: ConnectionForm {
-        #if DEBUG
-        tidied
-        #else
-        tidied.atTopFolder
-        #endif
     }
 
     var body: some View {
@@ -548,7 +531,17 @@ struct AddDriveView: View {
                         FieldRow(label: "Key passphrase", text: $keyPassphrase, prompt: "If it has one", isSecure: true)
                     }
                 }
-                FieldRow(label: "Folder", text: $form.path, prompt: "Top folder")
+                FieldRow(label: "Folder", text: $form.path, prompt: isSFTP ? LocalizedStringKey("Home folder") : LocalizedStringKey("Top folder"))
+                // On SFTP, Documents and /Documents are two places, so it says which this is.
+                if let folderProblem = tidied.folderProblem {
+                    Text(folderProblem)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                } else if let place = tidied.shownPlace {
+                    Text(place)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 SettingRow("Choose it on the server") {
                     Button("Browse…") { browse() }
                         .buttonStyle(.pill)
@@ -604,6 +597,16 @@ struct AddDriveView: View {
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            if let otherFolder {
+                SettingRow(ServerFolder.shown(otherFolder)) {
+                    Button("Use This Folder") {
+                        form.path = otherFolder
+                        self.otherFolder = nil
+                        problem = nil
+                    }
+                    .buttonStyle(.pill)
+                }
+            }
         }
         .padding(16)
         .frame(width: 480)
@@ -613,12 +616,14 @@ struct AddDriveView: View {
         .onChange(of: serverIdentity) {
             hostKey = nil
             needsOwnFolder = false
+            otherFolder = nil
         }
         .onChange(of: form.path) {
             needsOwnFolder = false
+            otherFolder = nil
         }
         .sheet(item: $browsing) { session in
-            ServerFolderPicker(engine: session.engine) { folder in
+            ServerFolderPicker(session: session) { folder in
                 form.path = session.start.folderField(for: folder)
             }
             .presentationBackground(.regularMaterial)
@@ -647,17 +652,18 @@ struct AddDriveView: View {
     }
 
     /// The engine's path for a refusal is `/`, the drive's own folder, which reads as the server's.
-    private func explain(_ error: Error, for endpoint: Connection.Endpoint) -> String {
+    /// A server that can't be reached is checked first, so the words say which part failed.
+    private func explain(_ error: Error, for connection: Connection) async -> String {
         if case RemoteError.forbidden = error {
             return String(localized: "The server refused to open this folder. Check that this user can read it. On a Mac server, Documents, Desktop and Downloads also need \"Allow full disk access for remote users\", under System Settings, General, Sharing, Remote Login.")
         }
-        return Tailnet.explain(error, for: endpoint)
+        return await ConnectionChecks.explain(error, for: connection, device: .mac)
     }
 
     /// Connects to the server alone, with nothing written, to look through its folders.
     private func browse() {
         form = tidied
-        let start = browseStart
+        let start = form.browseStart
         guard var connection = start.browsingConnection(hostKey: hostKey?.key) else {
             problem = String(localized: "Check the server's details.")
             return
@@ -678,9 +684,10 @@ struct AddDriveView: View {
                     return
                 }
                 let engine = try await RemoteEngine(connection: connection, credentials: signIn)
-                browsing = FolderBrowsing(start: start, engine: engine)
+                browsing = FolderBrowsing(start: start, engine: engine, typed: form.typedFolder(inside: start))
             } catch {
-                let reason = explain(error, for: connection.endpoint)
+                problem = String(localized: "Couldn't connect. Checking why…")
+                let reason = await explain(error, for: connection)
                 problem = String(localized: "Couldn't connect: \(reason)")
             }
         }
@@ -710,7 +717,8 @@ struct AddDriveView: View {
                 connect()
             } catch {
                 isConnecting = false
-                let reason = Tailnet.explain(error, for: connection.endpoint)
+                problem = String(localized: "Couldn't connect. Checking why…")
+                let reason = await explain(error, for: connection)
                 problem = String(localized: "That folder couldn't be made: \(reason)")
             }
         }
@@ -744,8 +752,17 @@ struct AddDriveView: View {
                 problem = RemoteError.vault(.encrypted).localizedDescription
             } catch RemoteError.vault(.missing) {
                 needsOwnFolder = true
+            } catch RemoteError.notFound(let path) where path.isRoot {
+                // On SFTP, Documents and /Documents are two places: the other may be the one meant.
+                if let other = await RemoteEngine.otherReading(of: connection, credentials: signIn) {
+                    otherFolder = other
+                    problem = ServerFolder.missingFolder(connection.rootPath, other: other)
+                } else {
+                    problem = String(localized: "Couldn't connect: that folder isn't on the server.")
+                }
             } catch {
-                let reason = explain(error, for: connection.endpoint)
+                problem = String(localized: "Couldn't connect. Checking why…")
+                let reason = await explain(error, for: connection)
                 problem = String(localized: "Couldn't connect: \(reason)")
             }
         }

@@ -1,6 +1,131 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Open Settings" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir Ajustes" } }
+      }
+    },
+    "Checked at %@. CloudWanderer also checks while it's open." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Comprobado a las %@. CloudWanderer también comprueba mientras está abierto." } }
+      }
+    },
+    "checking…" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "comprobando…" } }
+      }
+    },
+    "Reconnecting…" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Reconectando…" } }
+      }
+    },
+    "Not connected: %@" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sin conexión: %@" } }
+      }
+    },
+    "Check Again" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Comprobar de nuevo" } }
+      }
+    },
+    "Checking…" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Comprobando…" } }
+      }
+    },
+    "Home folder" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Carpeta de inicio" } }
+      }
+    },
+    "Top folder" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Carpeta superior" } }
+      }
+    },
+    "Use This Folder" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Usar esta carpeta" } }
+      }
+    },
+    "No folders here." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No hay carpetas aquí." } }
+      }
+    },
+    "Chosen" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegida" } }
+      }
+    },
+    "Choose" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegir" } }
+      }
+    },
+    "Browse…" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Explorar…" } }
+      }
+    },
+    "Trust and Connect" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Confiar y conectar" } }
+      }
+    },
+    "Enter Details by Hand" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Introducir los datos a mano" } }
+      }
+    },
+    "Joins an encrypted drive made with CloudAccess. Encrypted drives stay out of the Files app." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Se une a una unidad cifrada creada con CloudAccess. Las unidades cifradas no aparecen en la app Archivos." } }
+      }
+    },
+    "Use %@" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Usar %@" } }
+      }
+    },
+    "Check the name and the server's details." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Revise el nombre y los datos del servidor." } }
+      }
+    },
+    "Check the server's details." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Revise los datos del servidor." } }
+      }
+    },
+    "Check the server's identity below, then press Browse again." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Compruebe abajo la identidad del servidor y pulse Explorar de nuevo." } }
+      }
+    },
+    "Couldn't connect. Checking why…" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se ha podido conectar. Comprobando por qué…" } }
+      }
+    },
+    "Couldn't connect: %@" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se ha podido conectar: %@" } }
+      }
+    },
+    "Couldn't connect: that folder isn't on the server." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se ha podido conectar: esa carpeta no está en el servidor." } }
+      }
+    },
+    "This folder has no encrypted drive. CloudWanderer only joins one made with CloudAccess, so turn off Encrypted drive or choose its folder." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Esta carpeta no tiene ninguna unidad cifrada. CloudWanderer solo se une a una creada con CloudAccess, así que desactive Unidad cifrada o elija su carpeta." } }
+      }
+    },
     "%@ in %@" : {
       "localizations" : {
         "es" : { "stringUnit" : { "state" : "translated", "value" : "%1$@ en %2$@" } }
@@ -435,11 +560,6 @@
     "Not connected" : {
       "localizations" : {
         "es" : { "stringUnit" : { "state" : "translated", "value" : "Sin conexión" } }
-      }
-    },
-    "Not connected. Check Tailscale." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sin conexión. Compruebe Tailscale." } }
       }
     },
     "Not in Files: %@" : {

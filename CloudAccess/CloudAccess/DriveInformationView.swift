@@ -120,7 +120,12 @@ struct DriveInformationView: View {
         let shown = headline
         return Card {
             IconRow(shown.symbol, shown.title, subtitle: shown.detail, tint: shown.tint) {
-                if canRetry {
+                if drives.status(of: connection) == .offline {
+                    CheckAgainButton(isChecking: drives.isCheckingAgain || drives.checks.checking.contains(connection.id)) {
+                        Task { await drives.checkAgain([connection]) }
+                    }
+                    .buttonStyle(.pill)
+                } else if canRetry {
                     Button("Try Again") {
                         isRetrying = true
                         Task {
@@ -135,6 +140,9 @@ struct DriveInformationView: View {
             if let lastChecked = report.lastChecked {
                 KeyValueRow(
                     String(localized: "Server last checked"), lastChecked.formatted(date: .omitted, time: .standard))
+            }
+            if drives.status(of: connection) == .offline, let finding = drives.checks.findings[connection.id] {
+                ConnectionSteps(finding: finding)
             }
             IconRow("doc.text", "Logs", subtitle: "A record of what happened on your drives.") {
                 Button("Show Logs") { drives.showLogs() }
@@ -455,6 +463,48 @@ private struct FileRow: View {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(fullText, forType: .string)
             }
+        }
+    }
+}
+
+/// What a connection check went through, step by step, so the finding above can be followed up:
+/// a green check for each step that passed, a red triangle for the one that failed.
+struct ConnectionSteps: View {
+    let finding: ConnectionFinding
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(Array(finding.steps.enumerated()), id: \.offset) { _, step in
+                HStack(spacing: 8) {
+                    mark(step.mark)
+                        .frame(width: 16)
+                    Text(verbatim: step.title)
+                        .font(.system(size: 12))
+                    Spacer(minLength: 8)
+                    Text(verbatim: step.result)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            let time = finding.checked.formatted(date: .omitted, time: .shortened)
+            Text("Checked at \(time). CloudAccess also checks every 30 seconds.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func mark(_ mark: ConnectionFinding.Step.Mark) -> some View {
+        switch mark {
+        case .passed:
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                .accessibilityLabel(Text("Passed"))
+        case .failed:
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+                .accessibilityLabel(Text("Failed"))
+        case .notReached:
+            Image(systemName: "circle").foregroundStyle(.secondary)
+                .accessibilityLabel(Text("Not reached"))
         }
     }
 }

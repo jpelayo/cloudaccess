@@ -152,4 +152,45 @@ import Testing
         else { Issue.record("a test build let a drive move to real files"); return }
     }
     #endif
+
+    /// Both apps add by one rule, so the Mac and the iPhone refuse the same things in the same words.
+    @Test func bothAppsRefuseTheSameAdds() {
+        let existing = drive()
+        #expect(DriveEdit.addRefusal(drive("Copy"), among: [existing]) == "Another drive already uses this folder on this server.")
+        #expect(DriveEdit.addRefusal(drive(host: "other.example.com"), among: [existing]) == "A drive with that name already exists.")
+        #expect(DriveEdit.addRefusal(drive("New", host: "other.example.com"), among: [existing]) == nil)
+        var unsafe = drive("WebDAV", host: "other.example.com")
+        unsafe.settings.mode = .unsafe
+        #expect(DriveEdit.addRefusal(unsafe, among: []) == DriveEdit.unsafeNeedsSFTP)
+        #if DEBUG
+        #expect(DriveEdit.addRefusal(drive("Real", folder: "/real"), among: []) != nil)
+        #endif
+    }
+
+    @Test func connectNeedsAWholeDriveAPasswordForEncryptionAndConsentForHTTP() {
+        var form = ConnectionForm()
+        #expect(!form.canConnect(isEncrypted: false, hasVaultPassword: false, allowsInsecure: false))
+        form.name = "Box"
+        form.kind = .sftp
+        // Pasted, and not yet split up: Connect reads it as it will be used.
+        form.host = "sftp://box.example.com:23/cloudmount-test"
+        #expect(form.canConnect(isEncrypted: false, hasVaultPassword: false, allowsInsecure: false))
+        #expect(!form.canConnect(isEncrypted: true, hasVaultPassword: false, allowsInsecure: false))
+        #expect(form.canConnect(isEncrypted: true, hasVaultPassword: true, allowsInsecure: false))
+        form.host = "http://box.example.com/cloudmount-test"
+        #expect(!form.canConnect(isEncrypted: false, hasVaultPassword: false, allowsInsecure: false))
+        #expect(form.canConnect(isEncrypted: false, hasVaultPassword: false, allowsInsecure: true))
+    }
+
+    /// The iPhone's add form has a protocol of its own, so a bare host reaches SFTP too.
+    @Test func aBareHostReachesSFTP() throws {
+        var form = ConnectionForm()
+        form.name = "NAS"
+        form.kind = .sftp
+        form.host = "nas.local"
+        form.path = "cloudmount-test"
+        let made = try #require(form.newConnection(isEncrypted: false))
+        #expect(made.endpoint == .sftp(host: "nas.local", port: 22))
+        #expect(made.rootPath == "cloudmount-test")
+    }
 }

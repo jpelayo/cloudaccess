@@ -100,7 +100,7 @@ func (d *drive) commitMove(ctx context.Context, from, to string, folder, overwri
 	err := d.server.moveRaw(moving, from, to, folder, overwrite)
 	if err != nil && (errors.Is(err, context.DeadlineExceeded) || classify(err).Kind == "unreachable" ||
 		mayStillLand(err)) {
-		return fmt.Errorf("%w: %v", errResultUnknown, err)
+		return withCause(fmt.Errorf("%w: %v", errResultUnknown, err), err)
 	}
 	return err
 }
