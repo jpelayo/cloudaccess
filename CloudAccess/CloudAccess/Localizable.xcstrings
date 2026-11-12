@@ -1,236 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "checking…" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "comprobando…"
-          }
-        }
-      }
-    },
-    "Local Network" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Red local"
-          }
-        }
-      }
-    },
-    "Allow CloudAccess there, and these drives connect by themselves." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permita CloudAccess ahí, y estas unidades se conectarán solas."
-          }
-        }
-      }
-    },
-    "Open Local Network Settings" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir los ajustes de Red local"
-          }
-        }
-      }
-    },
-    "reconnecting" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "reconectando"
-          }
-        }
-      }
-    },
-    "offline, %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "sin conexión, %@"
-          }
-        }
-      }
-    },
-    "Reconnecting…" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reconectando…"
-          }
-        }
-      }
-    },
-    "%@ Files on this Mac are still available, and saves upload when the connection returns." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Los archivos de este Mac siguen disponibles, y lo que se guarde se subirá cuando vuelva la conexión."
-          }
-        }
-      }
-    },
-    "Turn it on, and these drives connect by themselves." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actívelo, y estas unidades se conectarán solas."
-          }
-        }
-      }
-    },
-    "This Mac isn't connected to a network." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Este Mac no está conectado a ninguna red."
-          }
-        }
-      }
-    },
-    "Partly connected" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conexión parcial"
-          }
-        }
-      }
-    },
-    "Couldn't connect. Checking why…" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se ha podido conectar. Comprobando por qué…"
-          }
-        }
-      }
-    },
-    "Home folder" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Carpeta de inicio"
-          }
-        }
-      }
-    },
-    "Couldn't connect: that folder isn't on the server." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se ha podido conectar: esa carpeta no está en el servidor."
-          }
-        }
-      }
-    },
-    "Checking…" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Comprobando…"
-          }
-        }
-      }
-    },
-    "Check Again" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Comprobar de nuevo"
-          }
-        }
-      }
-    },
-    "Checked at %@. CloudAccess also checks every 30 seconds." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Comprobado a las %@. CloudAccess también comprueba cada 30 segundos."
-          }
-        }
-      }
-    },
-    "Not reached" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No alcanzado"
-          }
-        }
-      }
-    },
-    "Back" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Atrás"
-          }
-        }
-      }
-    },
-    "New Folder" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nueva carpeta"
-          }
-        }
-      }
-    },
-    "Folder name" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nombre de la carpeta"
-          }
-        }
-      }
-    },
-    "Chosen" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elegida"
-          }
-        }
-      }
-    },
-    "Choose" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elegir"
-          }
-        }
-      }
-    },
     "**What to do:** %@" : {
       "localizations" : {
         "es" : {
@@ -257,6 +27,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ Los archivos de este Mac siguen disponibles, y no se sube nada hasta que se resuelva."
+          }
+        }
+      }
+    },
+    "%@ Files on this Mac are still available, and saves upload when the connection returns." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Los archivos de este Mac siguen disponibles, y lo que se guarde se subirá cuando vuelva la conexión."
           }
         }
       }
@@ -975,11 +755,22 @@
       }
     },
     "A drive with that name already exists." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ya existe una unidad con ese nombre."
+          }
+        }
+      }
+    },
+    "A Finder location with no drive" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una ubicación del Finder sin unidad"
           }
         }
       }
@@ -1030,6 +821,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un informe sin datos secretos"
+          }
+        }
+      }
+    },
+    "A step failed. Nothing after it was done." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ha fallado un paso. No se ha hecho nada de lo que venía después."
           }
         }
       }
@@ -1124,6 +925,16 @@
         }
       }
     },
+    "Allow CloudAccess there, and these drives connect by themselves." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permita CloudAccess ahí, y estas unidades se conectarán solas."
+          }
+        }
+      }
+    },
     "Allow plain http for %@" : {
       "localizations" : {
         "es" : {
@@ -1145,6 +956,7 @@
       }
     },
     "Another drive already uses this folder on this server." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1214,6 +1026,36 @@
         }
       }
     },
+    "Attention: without its password, an encrypted drive can't be read. Export your drives or save each recovery kit first." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atención: sin su contraseña, una unidad cifrada no se puede leer. Exporte antes sus unidades o guarde el kit de recuperación de cada una."
+          }
+        }
+      }
+    },
+    "Back" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atrás"
+          }
+        }
+      }
+    },
+    "Before anything is removed, CloudAccess waits for every file to finish uploading." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antes de quitar nada, CloudAccess espera a que terminen de subirse todos los archivos."
+          }
+        }
+      }
+    },
     "Behaviour" : {
       "localizations" : {
         "es" : {
@@ -1264,6 +1106,16 @@
         }
       }
     },
+    "Check Again" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobar de nuevo"
+          }
+        }
+      }
+    },
     "Check other folders" : {
       "localizations" : {
         "es" : {
@@ -1285,6 +1137,7 @@
       }
     },
     "Check that it's on." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1364,12 +1217,52 @@
         }
       }
     },
+    "Checked at %@. CloudAccess also checks every 30 seconds." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobado a las %@. CloudAccess también comprueba cada 30 segundos."
+          }
+        }
+      }
+    },
     "Checking the connection…" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Comprobando la conexión…"
+          }
+        }
+      }
+    },
+    "checking…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "comprobando…"
+          }
+        }
+      }
+    },
+    "Checking…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobando…"
+          }
+        }
+      }
+    },
+    "Choose" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir"
           }
         }
       }
@@ -1400,6 +1293,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Elegir…"
+          }
+        }
+      }
+    },
+    "Chosen" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegida"
           }
         }
       }
@@ -1457,6 +1360,26 @@
     "CloudAccess" : {
       "shouldTranslate" : false
     },
+    "CloudAccess has been removed from this Mac." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudAccess se ha quitado de este Mac."
+          }
+        }
+      }
+    },
+    "CloudAccess is being uninstalled, so drives can't be added or changed." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudAccess se está desinstalando, así que no se pueden añadir ni cambiar unidades."
+          }
+        }
+      }
+    },
     "CloudAccess keeps locks, uploads in progress and deleted files there for Safe mode." : {
       "localizations" : {
         "es" : {
@@ -1473,6 +1396,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CloudAccess necesita atención"
+          }
+        }
+      }
+    },
+    "CloudAccess Uninstalled" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudAccess desinstalado"
           }
         }
       }
@@ -1530,6 +1463,16 @@
         }
       }
     },
+    "Continue Uninstalling" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seguir desinstalando"
+          }
+        }
+      }
+    },
     "Copy Details" : {
       "localizations" : {
         "es" : {
@@ -1550,7 +1493,28 @@
         }
       }
     },
+    "Couldn't connect: that folder isn't on the server." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido conectar: esa carpeta no está en el servidor."
+          }
+        }
+      }
+    },
+    "Couldn't connect. Checking why…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido conectar. Comprobando por qué…"
+          }
+        }
+      }
+    },
     "Create" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1840,6 +1804,16 @@
         }
       }
     },
+    "encrypted" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "cifrada"
+          }
+        }
+      }
+    },
     "Encryption" : {
       "localizations" : {
         "es" : {
@@ -1960,6 +1934,16 @@
         }
       }
     },
+    "Export Drives…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar unidades…"
+          }
+        }
+      }
+    },
     "export your drives and their passwords" : {
       "localizations" : {
         "es" : {
@@ -1976,6 +1960,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exportar…"
+          }
+        }
+      }
+    },
+    "Failed" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fallido"
           }
         }
       }
@@ -2060,7 +2054,18 @@
         }
       }
     },
+    "Folder name" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre de la carpeta"
+          }
+        }
+      }
+    },
     "Folders on the server" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2146,6 +2151,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Carpeta oculta .cloudmount en el servidor"
+          }
+        }
+      }
+    },
+    "Home folder" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carpeta de inicio"
           }
         }
       }
@@ -2411,6 +2426,16 @@
         }
       }
     },
+    "Launch at login couldn't be turned off. Turn it off in Login Items." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido desactivar «Abrir al iniciar sesión». Desactívelo en Ítems de inicio."
+          }
+        }
+      }
+    },
     "Learn More…" : {
       "localizations" : {
         "es" : {
@@ -2432,11 +2457,22 @@
       }
     },
     "Loading…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cargando…"
+          }
+        }
+      }
+    },
+    "Local Network" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Red local"
           }
         }
       }
@@ -2522,6 +2558,7 @@
       }
     },
     "Make it inside this folder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2642,6 +2679,17 @@
       }
     },
     "New folder" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nueva carpeta"
+          }
+        }
+      }
+    },
+    "New Folder" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2701,6 +2749,16 @@
         }
       }
     },
+    "No drives." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay unidades."
+          }
+        }
+      }
+    },
     "No folders here." : {
       "localizations" : {
         "es" : {
@@ -2751,6 +2809,16 @@
         }
       }
     },
+    "Not done" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin hacer"
+          }
+        }
+      }
+    },
     "Not mounted" : {
       "localizations" : {
         "es" : {
@@ -2767,6 +2835,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ahora no"
+          }
+        }
+      }
+    },
+    "Not reached" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No alcanzado"
           }
         }
       }
@@ -2821,6 +2899,16 @@
         }
       }
     },
+    "Nothing was changed." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha cambiado nada."
+          }
+        }
+      }
+    },
     "Now offered" : {
       "localizations" : {
         "es" : {
@@ -2847,6 +2935,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "sin conexión"
+          }
+        }
+      }
+    },
+    "offline, %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sin conexión, %@"
           }
         }
       }
@@ -2891,6 +2989,26 @@
         }
       }
     },
+    "Open Local Network Settings" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir los ajustes de Red local"
+          }
+        }
+      }
+    },
+    "Open Login Items" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ítems de inicio"
+          }
+        }
+      }
+    },
     "Open System Settings" : {
       "localizations" : {
         "es" : {
@@ -2917,6 +3035,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Página"
+          }
+        }
+      }
+    },
+    "Partly connected" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conexión parcial"
+          }
+        }
+      }
+    },
+    "Passed" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Superado"
           }
         }
       }
@@ -2981,6 +3119,16 @@
         }
       }
     },
+    "Progress" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progreso"
+          }
+        }
+      }
+    },
     "Protocol" : {
       "localizations" : {
         "es" : {
@@ -2997,6 +3145,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Salir"
+          }
+        }
+      }
+    },
+    "Quit CloudAccess" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salir de CloudAccess"
+          }
+        }
+      }
+    },
+    "Quit, then move CloudAccess from Applications to the Bin. macOS keeps the app's own folders in your Library, with nothing of your drives in them." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salga y después mueva CloudAccess de Aplicaciones a la Papelera. macOS conserva las carpetas propias de la app en su Biblioteca, sin nada de sus unidades."
           }
         }
       }
@@ -3037,6 +3205,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Solo lectura, impuesto por el servidor"
+          }
+        }
+      }
+    },
+    "Reading the drives…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leyendo las unidades…"
+          }
+        }
+      }
+    },
+    "reconnecting" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "reconectando"
+          }
+        }
+      }
+    },
+    "Reconnecting…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconectando…"
           }
         }
       }
@@ -3131,6 +3329,26 @@
         }
       }
     },
+    "Removes your drives and their passwords from this Mac. Files on your servers are not changed." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quita sus unidades y sus contraseñas de este Mac. Los archivos de sus servidores no cambian."
+          }
+        }
+      }
+    },
+    "Removing the drive…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitando la unidad…"
+          }
+        }
+      }
+    },
     "Repair Drive" : {
       "localizations" : {
         "es" : {
@@ -3187,16 +3405,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restablecer la unidad…"
-          }
-        }
-      }
-    },
-    "Removing the drive…" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quitando la unidad…"
           }
         }
       }
@@ -3291,6 +3499,16 @@
         }
       }
     },
+    "Running" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En curso"
+          }
+        }
+      }
+    },
     "Save" : {
       "localizations" : {
         "es" : {
@@ -3327,6 +3545,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Guardar kit de recuperación…"
+          }
+        }
+      }
+    },
+    "Save Report…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar informe…"
           }
         }
       }
@@ -3481,12 +3709,32 @@
         }
       }
     },
+    "Show CloudAccess in Finder" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar CloudAccess en el Finder"
+          }
+        }
+      }
+    },
     "Show in Finder" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mostrar en el Finder"
+          }
+        }
+      }
+    },
+    "Show Kept Files: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar archivos conservados: %@"
           }
         }
       }
@@ -3691,6 +3939,26 @@
         }
       }
     },
+    "Stop After This Drive" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detener tras esta unidad"
+          }
+        }
+      }
+    },
+    "Stop Uninstalling" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dejar de desinstalar"
+          }
+        }
+      }
+    },
     "Stop writing to this drive for good" : {
       "localizations" : {
         "es" : {
@@ -3707,6 +3975,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Detenido hasta que pulse Reintentar"
+          }
+        }
+      }
+    },
+    "Stopped. The drives not yet removed are still on this Mac and working." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detenido. Las unidades que aún no se han quitado siguen en este Mac y funcionan."
           }
         }
       }
@@ -3871,6 +4149,16 @@
         }
       }
     },
+    "These drives will be removed from Finder, and their passwords deleted from this Mac. Files on your servers are not changed." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estas unidades se quitarán del Finder y sus contraseñas se eliminarán de este Mac. Los archivos de sus servidores no cambian."
+          }
+        }
+      }
+    },
     "These files are on this Mac and haven't reached the server. CloudAccess won't send them until you press Try Again, or rename them." : {
       "localizations" : {
         "es" : {
@@ -3962,6 +4250,7 @@
       }
     },
     "This folder can't be read: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3977,6 +4266,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esta carpeta no está vacía"
+          }
+        }
+      }
+    },
+    "This Mac isn't connected to a network." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este Mac no está conectado a ninguna red."
           }
         }
       }
@@ -4141,6 +4440,16 @@
         }
       }
     },
+    "Turn it on, and these drives connect by themselves." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actívelo, y estas unidades se conectarán solas."
+          }
+        }
+      }
+    },
     "Turn on CloudAccess" : {
       "localizations" : {
         "es" : {
@@ -4192,6 +4501,46 @@
         }
       }
     },
+    "Uninstall" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalar"
+          }
+        }
+      }
+    },
+    "Uninstall CloudAccess" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalar CloudAccess"
+          }
+        }
+      }
+    },
+    "Uninstall…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalar…"
+          }
+        }
+      }
+    },
+    "Uninstalling CloudAccess" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalando CloudAccess"
+          }
+        }
+      }
+    },
     "Unused files" : {
       "localizations" : {
         "es" : {
@@ -4203,6 +4552,7 @@
       }
     },
     "Up one level" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4322,6 +4672,16 @@
         }
       }
     },
+    "Version %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versión %@"
+          }
+        }
+      }
+    },
     "Waiting for the next file to start." : {
       "localizations" : {
         "es" : {
@@ -4408,356 +4768,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sus unidades en su teléfono"
-          }
-        }
-      }
-    },
-    "A Finder location with no drive" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Una ubicación del Finder sin unidad"
-          }
-        }
-      }
-    },
-    "A step failed. Nothing after it was done." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ha fallado un paso. No se ha hecho nada de lo que venía después."
-          }
-        }
-      }
-    },
-    "Attention: without its password, an encrypted drive can't be read. Export your drives or save each recovery kit first." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Atención: sin su contraseña, una unidad cifrada no se puede leer. Exporte antes sus unidades o guarde el kit de recuperación de cada una."
-          }
-        }
-      }
-    },
-    "Before anything is removed, CloudAccess waits for every file to finish uploading." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Antes de quitar nada, CloudAccess espera a que terminen de subirse todos los archivos."
-          }
-        }
-      }
-    },
-    "CloudAccess has been removed from this Mac." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CloudAccess se ha quitado de este Mac."
-          }
-        }
-      }
-    },
-    "CloudAccess is being uninstalled, so drives can't be added or changed." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CloudAccess se está desinstalando, así que no se pueden añadir ni cambiar unidades."
-          }
-        }
-      }
-    },
-    "CloudAccess Uninstalled" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CloudAccess desinstalado"
-          }
-        }
-      }
-    },
-    "Continue Uninstalling" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seguir desinstalando"
-          }
-        }
-      }
-    },
-    "encrypted" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "cifrada"
-          }
-        }
-      }
-    },
-    "Export Drives…" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportar unidades…"
-          }
-        }
-      }
-    },
-    "Failed" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fallido"
-          }
-        }
-      }
-    },
-    "Launch at login couldn't be turned off. Turn it off in Login Items." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se ha podido desactivar «Abrir al iniciar sesión». Desactívelo en Ítems de inicio."
-          }
-        }
-      }
-    },
-    "No drives." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No hay unidades."
-          }
-        }
-      }
-    },
-    "Not done" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sin hacer"
-          }
-        }
-      }
-    },
-    "Nothing was changed." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se ha cambiado nada."
-          }
-        }
-      }
-    },
-    "Open Login Items" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir Ítems de inicio"
-          }
-        }
-      }
-    },
-    "Passed" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Superado"
-          }
-        }
-      }
-    },
-    "Progress" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Progreso"
-          }
-        }
-      }
-    },
-    "Quit CloudAccess" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Salir de CloudAccess"
-          }
-        }
-      }
-    },
-    "Quit, then move CloudAccess from Applications to the Bin. macOS keeps the app's own folders in your Library, with nothing of your drives in them." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Salga y después mueva CloudAccess de Aplicaciones a la Papelera. macOS conserva las carpetas propias de la app en su Biblioteca, sin nada de sus unidades."
-          }
-        }
-      }
-    },
-    "Reading the drives…" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leyendo las unidades…"
-          }
-        }
-      }
-    },
-    "Removes your drives and their passwords from this Mac. Files on your servers are not changed." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quita sus unidades y sus contraseñas de este Mac. Los archivos de sus servidores no cambian."
-          }
-        }
-      }
-    },
-    "Running" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En curso"
-          }
-        }
-      }
-    },
-    "Save Report…" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Guardar informe…"
-          }
-        }
-      }
-    },
-    "Show CloudAccess in Finder" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar CloudAccess en el Finder"
-          }
-        }
-      }
-    },
-    "Show Kept Files: %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar archivos conservados: %@"
-          }
-        }
-      }
-    },
-    "Stop After This Drive" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detener tras esta unidad"
-          }
-        }
-      }
-    },
-    "Stop Uninstalling" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dejar de desinstalar"
-          }
-        }
-      }
-    },
-    "Stopped. The drives not yet removed are still on this Mac and working." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detenido. Las unidades que aún no se han quitado siguen en este Mac y funcionan."
-          }
-        }
-      }
-    },
-    "These drives will be removed from Finder, and their passwords deleted from this Mac. Files on your servers are not changed." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estas unidades se quitarán del Finder y sus contraseñas se eliminarán de este Mac. Los archivos de sus servidores no cambian."
-          }
-        }
-      }
-    },
-    "Uninstall" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desinstalar"
-          }
-        }
-      }
-    },
-    "Uninstall CloudAccess" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desinstalar CloudAccess"
-          }
-        }
-      }
-    },
-    "Uninstall…" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desinstalar…"
-          }
-        }
-      }
-    },
-    "Uninstalling CloudAccess" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desinstalando CloudAccess"
-          }
-        }
-      }
-    },
-    "Version %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Versión %@"
           }
         }
       }

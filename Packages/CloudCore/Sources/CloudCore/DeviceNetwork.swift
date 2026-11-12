@@ -99,7 +99,7 @@ public struct DeviceNetwork: Equatable, Sendable {
         let length = socklen_t(family == AF_INET ? MemoryLayout<sockaddr_in>.size : MemoryLayout<sockaddr_in6>.size)
         var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
         guard getnameinfo(address, length, &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 else { return nil }
-        let text = String(cString: host)
+        let text = String(decoding: host.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
         return text.split(separator: "%").first.map(String.init)
     }
 

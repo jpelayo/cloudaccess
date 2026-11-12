@@ -234,7 +234,7 @@ public enum ConnectionCheck {
         let tcp = NWProtocolTCP.Options()
         tcp.connectionTimeout = Int(limit.components.seconds)
         let connection = NWConnection(host: host, port: number, using: NWParameters(tls: nil, tcp: tcp))
-        let result = await finish(connection, limit: limit) { state in
+        let result = await finish(connection, limit: limit) { state -> ConnectionFacts.Port? in
             switch state {
             case .ready:
                 return .open

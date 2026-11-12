@@ -1,134 +1,14 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Open Settings" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir Ajustes" } }
-      }
-    },
-    "Checked at %@. CloudWanderer also checks while it's open." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Comprobado a las %@. CloudWanderer también comprueba mientras está abierto." } }
-      }
-    },
-    "checking…" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "comprobando…" } }
-      }
-    },
-    "Reconnecting…" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Reconectando…" } }
-      }
-    },
-    "Not connected: %@" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sin conexión: %@" } }
-      }
-    },
-    "Check Again" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Comprobar de nuevo" } }
-      }
-    },
-    "Checking…" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Comprobando…" } }
-      }
-    },
-    "Home folder" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Carpeta de inicio" } }
-      }
-    },
-    "Top folder" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Carpeta superior" } }
-      }
-    },
-    "Use This Folder" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Usar esta carpeta" } }
-      }
-    },
-    "No folders here." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No hay carpetas aquí." } }
-      }
-    },
-    "Chosen" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegida" } }
-      }
-    },
-    "Choose" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegir" } }
-      }
-    },
-    "Browse…" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Explorar…" } }
-      }
-    },
-    "Trust and Connect" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Confiar y conectar" } }
-      }
-    },
-    "Enter Details by Hand" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Introducir los datos a mano" } }
-      }
-    },
-    "Joins an encrypted drive made with CloudAccess. Encrypted drives stay out of the Files app." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Se une a una unidad cifrada creada con CloudAccess. Las unidades cifradas no aparecen en la app Archivos." } }
-      }
-    },
-    "Use %@" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Usar %@" } }
-      }
-    },
-    "Check the name and the server's details." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Revise el nombre y los datos del servidor." } }
-      }
-    },
-    "Check the server's details." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Revise los datos del servidor." } }
-      }
-    },
-    "Check the server's identity below, then press Browse again." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Compruebe abajo la identidad del servidor y pulse Explorar de nuevo." } }
-      }
-    },
-    "Couldn't connect. Checking why…" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se ha podido conectar. Comprobando por qué…" } }
-      }
-    },
-    "Couldn't connect: %@" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se ha podido conectar: %@" } }
-      }
-    },
-    "Couldn't connect: that folder isn't on the server." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se ha podido conectar: esa carpeta no está en el servidor." } }
-      }
-    },
-    "This folder has no encrypted drive. CloudWanderer only joins one made with CloudAccess, so turn off Encrypted drive or choose its folder." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Esta carpeta no tiene ninguna unidad cifrada. CloudWanderer solo se une a una creada con CloudAccess, así que desactive Unidad cifrada o elija su carpeta." } }
-      }
-    },
     "%@ in %@" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "%1$@ en %2$@" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ en %2$@"
+          }
+        }
       }
     },
     "%lld changes saved into it by other apps are only on this iPhone, and go too." : {
@@ -136,17 +16,42 @@
         "en" : {
           "variations" : {
             "plural" : {
-              "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld change saved into it by another app is only on this iPhone, and goes too." } },
-              "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld changes saved into it by other apps are only on this iPhone, and go too." } }
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld change saved into it by another app is only on this iPhone, and goes too."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld changes saved into it by other apps are only on this iPhone, and go too."
+                }
+              }
             }
           }
         },
         "es" : {
           "variations" : {
             "plural" : {
-              "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld cambio que otra app guardó en ella solo está en este iPhone, y también se eliminará." } },
-              "many" : { "stringUnit" : { "state" : "translated", "value" : "%lld cambios que otras apps guardaron en ella solo están en este iPhone, y también se eliminarán." } },
-              "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld cambios que otras apps guardaron en ella solo están en este iPhone, y también se eliminarán." } }
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cambios que otras apps guardaron en ella solo están en este iPhone, y también se eliminarán."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cambio que otra app guardó en ella solo está en este iPhone, y también se eliminará."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cambios que otras apps guardaron en ella solo están en este iPhone, y también se eliminarán."
+                }
+              }
             }
           }
         }
@@ -157,120 +62,408 @@
         "en" : {
           "variations" : {
             "plural" : {
-              "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld change saved into it by another app is only on this iPhone. Removing the drive deletes it." } },
-              "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld changes saved into it by other apps are only on this iPhone. Removing the drive deletes them." } }
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld change saved into it by another app is only on this iPhone. Removing the drive deletes it."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld changes saved into it by other apps are only on this iPhone. Removing the drive deletes them."
+                }
+              }
             }
           }
         },
         "es" : {
           "variations" : {
             "plural" : {
-              "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld cambio que otra app guardó en ella solo está en este iPhone. Si quita la unidad, se eliminará." } },
-              "many" : { "stringUnit" : { "state" : "translated", "value" : "%lld cambios que otras apps guardaron en ella solo están en este iPhone. Si quita la unidad, se eliminarán." } },
-              "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld cambios que otras apps guardaron en ella solo están en este iPhone. Si quita la unidad, se eliminarán." } }
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cambios que otras apps guardaron en ella solo están en este iPhone. Si quita la unidad, se eliminarán."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cambio que otra app guardó en ella solo está en este iPhone. Si quita la unidad, se eliminará."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cambios que otras apps guardaron en ella solo están en este iPhone. Si quita la unidad, se eliminarán."
+                }
+              }
             }
+          }
+        }
+      }
+    },
+    "A Files location with no drive" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una ubicación de Archivos sin unidad"
+          }
+        }
+      }
+    },
+    "A step failed. Nothing after it was done." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ha fallado un paso. No se ha hecho nada de lo que venía después."
           }
         }
       }
     },
     "About" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Acerca de" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acerca de"
+          }
+        }
       }
     },
     "About CloudWanderer" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Acerca de CloudWanderer" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acerca de CloudWanderer"
+          }
+        }
       }
     },
     "Add Drive" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir unidad" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir unidad"
+          }
+        }
       }
     },
     "Adding a drive" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir una unidad" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir una unidad"
+          }
+        }
       }
     },
     "Address" : {
+      "extractionState" : "stale",
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Dirección" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dirección"
+          }
+        }
       }
     },
     "After" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Después de" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Después de"
+          }
+        }
       }
     },
     "Allow the camera for CloudWanderer in Settings, or enter the drive's details by hand." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Permita que CloudWanderer use la cámara en Ajustes, o introduzca los datos de la unidad a mano." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permita que CloudWanderer use la cámara en Ajustes, o introduzca los datos de la unidad a mano."
+          }
+        }
       }
     },
     "Apache 2 licensed software" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Software con licencia Apache 2" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Software con licencia Apache 2"
+          }
+        }
+      }
+    },
+    "Attention: other apps saved changes into these drives. The drives are read-only, so the changes exist only on this iPhone, and uninstalling deletes them. Copy them somewhere else in Files first to keep them." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atención: otras apps han guardado cambios en estas unidades. Las unidades son de solo lectura, así que los cambios solo existen en este iPhone y al desinstalar se eliminan. Cópielos antes en otro lugar de Archivos para conservarlos."
+          }
+        }
       }
     },
     "Attention: this file and its password open every drive in it. Send the password separately, never with the file." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Atención: este archivo y su contraseña abren todas las unidades que contiene. Envíe la contraseña por separado, nunca junto al archivo." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atención: este archivo y su contraseña abren todas las unidades que contiene. Envíe la contraseña por separado, nunca junto al archivo."
+          }
+        }
+      }
+    },
+    "Attention: without its password, an encrypted drive can't be read. Export your drives first if you'll need them again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atención: sin su contraseña, una unidad cifrada no se puede leer. Exporte antes sus unidades si va a volver a necesitarlas."
+          }
+        }
+      }
+    },
+    "Back" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atrás"
+          }
+        }
       }
     },
     "Browse your own WebDAV and SFTP servers, and download and export files from them. Nothing is sent anywhere else." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Explore sus propios servidores WebDAV y SFTP, y descargue y exporte archivos de ellos. No se envía nada a ningún otro sitio." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explore sus propios servidores WebDAV y SFTP, y descargue y exporte archivos de ellos. No se envía nada a ningún otro sitio."
+          }
+        }
+      }
+    },
+    "Browse…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explorar…"
+          }
+        }
       }
     },
     "Camera Is Off" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "La cámara está desactivada" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La cámara está desactivada"
+          }
+        }
       }
     },
     "Can't Scan Here" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se puede escanear aquí" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se puede escanear aquí"
+          }
+        }
       }
     },
     "Cancel" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cancelar" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar"
+          }
+        }
+      }
+    },
+    "Changes only on this iPhone" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambios solo en este iPhone"
+          }
+        }
+      }
+    },
+    "Check Again" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobar de nuevo"
+          }
+        }
+      }
+    },
+    "Check the name and the server's details." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revise el nombre y los datos del servidor."
+          }
+        }
+      }
+    },
+    "Check the server's details." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revise los datos del servidor."
+          }
+        }
+      }
+    },
+    "Check the server's identity below, then press Browse again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compruebe abajo la identidad del servidor y pulse Explorar de nuevo."
+          }
+        }
       }
     },
     "Check this matches your server before trusting it." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Compruebe que coincide con su servidor antes de confiar en él." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compruebe que coincide con su servidor antes de confiar en él."
+          }
+        }
+      }
+    },
+    "Checked at %@. CloudWanderer also checks while it's open." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobado a las %@. CloudWanderer también comprueba mientras está abierto."
+          }
+        }
+      }
+    },
+    "checking…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "comprobando…"
+          }
+        }
+      }
+    },
+    "Checking…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobando…"
+          }
+        }
+      }
+    },
+    "Choose" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir"
+          }
+        }
       }
     },
     "Choose what happens to each drive. Nothing happens to a drive left on Skip, and no drive is ever removed." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elija qué ocurre con cada unidad. No le ocurre nada a una unidad que se deje en Omitir, y nunca se quita ninguna unidad." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elija qué ocurre con cada unidad. No le ocurre nada a una unidad que se deje en Omitir, y nunca se quita ninguna unidad."
+          }
+        }
       }
     },
     "Choose…" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegir…" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir…"
+          }
+        }
+      }
+    },
+    "Chosen" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegida"
+          }
+        }
       }
     },
     "Chosen when the drive was added. It can't be changed." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Se eligió al añadir la unidad. No se puede cambiar." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se eligió al añadir la unidad. No se puede cambiar."
+          }
+        }
       }
     },
     "Close and reopen CloudWanderer to apply it." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cierre CloudWanderer y vuelva a abrirlo para aplicarlo." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cierre CloudWanderer y vuelva a abrirlo para aplicarlo."
+          }
+        }
       }
     },
     "CloudAccess for Mac" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "CloudAccess para Mac" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudAccess para Mac"
+          }
+        }
       }
     },
     "CloudAccess puts these same drives in Finder on your Mac, where you can also change and add files." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "CloudAccess pone estas mismas unidades en el Finder de su Mac, donde también puede cambiar y añadir archivos." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudAccess pone estas mismas unidades en el Finder de su Mac, donde también puede cambiar y añadir archivos."
+          }
+        }
       }
     },
     "CloudWanderer" : {
@@ -278,182 +471,442 @@
     },
     "CloudWanderer checks it with the server first. Then the Files app uses it too." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "CloudWanderer la comprueba primero con el servidor. Después, la app Archivos también la usa." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudWanderer la comprueba primero con el servidor. Después, la app Archivos también la usa."
+          }
+        }
+      }
+    },
+    "CloudWanderer has been removed from this iPhone." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudWanderer se ha quitado de este iPhone."
+          }
+        }
+      }
+    },
+    "CloudWanderer Uninstalled" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudWanderer desinstalado"
+          }
+        }
       }
     },
     "Connect" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Conectar" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectar"
+          }
+        }
       }
     },
     "Couldn't Connect" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se ha podido conectar" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido conectar"
+          }
+        }
+      }
+    },
+    "Couldn't connect: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido conectar: %@"
+          }
+        }
+      }
+    },
+    "Couldn't connect: that folder isn't on the server." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido conectar: esa carpeta no está en el servidor."
+          }
+        }
+      }
+    },
+    "Couldn't connect. Checking why…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido conectar. Comprobando por qué…"
+          }
+        }
       }
     },
     "Developed by" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desarrollado por" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desarrollado por"
+          }
+        }
       }
     },
     "Done" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "OK" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
       }
     },
     "Done." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Hecho." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hecho."
+          }
+        }
       }
     },
     "Download" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Descargar" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargar"
+          }
+        }
       }
     },
     "Download Newer Version" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Descargar la versión más reciente" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargar la versión más reciente"
+          }
+        }
       }
     },
     "Drive" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Unidad" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unidad"
+          }
+        }
       }
     },
     "Drives" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Unidades" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unidades"
+          }
+        }
       }
     },
     "Drives file" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Archivo de unidades" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivo de unidades"
+          }
+        }
       }
     },
     "Drives, threads" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Unidades, hilos" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unidades, hilos"
+          }
+        }
       }
     },
     "Edit" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Editar" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar"
+          }
+        }
       }
     },
     "Edit Drive" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Editar la unidad" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar la unidad"
+          }
+        }
       }
     },
     "Edit Drive…" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Editar la unidad…" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar la unidad…"
+          }
+        }
       }
     },
     "Empty Folder" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Carpeta vacía" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carpeta vacía"
+          }
+        }
       }
     },
     "Encrypted" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cifrada" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cifrada"
+          }
+        }
       }
     },
     "Encrypted drive" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Unidad cifrada" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unidad cifrada"
+          }
+        }
       }
     },
     "Encryption" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cifrado" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cifrado"
+          }
+        }
       }
     },
     "Encryption password" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Contraseña de cifrado" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraseña de cifrado"
+          }
+        }
+      }
+    },
+    "Enter Details by Hand" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introducir los datos a mano"
+          }
+        }
       }
     },
     "Export" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Exportar" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar"
+          }
+        }
       }
     },
     "Export Drives" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Exportar unidades" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar unidades"
+          }
+        }
       }
     },
     "Export Drives…" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Exportar unidades…" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar unidades…"
+          }
+        }
       }
     },
     "export your drives and their passwords" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "exportar sus unidades y sus contraseñas" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "exportar sus unidades y sus contraseñas"
+          }
+        }
+      }
+    },
+    "Failed" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fallido"
+          }
+        }
       }
     },
     "Files" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Archivos" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivos"
+          }
+        }
       }
     },
     "Files extension memory" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Memoria de la extensión de Archivos" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memoria de la extensión de Archivos"
+          }
+        }
       }
     },
     "Files on this iPhone are still available." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Los archivos de este iPhone siguen disponibles." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los archivos de este iPhone siguen disponibles."
+          }
+        }
       }
     },
     "Files still can't sign in. Sign in again here, or check the account on the server." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Archivos sigue sin poder iniciar sesión. Vuelva a iniciar sesión aquí o compruebe la cuenta en el servidor." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivos sigue sin poder iniciar sesión. Vuelva a iniciar sesión aquí o compruebe la cuenta en el servidor."
+          }
+        }
       }
     },
     "Files.app needs sign-in" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "La app Archivos necesita iniciar sesión" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La app Archivos necesita iniciar sesión"
+          }
+        }
       }
     },
     "Folder" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Carpeta" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carpeta"
+          }
+        }
       }
     },
     "Folders at the top" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Carpetas arriba" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carpetas arriba"
+          }
+        }
       }
     },
     "Hidden files have names that start with a dot." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Los archivos ocultos tienen nombres que empiezan por un punto." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los archivos ocultos tienen nombres que empiezan por un punto."
+          }
+        }
       }
     },
     "Hide Password" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ocultar la contraseña" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar la contraseña"
+          }
+        }
       }
     },
     "Highest seen" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Máximo registrado" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Máximo registrado"
+          }
+        }
+      }
+    },
+    "Home folder" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carpeta de inicio"
+          }
+        }
       }
     },
     "Host" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Host" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host"
+          }
+        }
       }
     },
     "If it has one" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Si la tiene" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si la tiene"
+          }
+        }
       }
     },
     "Import %lld Drives" : {
@@ -461,17 +914,42 @@
         "en" : {
           "variations" : {
             "plural" : {
-              "one" : { "stringUnit" : { "state" : "translated", "value" : "Import %lld Drive" } },
-              "other" : { "stringUnit" : { "state" : "translated", "value" : "Import %lld Drives" } }
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Import %lld Drive"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Import %lld Drives"
+                }
+              }
             }
           }
         },
         "es" : {
           "variations" : {
             "plural" : {
-              "one" : { "stringUnit" : { "state" : "translated", "value" : "Importar %lld unidad" } },
-              "many" : { "stringUnit" : { "state" : "translated", "value" : "Importar %lld unidades" } },
-              "other" : { "stringUnit" : { "state" : "translated", "value" : "Importar %lld unidades" } }
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Importar %lld unidades"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Importar %lld unidad"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Importar %lld unidades"
+                }
+              }
             }
           }
         }
@@ -479,547 +957,1103 @@
     },
     "Import Drives" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Importar unidades" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar unidades"
+          }
+        }
       }
     },
     "Import Drives…" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Importar unidades…" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar unidades…"
+          }
+        }
       }
     },
     "Incompatible with Files.app" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Incompatible con la app Archivos" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incompatible con la app Archivos"
+          }
+        }
+      }
+    },
+    "Joins an encrypted drive made with CloudAccess. Encrypted drives stay out of the Files app." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se une a una unidad cifrada creada con CloudAccess. Las unidades cifradas no aparecen en la app Archivos."
+          }
+        }
       }
     },
     "Key passphrase" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Frase de contraseña de la clave" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frase de contraseña de la clave"
+          }
+        }
       }
     },
     "Language" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Idioma" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idioma"
+          }
+        }
       }
     },
     "Left blank, the saved password stays. It's never shown here." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Si lo deja en blanco, se mantiene la contraseña guardada. Nunca se muestra aquí." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si lo deja en blanco, se mantiene la contraseña guardada. Nunca se muestra aquí."
+          }
+        }
       }
     },
     "Licence" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Licencia" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licencia"
+          }
+        }
       }
     },
     "Limit" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Límite" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Límite"
+          }
+        }
       }
     },
     "Log" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Registro" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registro"
+          }
+        }
       }
     },
     "Move %@ to this address?" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "¿Trasladar %@ a esta dirección?" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Trasladar %@ a esta dirección?"
+          }
+        }
       }
     },
     "Move Drive" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Trasladar la unidad" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trasladar la unidad"
+          }
+        }
       }
     },
     "Moves drives and their passwords to another iPhone or Mac, in one encrypted file." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Traslada las unidades y sus contraseñas a otro iPhone o Mac, en un solo archivo cifrado." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traslada las unidades y sus contraseñas a otro iPhone o Mac, en un solo archivo cifrado."
+          }
+        }
       }
     },
     "Name" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Nombre" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre"
+          }
+        }
       }
     },
     "New Password" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Nueva contraseña" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nueva contraseña"
+          }
+        }
       }
     },
     "Newer version on the server" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Hay una versión más reciente en el servidor" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hay una versión más reciente en el servidor"
+          }
+        }
       }
     },
     "No Drives" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No hay unidades" } }
-      }
-    },
-    "Not connected" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sin conexión" } }
-      }
-    },
-    "Not in Files: %@" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No está en Archivos: %@" } }
-      }
-    },
-    "Not on this iPhone" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No está en este iPhone" } }
-      }
-    },
-    "Nothing Recorded Yet" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Aún no hay nada registrado" } }
-      }
-    },
-    "Off in the Files app. Turn it on there, under Locations." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desactivada en la app Archivos. Actívela allí, en Ubicaciones." } }
-      }
-    },
-    "On your Mac" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "En su Mac" } }
-      }
-    },
-    "On your Mac, open CloudAccess and choose the QR icon beside the drive." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "En su Mac, abra CloudAccess y elija el icono QR junto a la unidad." } }
-      }
-    },
-    "Only Hidden Items" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Solo hay ítems ocultos" } }
-      }
-    },
-    "Only on this iPhone" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Solo en este iPhone" } }
-      }
-    },
-    "Open" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir" } }
-      }
-    },
-    "Open this on a Mac" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ábralo en un Mac" } }
-      }
-    },
-    "Password" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Contraseña" } }
-      }
-    },
-    "Peak that run" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pico en esa ejecución" } }
-      }
-    },
-    "Port" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Puerto" } }
-      }
-    },
-    "Private key" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Clave privada" } }
-      }
-    },
-    "Protocol" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Protocolo" } }
-      }
-    },
-    "Ready" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Listo" } }
-      }
-    },
-    "Remove" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Quitar" } }
-      }
-    },
-    "Remove Download" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Quitar la descarga" } }
-      }
-    },
-    "Remove Drive" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Quitar la unidad" } }
-      }
-    },
-    "Remove this drive?" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "¿Quitar esta unidad?" } }
-      }
-    },
-    "Save" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Guardar" } }
-      }
-    },
-    "Saved key" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Clave guardada" } }
-      }
-    },
-    "Scan QR Code" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Escanear código QR" } }
-      }
-    },
-    "Send its password over plain http" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Enviar su contraseña por http sin cifrar" } }
-      }
-    },
-    "Send my password unencrypted over http" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Enviar mi contraseña sin cifrar por http" } }
-      }
-    },
-    "Server" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Servidor" } }
-      }
-    },
-    "Server identity" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Identidad del servidor" } }
-      }
-    },
-    "Server password" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Contraseña del servidor" } }
-      }
-    },
-    "Settings" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ajustes" } }
-      }
-    },
-    "Share Log" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Compartir el registro" } }
-      }
-    },
-    "Share…" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Compartir…" } }
-      }
-    },
-    "Show hidden files" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar archivos ocultos" } }
-      }
-    },
-    "Show Log" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar el registro" } }
-      }
-    },
-    "Show Password" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar la contraseña" } }
-      }
-    },
-    "Sign In" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Iniciar sesión" } }
-      }
-    },
-    "Sign in" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Inicio de sesión" } }
-      }
-    },
-    "Sign In to %@…" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Iniciar sesión en %@…" } }
-      }
-    },
-    "Signing in checks the password with the server, then Files uses it. It doesn't open Files." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Al iniciar sesión, se comprueba la contraseña con el servidor y después Archivos la usa. No abre Archivos." } }
-      }
-    },
-    "Signing in checks the password with the server, then Files uses it. Try Again has Files sign in and add the drives it couldn't. Neither opens Files." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Al iniciar sesión, se comprueba la contraseña con el servidor y después Archivos la usa. Reintentar hace que Archivos inicie sesión y añada las unidades que no pudo añadir. Ninguna de las dos acciones abre Archivos." } }
-      }
-    },
-    "Sort and View Options" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Opciones de orden y visualización" } }
-      }
-    },
-    "Sort by" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ordenar por" } }
-      }
-    },
-    "System follows your iPhone's language." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sistema sigue el idioma de su iPhone." } }
-      }
-    },
-    "Tap + to add one." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pulse + para añadir una." } }
-      }
-    },
-    "That address isn't valid." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Esa dirección no es válida." } }
-      }
-    },
-    "That isn't a CloudAccess setup code." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ese no es un código de configuración de CloudAccess." } }
-      }
-    },
-    "That key can't be read: %@" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se puede leer esa clave: %@" } }
-      }
-    },
-    "The file's password" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "La contraseña del archivo" } }
-      }
-    },
-    "Then" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "En ese momento" } }
-      }
-    },
-    "This code needs a newer CloudWanderer." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Este código necesita una versión más reciente de CloudWanderer." } }
-      }
-    },
-    "This device can't scan codes, so enter the drive's details by hand." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Este dispositivo no puede escanear códigos, así que introduzca los datos de la unidad a mano." } }
-      }
-    },
-    "This drive uses plain http, which sends its password readably. Allow that first." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Esta unidad usa http sin cifrar, que envía su contraseña de forma legible. Permítalo primero." } }
-      }
-    },
-    "This points the drive at a different server, folder or account. It's set up again there: what's downloaded on this iPhone from the old one is removed, and so is its place in the Files app. Nothing on either server changes." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Esto apunta la unidad a otro servidor, carpeta o cuenta. Se vuelve a configurar allí: se elimina lo que se descargó en este iPhone desde el anterior, y también su ubicación en la app Archivos. No cambia nada en ninguno de los dos servidores." } }
-      }
-    },
-    "To add a drive here, open CloudAccess, then choose the QR icon beside the drive." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Para añadir una unidad aquí, abra CloudAccess y elija el icono QR junto a la unidad." } }
-      }
-    },
-    "Trust" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Confiar" } }
-      }
-    },
-    "Try Again in Files" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Reintentar en Archivos" } }
-      }
-    },
-    "Trying…" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Intentándolo…" } }
-      }
-    },
-    "Turn on Show hidden files to see them." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Active «Mostrar archivos ocultos» para verlos." } }
-      }
-    },
-    "Unchanged" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sin cambios" } }
-      }
-    },
-    "Username" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Nombre de usuario" } }
-      }
-    },
-    "Usual (%@)" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Habitual (%@)" } }
-      }
-    },
-    "Version" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Versión" } }
-      }
-    },
-    "View Options" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Opciones de visualización" } }
-      }
-    },
-    "What happened to your drives, without file names or passwords. It stays on this iPhone unless you share it." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Lo que ha ocurrido con sus unidades, sin nombres de archivo ni contraseñas. Se queda en este iPhone a menos que lo comparta." } }
-      }
-    },
-    "Yes" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sí" } }
-      }
-    },
-    "A Files location with no drive" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Una ubicación de Archivos sin unidad" } }
-      }
-    },
-    "A step failed. Nothing after it was done." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ha fallado un paso. No se ha hecho nada de lo que venía después." } }
-      }
-    },
-    "Attention: other apps saved changes into these drives. The drives are read-only, so the changes exist only on this iPhone, and uninstalling deletes them. Copy them somewhere else in Files first to keep them." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Atención: otras apps han guardado cambios en estas unidades. Las unidades son de solo lectura, así que los cambios solo existen en este iPhone y al desinstalar se eliminan. Cópielos antes en otro lugar de Archivos para conservarlos." } }
-      }
-    },
-    "Attention: without its password, an encrypted drive can't be read. Export your drives first if you'll need them again." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Atención: sin su contraseña, una unidad cifrada no se puede leer. Exporte antes sus unidades si va a volver a necesitarlas." } }
-      }
-    },
-    "Back" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Atrás" } }
-      }
-    },
-    "Changes only on this iPhone" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cambios solo en este iPhone" } }
-      }
-    },
-    "CloudWanderer has been removed from this iPhone." : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "CloudWanderer se ha quitado de este iPhone." } }
-      }
-    },
-    "CloudWanderer Uninstalled" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "CloudWanderer desinstalado" } }
-      }
-    },
-    "Failed" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Fallido" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay unidades"
+          }
+        }
       }
     },
     "No drives." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No hay unidades." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay unidades."
+          }
+        }
+      }
+    },
+    "No folders here." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay carpetas aquí."
+          }
+        }
+      }
+    },
+    "Not connected" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin conexión"
+          }
+        }
+      }
+    },
+    "Not connected: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin conexión: %@"
+          }
+        }
       }
     },
     "Not done" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sin hacer" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin hacer"
+          }
+        }
+      }
+    },
+    "Not in Files: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No está en Archivos: %@"
+          }
+        }
+      }
+    },
+    "Not on this iPhone" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No está en este iPhone"
+          }
+        }
+      }
+    },
+    "Nothing Recorded Yet" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no hay nada registrado"
+          }
+        }
       }
     },
     "Nothing was changed." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se ha cambiado nada." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha cambiado nada."
+          }
+        }
+      }
+    },
+    "Off in the Files app. Turn it on there, under Locations." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desactivada en la app Archivos. Actívela allí, en Ubicaciones."
+          }
+        }
+      }
+    },
+    "On your Mac" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En su Mac"
+          }
+        }
+      }
+    },
+    "On your Mac, open CloudAccess and choose the QR icon beside the drive." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En su Mac, abra CloudAccess y elija el icono QR junto a la unidad."
+          }
+        }
+      }
+    },
+    "Only Hidden Items" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo hay ítems ocultos"
+          }
+        }
+      }
+    },
+    "Only on this iPhone" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo en este iPhone"
+          }
+        }
+      }
+    },
+    "Open" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir"
+          }
+        }
+      }
+    },
+    "Open Settings" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes"
+          }
+        }
+      }
+    },
+    "Open this on a Mac" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ábralo en un Mac"
+          }
+        }
       }
     },
     "Passed" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Superado" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Superado"
+          }
+        }
+      }
+    },
+    "Password" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraseña"
+          }
+        }
+      }
+    },
+    "Peak that run" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pico en esa ejecución"
+          }
+        }
+      }
+    },
+    "Port" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puerto"
+          }
+        }
+      }
+    },
+    "Private key" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clave privada"
+          }
+        }
       }
     },
     "Progress" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Progreso" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progreso"
+          }
+        }
+      }
+    },
+    "Protocol" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protocolo"
+          }
+        }
       }
     },
     "Reading the drives…" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Leyendo las unidades…" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leyendo las unidades…"
+          }
+        }
+      }
+    },
+    "Ready" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listo"
+          }
+        }
+      }
+    },
+    "Reconnecting…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconectando…"
+          }
+        }
+      }
+    },
+    "Remove" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitar"
+          }
+        }
+      }
+    },
+    "Remove Download" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitar la descarga"
+          }
+        }
+      }
+    },
+    "Remove Drive" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitar la unidad"
+          }
+        }
+      }
+    },
+    "Remove this drive?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Quitar esta unidad?"
+          }
+        }
       }
     },
     "Removes your drives and their passwords from this iPhone. Files on your servers are not changed." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Quita sus unidades y sus contraseñas de este iPhone. Los archivos de sus servidores no cambian." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quita sus unidades y sus contraseñas de este iPhone. Los archivos de sus servidores no cambian."
+          }
+        }
       }
     },
     "Running" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "En curso" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En curso"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar"
+          }
+        }
+      }
+    },
+    "Saved key" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clave guardada"
+          }
+        }
+      }
+    },
+    "Scan QR Code" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escanear código QR"
+          }
+        }
+      }
+    },
+    "Send its password over plain http" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar su contraseña por http sin cifrar"
+          }
+        }
+      }
+    },
+    "Send my password unencrypted over http" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar mi contraseña sin cifrar por http"
+          }
+        }
+      }
+    },
+    "Server" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servidor"
+          }
+        }
+      }
+    },
+    "Server identity" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identidad del servidor"
+          }
+        }
+      }
+    },
+    "Server password" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraseña del servidor"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes"
+          }
+        }
+      }
+    },
+    "Share Log" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartir el registro"
+          }
+        }
       }
     },
     "Share Report…" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Compartir informe…" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartir informe…"
+          }
+        }
+      }
+    },
+    "Share…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartir…"
+          }
+        }
+      }
+    },
+    "Show hidden files" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar archivos ocultos"
+          }
+        }
+      }
+    },
+    "Show Log" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar el registro"
+          }
+        }
+      }
+    },
+    "Show Password" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar la contraseña"
+          }
+        }
+      }
+    },
+    "Sign in" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicio de sesión"
+          }
+        }
+      }
+    },
+    "Sign In" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar sesión"
+          }
+        }
+      }
+    },
+    "Sign In to %@…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar sesión en %@…"
+          }
+        }
+      }
+    },
+    "Signing in checks the password with the server, then Files uses it. It doesn't open Files." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al iniciar sesión, se comprueba la contraseña con el servidor y después Archivos la usa. No abre Archivos."
+          }
+        }
+      }
+    },
+    "Signing in checks the password with the server, then Files uses it. Try Again has Files sign in and add the drives it couldn't. Neither opens Files." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al iniciar sesión, se comprueba la contraseña con el servidor y después Archivos la usa. Reintentar hace que Archivos inicie sesión y añada las unidades que no pudo añadir. Ninguna de las dos acciones abre Archivos."
+          }
+        }
+      }
+    },
+    "Sort and View Options" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opciones de orden y visualización"
+          }
+        }
+      }
+    },
+    "Sort by" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordenar por"
+          }
+        }
       }
     },
     "Steps" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pasos" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasos"
+          }
+        }
       }
     },
     "Stop Uninstalling" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Dejar de desinstalar" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dejar de desinstalar"
+          }
+        }
+      }
+    },
+    "System follows your iPhone's language." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistema sigue el idioma de su iPhone."
+          }
+        }
+      }
+    },
+    "Tap + to add one." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulse + para añadir una."
+          }
+        }
+      }
+    },
+    "That address isn't valid." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esa dirección no es válida."
+          }
+        }
+      }
+    },
+    "That isn't a CloudAccess setup code." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ese no es un código de configuración de CloudAccess."
+          }
+        }
+      }
+    },
+    "That key can't be read: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se puede leer esa clave: %@"
+          }
+        }
+      }
+    },
+    "The file's password" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La contraseña del archivo"
+          }
+        }
+      }
+    },
+    "Then" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En ese momento"
+          }
+        }
       }
     },
     "These drives will be removed from Files, and their passwords deleted from this iPhone. Files on your servers are not changed." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Estas unidades se quitarán de Archivos y sus contraseñas se eliminarán de este iPhone. Los archivos de sus servidores no cambian." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estas unidades se quitarán de Archivos y sus contraseñas se eliminarán de este iPhone. Los archivos de sus servidores no cambian."
+          }
+        }
+      }
+    },
+    "This code needs a newer CloudWanderer." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este código necesita una versión más reciente de CloudWanderer."
+          }
+        }
+      }
+    },
+    "This device can't scan codes, so enter the drive's details by hand." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este dispositivo no puede escanear códigos, así que introduzca los datos de la unidad a mano."
+          }
+        }
+      }
+    },
+    "This drive uses plain http, which sends its password readably. Allow that first." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta unidad usa http sin cifrar, que envía su contraseña de forma legible. Permítalo primero."
+          }
+        }
+      }
+    },
+    "This folder has no encrypted drive. CloudWanderer only joins one made with CloudAccess, so turn off Encrypted drive or choose its folder." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta carpeta no tiene ninguna unidad cifrada. CloudWanderer solo se une a una creada con CloudAccess, así que desactive Unidad cifrada o elija su carpeta."
+          }
+        }
+      }
+    },
+    "This points the drive at a different server, folder or account. It's set up again there: what's downloaded on this iPhone from the old one is removed, and so is its place in the Files app. Nothing on either server changes." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esto apunta la unidad a otro servidor, carpeta o cuenta. Se vuelve a configurar allí: se elimina lo que se descargó en este iPhone desde el anterior, y también su ubicación en la app Archivos. No cambia nada en ninguno de los dos servidores."
+          }
+        }
+      }
+    },
+    "To add a drive here, open CloudAccess, then choose the QR icon beside the drive." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para añadir una unidad aquí, abra CloudAccess y elija el icono QR junto a la unidad."
+          }
+        }
       }
     },
     "To delete the app, touch and hold its icon, then choose Remove App." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Para eliminar la app, mantenga pulsado su icono y elija «Eliminar app»." } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para eliminar la app, mantenga pulsado su icono y elija «Eliminar app»."
+          }
+        }
       }
     },
     "To remove" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Para quitar" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para quitar"
+          }
+        }
+      }
+    },
+    "Top folder" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carpeta superior"
+          }
+        }
+      }
+    },
+    "Trust" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confiar"
+          }
+        }
+      }
+    },
+    "Trust and Connect" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confiar y conectar"
+          }
+        }
       }
     },
     "Try Again" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Reintentar" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reintentar"
+          }
+        }
+      }
+    },
+    "Try Again in Files" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reintentar en Archivos"
+          }
+        }
+      }
+    },
+    "Trying…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intentándolo…"
+          }
+        }
+      }
+    },
+    "Turn on Show hidden files to see them." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active «Mostrar archivos ocultos» para verlos."
+          }
+        }
+      }
+    },
+    "Unchanged" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin cambios"
+          }
+        }
       }
     },
     "Uninstall" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desinstalar" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalar"
+          }
+        }
       }
     },
     "Uninstall CloudWanderer" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desinstalar CloudWanderer" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalar CloudWanderer"
+          }
+        }
       }
     },
     "Uninstall CloudWanderer…" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desinstalar CloudWanderer…" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalar CloudWanderer…"
+          }
+        }
       }
     },
     "Uninstalling CloudWanderer" : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desinstalando CloudWanderer" } }
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalando CloudWanderer"
+          }
+        }
+      }
+    },
+    "Use %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar %@"
+          }
+        }
+      }
+    },
+    "Use This Folder" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar esta carpeta"
+          }
+        }
+      }
+    },
+    "Username" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre de usuario"
+          }
+        }
+      }
+    },
+    "Usual (%@)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Habitual (%@)"
+          }
+        }
+      }
+    },
+    "Version" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versión"
+          }
+        }
+      }
+    },
+    "View Options" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opciones de visualización"
+          }
+        }
+      }
+    },
+    "What happened to your drives, without file names or passwords. It stays on this iPhone unless you share it." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo que ha ocurrido con sus unidades, sin nombres de archivo ni contraseñas. Se queda en este iPhone a menos que lo comparta."
+          }
+        }
+      }
+    },
+    "Yes" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sí"
+          }
+        }
       }
     }
   },

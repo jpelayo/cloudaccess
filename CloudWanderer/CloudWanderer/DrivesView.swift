@@ -488,86 +488,106 @@ struct DrivesView: View {
         .foregroundStyle(isOffline ? .secondary : .primary)
     }
 
-    var body: some View {
-        NavigationStack(path: $trail) {
-            List {
+    /// The drives, what only this iPhone holds, and what Files is waiting for.
+    private var driveList: some View {
+        List {
+            Section {
+                if connections.isEmpty {
+                    ContentUnavailableView(
+                        "No Drives", systemImage: "cloud",
+                        description: Text("Tap + to add one."))
+                }
+                ForEach(connections) { connection in
+                    row(for: connection)
+                }
+            } header: {
+                SectionLabel("Drives")
+            }
+            if !kept.isEmpty {
                 Section {
-                    if connections.isEmpty {
-                        ContentUnavailableView(
-                            "No Drives", systemImage: "cloud",
-                            description: Text("Tap + to add one."))
-                    }
-                    ForEach(connections) { connection in
-                        row(for: connection)
+                    ForEach(kept, id: \.item.id) { entry in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(entry.item.name) in \(entry.drive.displayName)")
+                            Text(entry.item.explanation)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 } header: {
-                    SectionLabel("Drives")
-                }
-                if !kept.isEmpty {
-                    Section {
-                        ForEach(kept, id: \.item.id) { entry in
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(entry.item.name) in \(entry.drive.displayName)")
-                                Text(entry.item.explanation)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    } header: {
-                        SectionLabel("Only on this iPhone")
-                    }
-                }
-                if !needingSignIn.isEmpty || places.canTryAgain || places.isTryingAgain {
-                    Section {
-                        ForEach(needingSignIn) { connection in
-                            Button {
-                                signingIn = connection
-                            } label: {
-                                Text("Sign In to \(connection.displayName)…")
-                                    .wholeRow()
-                            }
-                            .disabled(places.isTryingAgain)
-                        }
-                        if places.canTryAgain || places.isTryingAgain {
-                            Button {
-                                let drives = connections
-                                Task { await places.tryAgain(drives: drives) }
-                            } label: {
-                                HStack(spacing: 8) {
-                                    if places.isTryingAgain {
-                                        ProgressView()
-                                        Text("Trying…")
-                                    } else {
-                                        Text("Try Again in Files")
-                                    }
-                                }
-                                .wholeRow()
-                            }
-                            .disabled(places.isTryingAgain)
-                        }
-                    } header: {
-                        SectionLabel("Files")
-                    } footer: {
-                        Text(filesFooter)
-                    }
+                    SectionLabel("Only on this iPhone")
                 }
             }
-            // Only a problem with this iPhone is shown here. A drive whose own server fails says
-            // so on its own row, and in its folders.
-            .safeAreaInset(edge: .top, spacing: 0) {
-                if let warning = drives.appWideWarning.title {
-                    OfflineBar(
-                        reason: warning, isChecking: drives.isCheckingAgain,
-                        checkAgain: { Task { await drives.checkAgain(drives.unreachableConnections, store: store) } },
-                        openSettings: drives.appWideWarning.finding?.action?.opensSettings == true ? openAppSettings : nil)
+            if !needingSignIn.isEmpty || places.canTryAgain || places.isTryingAgain {
+                Section {
+                    ForEach(needingSignIn) { connection in
+                        Button {
+                            signingIn = connection
+                        } label: {
+                            Text("Sign In to \(connection.displayName)…")
+                                .wholeRow()
+                        }
+                        .disabled(places.isTryingAgain)
+                    }
+                    if places.canTryAgain || places.isTryingAgain {
+                        Button {
+                            let drives = connections
+                            Task { await places.tryAgain(drives: drives) }
+                        } label: {
+                            HStack(spacing: 8) {
+                                if places.isTryingAgain {
+                                    ProgressView()
+                                    Text("Trying…")
+                                } else {
+                                    Text("Try Again in Files")
+                                }
+                            }
+                            .wholeRow()
+                        }
+                        .disabled(places.isTryingAgain)
+                    }
+                } header: {
+                    SectionLabel("Files")
+                } footer: {
+                    Text(filesFooter)
                 }
+            }
+        }
+    }
+
+    /// Only a problem with this iPhone is shown here. A drive whose own server fails says so on its
+    /// own row, and in its folders.
+    @ViewBuilder
+    private var appWideBar: some View {
+        if let warning = drives.appWideWarning.title {
+            OfflineBar(
+                reason: warning, isChecking: drives.isCheckingAgain,
+                checkAgain: { Task { await drives.checkAgain(drives.unreachableConnections, store: store) } },
+                openSettings: appWideSettings)
+        }
+    }
+
+    /// Opens Settings when the fix for this iPhone's problem is a switch there.
+    private var appWideSettings: (() -> Void)? {
+        guard drives.appWideWarning.finding?.action?.opensSettings == true else { return nil }
+        return { openAppSettings() }
+    }
+
+    private func folderView(_ place: Place) -> some View {
+        FolderView(place: place, store: store, drives: drives, trail: $trail, edit: { editing = $0 })
+    }
+
+    var body: some View {
+        NavigationStack(path: $trail) {
+            driveList
+            .safeAreaInset(edge: .top, spacing: 0) {
+                appWideBar
             }
             .refreshable {
                 await drives.checkAgain(drives.unreachableConnections, store: store)
             }
             .navigationTitle("Drives")
             .navigationDestination(for: Place.self) { place in
-                FolderView(place: place, store: store, drives: drives, trail: $trail) { editing = $0 }
+                folderView(place)
             }
             .navigationDestination(isPresented: $isShowingSettings) {
                 PhoneSettingsView(
