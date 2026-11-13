@@ -44,10 +44,12 @@ public struct PanelHeader<Trailing: View>: View {
         HStack(spacing: 6) {
             title
                 .font(.system(size: 15, weight: .bold))
+                .lineLimit(1)
             if let detail {
                 Text(verbatim: detail)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
             Spacer()
             trailing
@@ -76,8 +78,11 @@ public struct StatusPill: View {
             Circle()
                 .fill(color)
                 .frame(width: 7, height: 7)
+            // One word or two, never split: a header can squeeze it before its spacer gives way.
             text
                 .font(.system(size: 11, weight: .medium))
+                .lineLimit(1)
+                .fixedSize()
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
