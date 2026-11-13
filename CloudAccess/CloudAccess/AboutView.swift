@@ -172,6 +172,7 @@ private struct BeforeUninstallPage: View {
         .sheet(isPresented: $isExporting) {
             ExportDrivesView(drives: drives.exportable)
                 .presentationBackground(.regularMaterial)
+                .presentationSizing(.fitted)
         }
     }
 
