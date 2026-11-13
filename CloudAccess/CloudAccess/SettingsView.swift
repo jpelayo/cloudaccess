@@ -229,14 +229,17 @@ struct SettingsView: View {
         }) {
             AddDriveView { addedEncryptedDrive = $0 }
                 .presentationBackground(.regularMaterial)
+                .presentationSizing(.fitted)
         }
         .sheet(item: $recoveryKitDrive) { connection in
             RecoveryKitOffer(connection: connection)
                 .presentationBackground(.regularMaterial)
+                .presentationSizing(.fitted)
         }
         .sheet(item: $sheet) { request in
             DriveSheet(request: request)
                 .presentationBackground(.regularMaterial)
+                .presentationSizing(.fitted)
         }
         .onChange(of: drives.request, initial: true) { _, request in
             guard let request else { return }
@@ -257,6 +260,7 @@ struct SettingsView: View {
         .sheet(isPresented: $isExporting) {
             ExportDrivesView(drives: drives.exportable)
                 .presentationBackground(.regularMaterial)
+                .presentationSizing(.fitted)
         }
         .fileImporter(isPresented: $isChoosingImport, allowedContentTypes: [.drivesFile]) { result in
             do {
@@ -268,6 +272,7 @@ struct SettingsView: View {
         .sheet(item: $importing) { file in
             ImportDrivesView(file: file)
                 .presentationBackground(.regularMaterial)
+                .presentationSizing(.fitted)
         }
     }
 }
@@ -628,6 +633,7 @@ struct AddDriveView: View {
                 form.path = session.start.folderField(for: folder)
             }
             .presentationBackground(.regularMaterial)
+            .presentationSizing(.fitted)
         }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
