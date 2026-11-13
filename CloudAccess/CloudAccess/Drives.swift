@@ -1519,6 +1519,15 @@ final class Drives {
     /// A new name or sign-in changes the drive where it is. A new location needs a new drive,
     /// because macOS's copy of the items describes the old one, and that goes through the same
     /// protected removal as any other, so unsent files are kept.
+    /// The drive's saved sign-in with what the editor changed, to look through its server's folders.
+    /// No encryption password: browsing never opens the vault.
+    func browsingSignIn(for connection: Connection, editedBy signIn: SignInEdit) throws -> Credentials {
+        guard let store else { throw DriveError.noSharedFolder }
+        var credentials = signIn.applied(to: try store.credentials(for: connection.id))
+        credentials.vaultPassword = nil
+        return credentials
+    }
+
     func saveEdit(of connection: Connection, as edited: Connection, signIn: SignInEdit) async throws {
         guard let store else { throw DriveError.noSharedFolder }
         guard !isUninstalling else { throw DriveError.uninstalling }
