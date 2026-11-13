@@ -366,20 +366,29 @@ private struct TileButtonStyle: ButtonStyle {
     }
 }
 
-/// A compact action on the right of a row.
+/// A compact action on the right of a row. It stays on one line, so the row's label is what
+/// wraps. One that can't be undone is red, on a red tint.
 public struct PillButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
-    public init() {}
+    let isDestructive: Bool
+
+    public init(isDestructive: Bool = false) {
+        self.isDestructive = isDestructive
+    }
 
     public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        let tint = isDestructive ? Color.red : Color.primary
+        return configuration.label
             .font(.system(size: 12, weight: .medium))
+            .lineLimit(1)
+            .fixedSize()
+            .foregroundStyle(isDestructive ? AnyShapeStyle(Color.red) : AnyShapeStyle(.primary))
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(
                 RoundedRectangle(cornerRadius: 7)
-                    .fill(Color.primary.opacity(configuration.isPressed ? 0.18 : 0.10)))
+                    .fill(tint.opacity(configuration.isPressed ? 0.24 : isDestructive ? 0.14 : 0.10)))
             .opacity(isEnabled ? 1 : 0.45)
     }
 }
@@ -425,6 +434,8 @@ public struct BarButtonStyle: ButtonStyle {
 
 extension ButtonStyle where Self == PillButtonStyle {
     public static var pill: PillButtonStyle { PillButtonStyle() }
+    /// For what can't be undone, such as removing a drive.
+    public static var destructivePill: PillButtonStyle { PillButtonStyle(isDestructive: true) }
 }
 
 extension ButtonStyle where Self == IconButtonStyle {

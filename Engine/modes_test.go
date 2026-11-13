@@ -225,7 +225,7 @@ func TestUnsafeModeIsOnlyForSFTP(t *testing.T) {
 
 func TestUnsafeModeRefusesWhatNeedsTheTrash(t *testing.T) {
 	_ = openSFTPAs(t, startSFTP(t, t.TempDir()), "unsafe", "device-a", "unsafe")
-	for _, method := range []string{"setPolicy", "trashRestore", "retireVault"} {
+	for _, method := range []string{"setPolicy", "trashRestore", "trashPurge", "retireVault"} {
 		_, err := dispatch(context.Background(), method, []byte(fmt.Sprintf(`{"drive":%q,"path":"x","length":1}`, driveID(t)+"-unsafe")), nil)
 		if !errors.Is(err, errUnsafeKeepsNoTrash) {
 			t.Errorf("%s = %v", method, err)
@@ -237,7 +237,7 @@ func TestReadOnlyModeWritesNothing(t *testing.T) {
 	ctx := context.Background()
 	folder := t.TempDir()
 	_ = openSFTPAs(t, startSFTP(t, folder), "readonly", "device-a", "readOnly")
-	for _, method := range []string{"stage", "commit", "mkdir", "move", "trash", "maintain", "probe", "cleanControlFolder"} {
+	for _, method := range []string{"stage", "commit", "mkdir", "move", "trash", "trashPurge", "maintain", "probe", "cleanControlFolder"} {
 		_, err := dispatch(ctx, method, []byte(fmt.Sprintf(`{"drive":%q,"path":"x"}`, driveID(t)+"-readonly")), nil)
 		if !errors.Is(err, errReadOnly) {
 			t.Errorf("%s = %v", method, err)

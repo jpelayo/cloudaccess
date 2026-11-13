@@ -51,7 +51,7 @@ var (
 )
 
 // needsTrash lists the calls that only make sense with the control folder's trash and policy.
-var needsTrash = map[string]bool{"setPolicy": true, "trashRestore": true, "retireVault": true}
+var needsTrash = map[string]bool{"setPolicy": true, "trashRestore": true, "trashPurge": true, "retireVault": true}
 
 // driveMode reads a drive's mode. A drive the app opens read-only, because the server is, stays
 // read-only whatever its mode.

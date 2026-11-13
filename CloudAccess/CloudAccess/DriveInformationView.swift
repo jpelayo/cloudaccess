@@ -46,7 +46,7 @@ struct DriveInformationView: View {
             waiting
             finished
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .task(id: connection.id) {
             var reads = 0
             while !Task.isCancelled {
@@ -164,7 +164,7 @@ struct DriveInformationView: View {
         if !report.transfers.isEmpty {
             VStack(alignment: .leading, spacing: Design.labelGap) {
                 SectionLabel("Moving now")
-                GrowingList {
+                GrowingList(rows: report.transfers.count, rowHeight: 48) {
                     ForEach(report.transfers) { transfer in
                         TransferRow(transfer: transfer)
                     }
@@ -178,7 +178,7 @@ struct DriveInformationView: View {
         if !report.failures.isEmpty {
             VStack(alignment: .leading, spacing: Design.labelGap) {
                 SectionLabel("Attention: \(report.failures.count)")
-                GrowingList {
+                GrowingList(rows: report.failures.count, rowHeight: 76, maxHeight: 240) {
                     ForEach(report.failures) { failure in
                         FileRow(
                             title: FlattenedPackage.shownName(failure.name),
@@ -199,7 +199,7 @@ struct DriveInformationView: View {
         if !files.isEmpty {
             VStack(alignment: .leading, spacing: Design.labelGap) {
                 SectionLabel("Waiting: \(files.count)")
-                GrowingList {
+                GrowingList(rows: files.count) {
                     ForEach(files) { file in
                         row(for: file)
                     }
@@ -258,7 +258,7 @@ struct DriveInformationView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                GrowingList(maxHeight: 180) {
+                GrowingList(rows: report.recent.count, maxHeight: 180) {
                     ForEach(report.recent) { entry in
                         FileRow(title: FlattenedPackage.shownName(entry.name), note: description(of: entry))
                     }
@@ -297,43 +297,18 @@ struct DriveInformationView: View {
     }
 }
 
-/// SwiftUI gives a sheet the size of its content, with no edge to drag, so this adds one.
-struct ResizableSheet: NSViewRepresentable {
-    let isResizable: Bool
-
-    final class Marker: NSView {
-        var isResizable = false {
-            didSet { apply() }
-        }
-
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            apply()
-        }
-
-        private func apply() {
-            if isResizable {
-                window?.styleMask.insert(.resizable)
-            } else {
-                window?.styleMask.remove(.resizable)
-            }
-        }
-    }
-
-    func makeNSView(context: Context) -> Marker {
-        Marker()
-    }
-
-    func updateNSView(_ view: Marker, context: Context) {
-        view.isResizable = isResizable
-    }
-}
-
-/// A list that shares whatever height the window has. Rows are as tall as their text needs, so
-/// nothing is cut off, and only this area scrolls.
+/// A list with a scroll area of its own. Its height comes from how many rows it has, up to a
+/// limit, never from measuring them, so a row that wraps scrolls rather than resizing the page.
 private struct GrowingList<Content: View>: View {
-    var maxHeight: CGFloat = .infinity
+    let rows: Int
+    /// About how tall one row is, for working out the height.
+    var rowHeight: CGFloat = 40
+    var maxHeight: CGFloat = 200
     @ViewBuilder let content: Content
+
+    private var height: CGFloat {
+        min(maxHeight, CGFloat(max(rows, 1)) * rowHeight + 20)
+    }
 
     var body: some View {
         ScrollView {
@@ -342,7 +317,7 @@ private struct GrowingList<Content: View>: View {
             }
             .padding(10)
         }
-        .frame(minHeight: 84, maxHeight: maxHeight)
+        .frame(height: height)
         .cardSurface()
     }
 }

@@ -47,8 +47,10 @@ struct SettingsView: View {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
     }
 
+    /// The header stays put, and the rest scrolls inside the window when it doesn't fit. The window
+    /// never changes size, whatever appears in it.
     var body: some View {
-        VStack(alignment: .leading, spacing: Design.sectionGap) {
+        SheetPage(width: Pane.windowWidth, height: Pane.windowHeight, headerTop: 8) {
             // The window's close button sits to the left of this line.
             PanelHeader(title: "CloudAccess", detail: version) {
                 OverallPill { connection in
@@ -56,6 +58,73 @@ struct SettingsView: View {
                 }
             }
             .padding(.leading, 26)
+        } content: {
+            settings
+        }
+        .ignoresSafeArea(.container, edges: .top)
+        .sheet(isPresented: $isAdding, onDismiss: {
+            recoveryKitDrive = addedEncryptedDrive
+            addedEncryptedDrive = nil
+        }) {
+            AddDriveView { addedEncryptedDrive = $0 }
+                .presentationBackground(.regularMaterial)
+                .presentationSizing(.fitted)
+        }
+        .sheet(item: $recoveryKitDrive) { connection in
+            RecoveryKitOffer(connection: connection)
+                .presentationBackground(.regularMaterial)
+                .presentationSizing(.fitted)
+        }
+        .sheet(item: $sheet) { request in
+            DriveSheet(request: request)
+                .presentationBackground(.regularMaterial)
+                .presentationSizing(.fitted)
+        }
+        .onChange(of: drives.request, initial: true) { _, request in
+            guard let request else { return }
+            drives.request = nil
+            // From the panel, this window has only just been made. A sheet attached in the same
+            // pass opens at the wrong size and then moves, so it waits one turn.
+            Task { @MainActor in
+                await Task.yield()
+                sheet = request
+            }
+        }
+        .onChange(of: drives.wantsAddForm, initial: true) { _, wanted in
+            guard wanted else { return }
+            drives.wantsAddForm = false
+            Task { @MainActor in
+                await Task.yield()
+                isAdding = !drives.isUninstalling
+            }
+        }
+        .confirmationDialog("Forget all kept files?", isPresented: $isConfirmingForgetAll) {
+            Button("Forget All", role: .destructive) { drives.forgetAllPreserved() }
+        } message: {
+            Text("The files stay on this Mac, but CloudAccess stops showing where they are.")
+        }
+        .savesText($diagnostics, named: "CloudAccess Diagnostics.txt")
+        .sheet(isPresented: $isExporting) {
+            ExportDrivesView(drives: drives.exportable)
+                .presentationBackground(.regularMaterial)
+                .presentationSizing(.fitted)
+        }
+        .fileImporter(isPresented: $isChoosingImport, allowedContentTypes: [.drivesFile]) { result in
+            do {
+                importing = DrivesFileToImport(data: try DrivesFileAccess.read(result.get()))
+            } catch {
+                drivesFileProblem = error.localizedDescription
+            }
+        }
+        .sheet(item: $importing) { file in
+            ImportDrivesView(file: file)
+                .presentationBackground(.regularMaterial)
+                .presentationSizing(.fitted)
+        }
+    }
+
+    @ViewBuilder
+    private var settings: some View {
             if drives.needsEnabling {
                 PermissionRow("Turn on CloudAccess in System Settings.") {
                     drives.openExtensionSettings()
@@ -158,9 +227,8 @@ struct SettingsView: View {
                         }
                     }
                     .labelsHidden()
-                    // Flush right, like every other row's control.
-                    .fixedSize()
-                    .frame(width: 140, alignment: .trailing)
+                    // The same width as every popup, in its column on the right.
+                    .frame(width: Pane.valueColumn)
                 }
                 if languageChanged {
                     if LoginAgent.canRestart {
@@ -216,64 +284,6 @@ struct SettingsView: View {
                     .buttonStyle(.pill)
                 }
             }
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 16)
-        .frame(width: 480)
-        .fixedSize(horizontal: false, vertical: true)
-        .ignoresSafeArea(.container, edges: .top)
-        .sheet(isPresented: $isAdding, onDismiss: {
-            recoveryKitDrive = addedEncryptedDrive
-            addedEncryptedDrive = nil
-        }) {
-            AddDriveView { addedEncryptedDrive = $0 }
-                .presentationBackground(.regularMaterial)
-                .presentationSizing(.fitted)
-        }
-        .sheet(item: $recoveryKitDrive) { connection in
-            RecoveryKitOffer(connection: connection)
-                .presentationBackground(.regularMaterial)
-                .presentationSizing(.fitted)
-        }
-        .sheet(item: $sheet) { request in
-            DriveSheet(request: request)
-                .presentationBackground(.regularMaterial)
-                .presentationSizing(.fitted)
-        }
-        .onChange(of: drives.request, initial: true) { _, request in
-            guard let request else { return }
-            sheet = request
-            drives.request = nil
-        }
-        .onChange(of: drives.wantsAddForm, initial: true) { _, wanted in
-            guard wanted else { return }
-            isAdding = !drives.isUninstalling
-            drives.wantsAddForm = false
-        }
-        .confirmationDialog("Forget all kept files?", isPresented: $isConfirmingForgetAll) {
-            Button("Forget All", role: .destructive) { drives.forgetAllPreserved() }
-        } message: {
-            Text("The files stay on this Mac, but CloudAccess stops showing where they are.")
-        }
-        .savesText($diagnostics, named: "CloudAccess Diagnostics.txt")
-        .sheet(isPresented: $isExporting) {
-            ExportDrivesView(drives: drives.exportable)
-                .presentationBackground(.regularMaterial)
-                .presentationSizing(.fitted)
-        }
-        .fileImporter(isPresented: $isChoosingImport, allowedContentTypes: [.drivesFile]) { result in
-            do {
-                importing = DrivesFileToImport(data: try DrivesFileAccess.read(result.get()))
-            } catch {
-                drivesFileProblem = error.localizedDescription
-            }
-        }
-        .sheet(item: $importing) { file in
-            ImportDrivesView(file: file)
-                .presentationBackground(.regularMaterial)
-                .presentationSizing(.fitted)
-        }
     }
 }
 
@@ -367,15 +377,21 @@ private struct DriveRow: View {
                 .fill(color)
                 .frame(width: 10, height: 10)
                 .accessibilityLabel(drives.light(of: connection).description)
+            // One line each, so a long status in Spanish can't push out of its row.
             VStack(alignment: .leading, spacing: 0) {
                 Text(connection.displayName)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                 if let status = drives.statusLabel(of: connection) {
                     Text(status)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .help(status)
                 }
             }
-            Spacer()
+            Spacer(minLength: 8)
             DriveActivitySign(connection: connection, turns: false) {
                 open(.information)
             }
@@ -508,8 +524,10 @@ struct AddDriveView: View {
         "\(form.kind.rawValue) \(form.host) \(form.port)"
     }
 
+    /// A fixed size: the cards that appear after Connect, such as the server's identity, scroll
+    /// into view instead of growing the sheet.
     var body: some View {
-        VStack(alignment: .leading, spacing: Design.sectionGap) {
+        SheetPage(height: Pane.formHeight) {
             CardSection("Server") {
                 FieldRow(label: "Name", text: $form.name)
                 SettingRow("Protocol") {
@@ -518,6 +536,8 @@ struct AddDriveView: View {
                             Text(kind.title)
                         }
                     }
+                    // As wide as the fields above and below it.
+                    .frame(width: Pane.fieldColumn)
                 }
                 FieldRow(label: "Host", text: $form.host, prompt: "example.com")
                 FieldRow(label: "Port", text: $form.port, prompt: form.kind.defaultPort)
@@ -614,9 +634,6 @@ struct AddDriveView: View {
                 }
             }
         }
-        .padding(16)
-        .frame(width: 480)
-        .fixedSize(horizontal: false, vertical: true)
         .fileImporter(isPresented: $isChoosingKey, allowedContentTypes: [.item], onCompletion: loadKey)
         .fileDialogBrowserOptions(.includeHiddenFiles)
         .onChange(of: serverIdentity) {

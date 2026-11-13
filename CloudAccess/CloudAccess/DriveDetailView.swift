@@ -59,116 +59,6 @@ extension View {
     }
 }
 
-/// The heights rows come in. A list works out its own height from these, so it always shows
-/// whole rows and never cuts one in half.
-enum RowHeight {
-    static let single: CGFloat = 30
-    static let double: CGFloat = 42
-}
-
-/// The only thing in a window that scrolls. A list that can grow lives in one of these, and the
-/// window around it never scrolls: a drive can have a thousand folders. A short list shrinks
-/// to fit, and a long one shows `visibleRows` whole rows.
-struct BoundedList<Content: View>: View {
-    let rows: Int
-    let rowHeight: CGFloat
-    let visibleRows: Int
-    @ViewBuilder let content: Content
-
-    private static var padding: CGFloat { 6 }
-
-    private var height: CGFloat {
-        CGFloat(min(max(rows, 1), visibleRows)) * rowHeight + Self.padding * 2
-    }
-
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                content
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, Self.padding)
-        }
-        .frame(height: height)
-        .cardSurface()
-    }
-}
-
-/// A row with its label on the left and its controls lined up on the right. `LabeledContent`
-/// only does this inside a `Form`, and no window here uses one, because a `Form` scrolls.
-struct ListRow<Label: View, Controls: View>: View {
-    let height: CGFloat
-    @ViewBuilder let label: Label
-    @ViewBuilder let controls: Controls
-
-    var body: some View {
-        HStack(spacing: 8) {
-            label
-                .lineLimit(1)
-                .truncationMode(.middle)
-            Spacer(minLength: 8)
-            controls
-        }
-        .frame(height: height)
-    }
-}
-
-/// One setting on one line, so a page fits without scrolling.
-struct SettingRow<Control: View>: View {
-    let label: Text
-    @ViewBuilder let control: Control
-
-    /// The label is looked up in the app's strings.
-    init(_ label: LocalizedStringKey, @ViewBuilder control: () -> Control) {
-        self.init(Text(label), control: control)
-    }
-
-    /// Words already in the language shown, or a name, appear as they are.
-    @_disfavoredOverload
-    init(_ label: some StringProtocol, @ViewBuilder control: () -> Control) {
-        self.init(Text(verbatim: String(label)), control: control)
-    }
-
-    init(_ label: Text, @ViewBuilder control: () -> Control) {
-        self.label = label
-        self.control = control()
-    }
-
-    var body: some View {
-        ListRow(height: 26) {
-            label
-        } controls: {
-            control
-                .labelsHidden()
-                .fixedSize()
-        }
-    }
-}
-
-/// A switch that lines up with the other controls.
-struct RowSwitch: View {
-    let label: Text
-    @Binding var isOn: Bool
-
-    /// The label is looked up in the app's strings. It's hidden, and read out by VoiceOver.
-    init(label: LocalizedStringKey, isOn: Binding<Bool>) {
-        self.label = Text(label)
-        _isOn = isOn
-    }
-
-    @_disfavoredOverload
-    init(label: some StringProtocol, isOn: Binding<Bool>) {
-        self.label = Text(verbatim: String(label))
-        _isOn = isOn
-    }
-
-    var body: some View {
-        Toggle(isOn: $isOn) { label }
-            .labelsHidden()
-            .toggleStyle(.switch)
-            .controlSize(.small)
-    }
-}
 
 /// One drive's settings, on pages that each fit the window.
 struct DriveDetailView: View {
@@ -211,17 +101,14 @@ struct DriveDetailView: View {
     @State private var saveRequests = 0
     /// What the server's `.cloudmount` folder holds, looked up when the drive stops using it.
     @State private var controlFolder: RemoteEngine.ControlFolder?
+    @State private var hasCheckedControlFolder = false
+    @State private var controlFolderFailed = false
     @State private var isOfferingCleanUp = false
+    @State private var hasLoadedFolders = false
 
     init(connection: Connection, startingPage: Page = .general) {
         self.connection = connection
         _page = State(initialValue: startingPage)
-    }
-
-    /// The Information page is for reading, so it can be made as big as it takes. The others are
-    /// laid out to fit their controls.
-    private var fillsWindow: Bool {
-        page == .information
     }
 
     /// The saved version, because this view can outlive the copy it was given.
@@ -253,13 +140,25 @@ struct DriveDetailView: View {
     }
 
     /// Only an SFTP drive that's left Safe mode is offered the clean-up.
+    private var offersControlFolderCleanUp: Bool {
+        guard case .sftp = current.endpoint else { return false }
+        return !current.settings.mode.usesControlFolder && !current.serverIsReadOnly
+    }
+
     private func lookAtControlFolder(offering: Bool) async {
-        guard case .sftp = current.endpoint, !current.settings.mode.usesControlFolder,
-              !current.serverIsReadOnly else {
+        guard offersControlFolderCleanUp else {
             controlFolder = nil
             return
         }
-        controlFolder = try? await drives.controlFolder(of: current)
+        hasCheckedControlFolder = false
+        do {
+            controlFolder = try await drives.controlFolder(of: current)
+            controlFolderFailed = false
+        } catch {
+            controlFolder = nil
+            controlFolderFailed = true
+        }
+        hasCheckedControlFolder = true
         if offering, controlFolder?.hasRemovable == true {
             isOfferingCleanUp = true
         }
@@ -300,6 +199,7 @@ struct DriveDetailView: View {
             if first.isPinned != second.isPinned { return first.isPinned }
             return first.name.localizedStandardCompare(second.name) == .orderedAscending
         }
+        hasLoadedFolders = true
     }
 
     private func pinned(_ folder: SyncItem) -> Binding<Bool> {
@@ -313,25 +213,29 @@ struct DriveDetailView: View {
         }
     }
 
+    /// The tabs and Done stay where they are, and only the page between them scrolls, when it's
+    /// taller than the room. The sheet's size never changes, whichever page shows or loads.
     var body: some View {
-        VStack(alignment: .leading, spacing: Design.sectionGap) {
-            // The Information page explains it in full, so the other pages only name it, once.
-            if drives.status(of: current) == .offline, page != .information {
-                let offline = drives.offlineStatus(of: current)
-                Label(offline.title, systemImage: offline.symbol)
-                    .foregroundStyle(offline.tone.color)
-                    .lineLimit(1)
-            }
-            Picker("Page", selection: $page) {
-                ForEach(Page.allCases, id: \.self) { page in
-                    Text(page.title)
+        SheetPage(height: Pane.driveHeight) {
+            VStack(alignment: .leading, spacing: 10) {
+                // The Information page explains it in full, so the other pages only name it, once.
+                if drives.status(of: current) == .offline, page != .information {
+                    let offline = drives.offlineStatus(of: current)
+                    Label(offline.title, systemImage: offline.symbol)
+                        .foregroundStyle(offline.tone.color)
+                        .lineLimit(1)
                 }
+                Picker("Page", selection: $page) {
+                    ForEach(Page.allCases, id: \.self) { page in
+                        Text(page.title)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                // Each page is rebuilt when it's shown, so leaving this one would drop the edit.
+                .disabled(hasUnsavedEdits || isWorking)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            // Each page is rebuilt when it's shown, so leaving this one would drop the edit.
-            .disabled(hasUnsavedEdits || isWorking)
-
+        } content: {
             // A change made while the drive is being removed would save it back.
             Group {
                 switch page {
@@ -346,43 +250,9 @@ struct DriveDetailView: View {
                 }
             }
             .disabled(isWorking)
-
-            if let message {
-                Text(message)
-                    .foregroundStyle(.secondary)
-            }
-            if let problem {
-                Text(problem)
-                    .foregroundStyle(.red)
-            }
-            HStack {
-                if isWorking {
-                    ProgressView()
-                        .controlSize(.small)
-                    if let activity {
-                        Text(activity)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Spacer()
-                if hasUnsavedEdits {
-                    Button("Cancel") { dismiss() }
-                        .keyboardShortcut(.cancelAction)
-                    Button("Save") { saveRequests += 1 }
-                        .keyboardShortcut(.defaultAction)
-                } else {
-                    Button("Done") { dismiss() }
-                        .keyboardShortcut(.defaultAction)
-                }
-            }
+        } footer: {
+            footer
         }
-        .padding(16)
-        .frame(
-            minWidth: 480, idealWidth: fillsWindow ? 640 : 480, maxWidth: fillsWindow ? .infinity : 480,
-            minHeight: fillsWindow ? 460 : nil, idealHeight: fillsWindow ? 640 : nil,
-            maxHeight: fillsWindow ? .infinity : nil)
-        .fixedSize(horizontal: false, vertical: !fillsWindow)
-        .background(ResizableSheet(isResizable: fillsWindow))
         .task {
             await loadFolders()
         }
@@ -449,6 +319,42 @@ struct DriveDetailView: View {
         }
     }
 
+    /// What's happening, and Done, which close the sheet.
+    private var footer: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let message {
+                Text(message)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let problem {
+                Text(problem)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            HStack {
+                if isWorking {
+                    ProgressView()
+                        .controlSize(.small)
+                    if let activity {
+                        Text(activity)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                if hasUnsavedEdits {
+                    Button("Cancel") { dismiss() }
+                        .keyboardShortcut(.cancelAction)
+                    Button("Save") { saveRequests += 1 }
+                        .keyboardShortcut(.defaultAction)
+                } else {
+                    Button("Done") { dismiss() }
+                        .keyboardShortcut(.defaultAction)
+                }
+            }
+        }
+    }
+
     /// One whole message either way, so each reads right in every language.
     private var removeMessage: Text {
         let count = drives.unsentCount(of: connection)
@@ -458,7 +364,7 @@ struct DriveDetailView: View {
 
     private var general: some View {
         VStack(alignment: .leading, spacing: Design.sectionGap) {
-            CardSection("Connection") {
+            SettingsSection("Connection") {
                 ConnectionEditor(
                     connection: current, saveRequests: saveRequests, hasUnsavedEdits: $hasUnsavedEdits
                 ) {
@@ -469,23 +375,19 @@ struct DriveDetailView: View {
                         .buttonStyle(.pill)
                 }
             }
-            CardSection("Locally stored file cache") {
-                SettingRow("Unused files") {
-                    Picker("Unused files", selection: setting(\.removeLocalCopyAfter)) {
-                        Text("Clear cache right away").tag(TimeInterval?.some(0))
-                        Text("Clear cache after 1 hour").tag(TimeInterval?.some(3600))
-                        Text("Clear cache after 1 day").tag(TimeInterval?.some(86_400))
-                        Text("Clear cache after 1 week").tag(TimeInterval?.some(604_800))
-                        Text("Keep in cache").tag(TimeInterval?.none)
-                    }
+            SettingsSection("Locally stored file cache") {
+                PickerRow("Unused files", selection: setting(\.removeLocalCopyAfter)) {
+                    Text("Clear cache right away").tag(TimeInterval?.some(0))
+                    Text("Clear cache after 1 hour").tag(TimeInterval?.some(3600))
+                    Text("Clear cache after 1 day").tag(TimeInterval?.some(86_400))
+                    Text("Clear cache after 1 week").tag(TimeInterval?.some(604_800))
+                    Text("Keep in cache").tag(TimeInterval?.none)
                 }
-                SettingRow("Cache size limit") {
-                    Picker("Cache size limit", selection: setting(\.sizeLimit)) {
-                        Text("1 GB").tag(Int64?.some(1_000_000_000))
-                        Text("10 GB").tag(Int64?.some(10_000_000_000))
-                        Text("50 GB").tag(Int64?.some(50_000_000_000))
-                        Text("No limit").tag(Int64?.none)
-                    }
+                PickerRow("Cache size limit", selection: setting(\.sizeLimit)) {
+                    Text("1 GB").tag(Int64?.some(1_000_000_000))
+                    Text("10 GB").tag(Int64?.some(10_000_000_000))
+                    Text("50 GB").tag(Int64?.some(50_000_000_000))
+                    Text("No limit").tag(Int64?.none)
                 }
                 if let cached = drives.cachedBytes[connection.id] {
                     storageUse(cached)
@@ -509,6 +411,7 @@ struct DriveDetailView: View {
         }
     }
 
+    /// The list keeps its full height while it loads, so nothing under it moves when it arrives.
     private var keepDownloaded: some View {
         VStack(alignment: .leading, spacing: Design.labelGap) {
             SectionLabel("Keep downloaded")
@@ -516,8 +419,14 @@ struct DriveDetailView: View {
                 TextField("Filter folders", text: $folderFilter)
                     .textFieldStyle(.roundedBorder)
             }
-            BoundedList(rows: visibleFolders.count, rowHeight: RowHeight.single, visibleRows: 4) {
-                if folders.isEmpty {
+            BoundedList(
+                rows: visibleFolders.count, rowHeight: RowHeight.single, visibleRows: 4, reserves: !hasLoadedFolders
+            ) {
+                if !hasLoadedFolders {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, minHeight: RowHeight.single)
+                } else if folders.isEmpty {
                     Text("No folders yet.")
                         .foregroundStyle(.secondary)
                         .frame(height: RowHeight.single)
@@ -533,70 +442,58 @@ struct DriveDetailView: View {
             Text("These folders and everything in them stay on this Mac.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private var advanced: some View {
         VStack(alignment: .leading, spacing: Design.sectionGap) {
             keepDownloaded
-            CardSection("Behaviour") {
+            SettingsSection("Behaviour") {
                 if current.serverIsReadOnly {
                     SettingRow("Mode") {
                         Text("Read-only, set by the server")
                             .foregroundStyle(.secondary)
                     }
                 } else {
-                    SettingRow("Mode") {
-                        Picker("Mode", selection: mode) {
-                            ForEach(DriveMode.available(for: current.endpoint), id: \.self) { mode in
-                                Text(mode.title).tag(mode)
-                            }
+                    PickerRow(
+                        "Mode", selection: mode, caption: Text(current.settings.mode.explanation),
+                        captionColor: current.settings.mode == .unsafe ? .orange : .secondary
+                    ) {
+                        ForEach(DriveMode.available(for: current.endpoint), id: \.self) { mode in
+                            Text(mode.title).tag(mode)
                         }
                     }
-                    Text(current.settings.mode.explanation)
-                        .font(.caption)
-                        .foregroundStyle(current.settings.mode == .unsafe ? .orange : .secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
-                SettingRow("Thumbnails") {
-                    Picker("Thumbnails", selection: setting(\.thumbnailLimit)) {
-                        Text("Files under 20 MB").tag(Int64?.some(20_000_000))
-                        Text("Files under 100 MB").tag(Int64?.some(100_000_000))
-                        Text("Off").tag(Int64?.none)
-                    }
+                PickerRow("Thumbnails", selection: setting(\.thumbnailLimit)) {
+                    Text("Files under 20 MB").tag(Int64?.some(20_000_000))
+                    Text("Files under 100 MB").tag(Int64?.some(100_000_000))
+                    Text("Off").tag(Int64?.none)
                 }
-                SettingRow("Keep free on disk") {
-                    Picker("Keep free on disk", selection: setting(\.diskReserve)) {
-                        Text("1 GB").tag(Int64?.some(1_000_000_000))
-                        Text("5 GB").tag(Int64?.some(5_000_000_000))
-                        Text("20 GB").tag(Int64?.some(20_000_000_000))
-                        Text("Don't check").tag(Int64?.none)
-                    }
+                PickerRow("Keep free on disk", selection: setting(\.diskReserve)) {
+                    Text("1 GB").tag(Int64?.some(1_000_000_000))
+                    Text("5 GB").tag(Int64?.some(5_000_000_000))
+                    Text("20 GB").tag(Int64?.some(20_000_000_000))
+                    Text("Don't check").tag(Int64?.none)
                 }
-                SettingRow("Uploads at once") {
-                    Picker("Uploads at once", selection: setting(\.uploadsAtOnce)) {
-                        Text("1").tag(1)
-                        Text("2").tag(2)
-                        Text("4").tag(4)
-                        Text("8").tag(8)
-                    }
+                PickerRow("Uploads at once", selection: setting(\.uploadsAtOnce)) {
+                    Text("1").tag(1)
+                    Text("2").tag(2)
+                    Text("4").tag(4)
+                    Text("8").tag(8)
                 }
-                SettingRow("Check recent folders") {
-                    Picker("Check recent folders", selection: setting(\.recentFolderInterval)) {
-                        Text("Every minute").tag(TimeInterval(60))
-                        Text("Every 5 minutes").tag(TimeInterval(300))
-                        Text("Every 15 minutes").tag(TimeInterval(900))
-                    }
+                PickerRow("Check recent folders", selection: setting(\.recentFolderInterval)) {
+                    Text("Every minute").tag(TimeInterval(60))
+                    Text("Every 5 minutes").tag(TimeInterval(300))
+                    Text("Every 15 minutes").tag(TimeInterval(900))
                 }
-                SettingRow("Check other folders") {
-                    Picker("Check other folders", selection: setting(\.otherFolderInterval)) {
-                        Text("Every 30 minutes").tag(TimeInterval(1800))
-                        Text("Every hour").tag(TimeInterval(3600))
-                        Text("Every 6 hours").tag(TimeInterval(21_600))
-                    }
+                PickerRow("Check other folders", selection: setting(\.otherFolderInterval)) {
+                    Text("Every 30 minutes").tag(TimeInterval(1800))
+                    Text("Every hour").tag(TimeInterval(3600))
+                    Text("Every 6 hours").tag(TimeInterval(21_600))
                 }
             }
-            CardSection("Maintenance") {
+            SettingsSection("Maintenance") {
                 SettingRow("Check the drive again") {
                     Button("Repair Drive") {
                         perform {
@@ -608,7 +505,7 @@ struct DriveDetailView: View {
                 }
                 SettingRow("Remove it and add it back") {
                     Button("Reset Drive…") { isConfirmingReset = true }
-                        .buttonStyle(.pill)
+                        .buttonStyle(.destructivePill)
                 }
                 if connection.isEncrypted {
                     SettingRow("Reach your files without this app") {
@@ -620,24 +517,44 @@ struct DriveDetailView: View {
                     if current.writesControlFolder {
                         SettingRow("Stop writing to this drive for good") {
                             Button("Retire This Drive…") { isConfirmingRetire = true }
-                                .buttonStyle(.pill)
+                                .buttonStyle(.destructivePill)
                         }
                     }
                 }
-                if !current.settings.mode.usesControlFolder, controlFolder?.hasRemovable == true {
+                if offersControlFolderCleanUp {
                     SettingRow("Hidden .cloudmount folder on the server") {
-                        Button("Remove Folder…") { isOfferingCleanUp = true }
-                            .buttonStyle(.pill)
+                        controlFolderControl
                     }
                 }
                 // Here, not beside Done, where one slip could reach it.
                 SettingRow("Take this drive off this Mac") {
                     Button("Remove Drive…", role: .destructive) { isConfirmingRemove = true }
-                        .buttonStyle(.pill)
-                        .foregroundStyle(.red)
+                        .buttonStyle(.destructivePill)
                 }
             }
             .disabled(isWorking)
+        }
+    }
+
+    /// The row is there from the start, so nothing appears under the pointer when the server answers.
+    @ViewBuilder
+    private var controlFolderControl: some View {
+        if !hasCheckedControlFolder {
+            HStack(spacing: 6) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Checking…")
+                    .foregroundStyle(.secondary)
+            }
+        } else if controlFolder?.hasRemovable == true {
+            Button("Remove Folder…") { isOfferingCleanUp = true }
+                .buttonStyle(.destructivePill)
+        } else if controlFolderFailed {
+            Text("Couldn't check")
+                .foregroundStyle(.secondary)
+        } else {
+            Text("Nothing to remove")
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -719,6 +636,11 @@ struct TrashView: View {
     @State private var filtersFiles = true
     @State private var search = ""
     @State private var shortening: TrashRetention.Choice?
+    /// The entries ticked to delete now, by ID.
+    @State private var chosen: Set<String> = []
+    @State private var isConfirmingPurge = false
+    @State private var isPurging = false
+    @State private var purgeNote: String?
 
     /// A search field appears once the list is long, as a filter does for pinned folders.
     private static let searchThreshold = 10
@@ -781,27 +703,33 @@ struct TrashView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
+                // The list's own size, so nothing moves when the server answers.
+                BoundedList(rows: 0, rowHeight: RowHeight.double, visibleRows: 7, reserves: true) {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, minHeight: RowHeight.double)
+                }
             } else if entries.isEmpty {
                 Text("Nothing deleted.")
                     .foregroundStyle(.secondary)
             } else {
                 deletedItems
             }
-            if connection.writesControlFolder, retention != nil {
-                Card {
-                    SettingRow("Keep deleted files for") {
-                        Picker("Keep deleted files for", selection: retentionChoice) {
+            if connection.writesControlFolder {
+                SettingsSection {
+                    let caption = Text("Deleted files stay on the server for at least this long, then go for good, on every device using this drive. Earlier versions of saved files last 7 days at most.")
+                    if retention != nil {
+                        PickerRow("Keep deleted files for", selection: retentionChoice, caption: caption) {
                             ForEach(TrashRetention.choices) { choice in
                                 Text(choice.label).tag(choice.seconds)
                             }
                         }
+                    } else {
+                        SettingRow(Text("Keep deleted files for"), caption: caption) {
+                            Text(isLoading ? LocalizedStringKey("Checking…") : LocalizedStringKey("Couldn't check"))
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    Text("Deleted files stay on the server for at least this long, then go for good, on every device using this drive. Earlier versions of saved files last 7 days at most.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             if let problem {
@@ -828,6 +756,21 @@ struct TrashView: View {
         } message: { choice in
             Text("Anything deleted more than \(choice.label) ago is removed from the server for good, on every device using this drive. This can't be undone.")
         }
+        .confirmationDialog(
+            "Delete \(chosenShown.count) items for good?", isPresented: $isConfirmingPurge
+        ) {
+            Button("Delete Now", role: .destructive) { purgeChosen() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("They're removed from the server now, for every device using this drive. This can't be undone.")
+        }
+        // A choice the filter or search hides is let go, so it can't be deleted unseen.
+        .onChange(of: filtersFiles) { keepOnlyShownChoices() }
+        .onChange(of: search) { keepOnlyShownChoices() }
+    }
+
+    private func keepOnlyShownChoices() {
+        chosen.formIntersection(visibleEntries.map(\.id))
     }
 
     @ViewBuilder
@@ -843,6 +786,11 @@ struct TrashView: View {
             TextField("Search", text: $search)
                 .textFieldStyle(.roundedBorder)
         }
+        if canPurge {
+            Toggle("Select all", isOn: allShownChosen)
+                .toggleStyle(.checkbox)
+                .disabled(visibleEntries.isEmpty || isPurging)
+        }
         BoundedList(rows: visibleEntries.count, rowHeight: RowHeight.double, visibleRows: 7) {
             if visibleEntries.isEmpty {
                 Text(filtersFiles ? "No deleted folders." : "Nothing matches.")
@@ -851,19 +799,100 @@ struct TrashView: View {
             }
             ForEach(visibleEntries) { entry in
                 ListRow(height: RowHeight.double) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(entryTitle(entry))
-                        Text(Date(timeIntervalSince1970: TimeInterval(entry.deletedAt)).formatted())
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        if canPurge {
+                            Toggle(isOn: isChosen(entry)) { Text(verbatim: entryTitle(entry)) }
+                                .toggleStyle(.checkbox)
+                                .labelsHidden()
+                                .disabled(isPurging)
+                        }
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(entryTitle(entry))
+                            Text(Date(timeIntervalSince1970: TimeInterval(entry.deletedAt)).formatted())
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 } controls: {
                     if !entry.isDamaged, connection.writesControlFolder {
                         Button("Restore") { restore(entry) }
                             .buttonStyle(.pill)
+                            .disabled(isPurging)
                     }
                 }
             }
+        }
+        if canPurge {
+            SettingsSection {
+                SettingRow(Text(String(localized: "\(chosenShown.count) selected"))) {
+                    Button("Delete Now…") { isConfirmingPurge = true }
+                        .buttonStyle(.destructivePill)
+                        .disabled(chosenShown.isEmpty || isPurging)
+                }
+            }
+        }
+        if let purgeNote {
+            Text(purgeNote)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// Only where Restore is offered: a drive that keeps the control folder, so not read-only and
+    /// not Unsafe. The engine refuses it anywhere else too.
+    private var canPurge: Bool {
+        connection.writesControlFolder
+    }
+
+    /// What's chosen among what's shown. A choice hidden by the filter or search is never deleted.
+    private var chosenShown: [RemoteEngine.TrashEntry] {
+        visibleEntries.filter { chosen.contains($0.id) }
+    }
+
+    private var allShownChosen: Binding<Bool> {
+        Binding {
+            !visibleEntries.isEmpty && visibleEntries.allSatisfy { chosen.contains($0.id) }
+        } set: { isOn in
+            let shown = visibleEntries.map(\.id)
+            if isOn {
+                chosen.formUnion(shown)
+            } else {
+                chosen.subtract(shown)
+            }
+        }
+    }
+
+    private func isChosen(_ entry: RemoteEngine.TrashEntry) -> Binding<Bool> {
+        Binding {
+            chosen.contains(entry.id)
+        } set: { isOn in
+            if isOn {
+                chosen.insert(entry.id)
+            } else {
+                chosen.remove(entry.id)
+            }
+        }
+    }
+
+    /// Deletes what's chosen and shown, after the person has confirmed. What fails stays chosen
+    /// and listed, with its reason.
+    private func purgeChosen() {
+        let doomed = chosenShown
+        guard !doomed.isEmpty else { return }
+        isPurging = true
+        purgeNote = nil
+        Task {
+            var deleted = 0
+            do {
+                deleted = try await drives.purge(doomed, in: connection)
+                problem = nil
+            } catch {
+                problem = error.localizedDescription
+            }
+            await load()
+            if deleted > 0 {
+                purgeNote = String(localized: "\(deleted) items deleted")
+            }
+            isPurging = false
         }
     }
 
@@ -877,6 +906,8 @@ struct TrashView: View {
         do {
             entries = try await drives.trashEntries(of: connection)
                 .sorted { $0.deletedAt > $1.deletedAt }
+            // What's left the trash, here or on another device, is no longer chosen.
+            chosen.formIntersection(entries.map(\.id))
             retention = await drives.trashRetentionSeconds(of: connection)
             problem = nil
         } catch {

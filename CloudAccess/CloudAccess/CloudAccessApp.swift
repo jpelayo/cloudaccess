@@ -85,7 +85,9 @@ enum AppWindows {
     private static var settings: NSWindow?
     private static var cloudWanderer: NSWindow?
 
-    private static func show(_ window: inout NSWindow?, title: String, content: some View) {
+    /// - Parameter nearTop: Opens the window near the top of the screen rather than in the middle,
+    ///   so a tall sheet hanging from its title bar has the room below it.
+    private static func show(_ window: inout NSWindow?, title: String, nearTop: Bool = false, content: some View) {
         if window == nil {
             let controller = NSHostingController(
                 rootView: content.background(WindowBackdrop().ignoresSafeArea()))
@@ -101,7 +103,14 @@ enum AppWindows {
             made.standardWindowButton(.miniaturizeButton)?.isHidden = true
             made.standardWindowButton(.zoomButton)?.isHidden = true
             made.isReleasedWhenClosed = false
+            // SwiftUI sizes a window lazily, so it's asked now, before centering, or the window
+            // shows at one size and then jumps to another.
+            made.updateConstraintsIfNeeded()
+            made.layoutIfNeeded()
             made.center()
+            if nearTop, let visible = (made.screen ?? NSScreen.main)?.visibleFrame {
+                made.setFrameTopLeftPoint(NSPoint(x: made.frame.minX, y: visible.maxY - 24))
+            }
             window = made
         }
         if let window {
@@ -118,7 +127,7 @@ enum AppWindows {
     }
 
     static func showSettings(drives: Drives) {
-        show(&settings, title: String(localized: "Settings"), content: SettingsView().environment(drives))
+        show(&settings, title: String(localized: "Settings"), nearTop: true, content: SettingsView().environment(drives))
     }
 
     /// Whether Settings is on screen, so a copy handing over can have the next one open it.
@@ -165,7 +174,8 @@ enum AppWindows {
             made.standardWindowButton(.zoomButton)?.isHidden = true
             made.isReleasedWhenClosed = false
             made.delegate = aboutGuard
-            made.setContentSize(NSSize(width: 340, height: 300))
+            // The page's own size from the start, so the window never opens small and then grows.
+            made.setContentSize(AboutView.size(isUninstalling: drives.uninstaller != nil))
             made.center()
             about = made
         }

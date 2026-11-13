@@ -10,6 +10,7 @@ import Observation
 import os
 import RemoteEngine
 import SyncCore
+import SystemConfiguration
 
 #if DEBUG
 /// `NSLog` only reaches a file when a test starts the app itself. This reaches the system log
@@ -34,9 +35,10 @@ struct DriveRequest: Identifiable, Equatable {
     }
 }
 
-/// A file macOS hasn't finished syncing, and what's known about why.
-struct PendingFile: Identifiable, Equatable, Sendable {
-    enum State: Equatable, Sendable {
+/// A file macOS hasn't finished syncing, and what's known about why. It's part of a report read
+/// off the main thread, so it belongs to no actor.
+nonisolated struct PendingFile: Identifiable, Equatable, Sendable {
+    nonisolated enum State: Equatable, Sendable {
         /// Nothing's wrong, as far as anyone has said.
         case waiting
         /// It failed, and macOS is going to try it again.
@@ -54,8 +56,9 @@ struct PendingFile: Identifiable, Equatable, Sendable {
     let state: State
 }
 
-/// Everything the Information page shows. It's read again every second while the page is open.
-struct DriveReport: Equatable {
+/// Everything the Information page shows. It's read again every second while the page is open,
+/// off the main thread.
+nonisolated struct DriveReport: Equatable, Sendable {
     var transfers: [SyncTransfer] = []
     var failures: [SyncFailure] = []
     /// The folder each failed file is in, by the failure's ID.
@@ -1133,6 +1136,15 @@ final class Drives {
         guard connection.isMounted, let state = try? await localState(connection) else {
             return DriveReport()
         }
+        var report = await Self.read(state)
+        report.pending = pending[connection.id] ?? []
+        report.lastChecked = lastChecked[connection.id]
+        return report
+    }
+
+    /// The database's part of a report. The page reads it every second, so it's read off the
+    /// main thread, and the window never waits for it.
+    @concurrent nonisolated private static func read(_ state: SyncStore) async -> DriveReport {
         let failed = (try? state.failures()) ?? []
         var folders: [String: RemotePath] = [:]
         for failure in failed {
@@ -1142,10 +1154,8 @@ final class Drives {
             transfers: (try? state.liveTransfers()) ?? [],
             failures: failed,
             failedFolders: folders,
-            pending: pending[connection.id] ?? [],
             recent: (try? state.recentActivity()) ?? [],
             totals: (try? state.totals()) ?? SyncTotals(),
-            lastChecked: lastChecked[connection.id],
             isBeingChecked: (try? state.isRecovering()) ?? false)
     }
 
@@ -1275,12 +1285,16 @@ final class Drives {
 
     // MARK: Pinned folders
 
-    /// The folders at the top of a drive, which is where pinning is offered.
+    /// The folders at the top of a drive, which is where pinning is offered. They come from this
+    /// Mac's own record of the drive, with no connection to its server, so the list is there as soon
+    /// as the window opens, offline too.
     func topFolders(of connection: Connection) async -> [SyncItem] {
-        guard let drive = try? await opened(connection),
-              let children = try? drive.state.children(of: SyncItem.rootID)
-        else { return [] }
-        return children.filter { $0.kind == .directory }
+        guard let state = try? await localState(connection) else { return [] }
+        return await Self.topFolders(in: state)
+    }
+
+    @concurrent nonisolated private static func topFolders(in state: SyncStore) async -> [SyncItem] {
+        ((try? state.children(of: SyncItem.rootID)) ?? []).filter { $0.kind == .directory }
     }
 
     func setPinned(_ folder: SyncItem, in connection: Connection, isPinned: Bool) async {
@@ -1304,6 +1318,25 @@ final class Drives {
             try? await signal(connection)
         }
         await pollOnce(force: true)
+    }
+
+    /// Deletes the chosen entries from the server's trash for good, one at a time. It stops at the
+    /// first that fails, so what's left is still listed and can be tried again.
+    /// - Returns: How many went.
+    @discardableResult
+    func purge(_ entries: [RemoteEngine.TrashEntry], in connection: Connection) async throws -> Int {
+        let drive = try await opened(connection)
+        var purged = 0
+        defer {
+            if purged > 0 {
+                store?.diagnostics.record("\(connection.displayName): \(purged) deleted entries removed by hand")
+            }
+        }
+        for entry in entries {
+            try await drive.engine.purgeFromTrash(entry.id)
+            purged += 1
+        }
+        return purged
     }
 
     func trashRetentionSeconds(of connection: Connection) async -> Int? {
@@ -1638,8 +1671,14 @@ final class Drives {
     /// This Mac, as the extension names it to the server.
     private func thisDevice(_ store: DriveStore) -> DeviceInfo? {
         guard let id = try? store.deviceID() else { return nil }
-        return DeviceInfo(id: id, name: Host.current().localizedName ?? "Mac")
+        return DeviceInfo(id: id, name: Self.computerName)
     }
+
+    /// This Mac's name, as System Settings shows it, read once from the system's own record.
+    /// `Host.current()` can wait seconds on the network for the same name, on the main thread, and
+    /// it's only the fallback here.
+    private static let computerName: String =
+        (SCDynamicStoreCopyComputerName(nil, nil) as String?) ?? Host.current().localizedName ?? "Mac"
 
     /// What the hidden `.cloudmount` folder on this drive's server holds.
     func controlFolder(of connection: Connection) async throws -> RemoteEngine.ControlFolder {

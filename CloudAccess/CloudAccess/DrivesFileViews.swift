@@ -104,9 +104,10 @@ struct ExportDrivesView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Design.sectionGap) {
+        SheetPage {
             Text("Export Drives")
                 .font(.headline)
+        } content: {
             VStack(alignment: .leading, spacing: Design.labelGap) {
                 SectionLabel("Drives")
                 BoundedList(rows: drives.exportable.count, rowHeight: RowHeight.single, visibleRows: 5) {
@@ -124,7 +125,7 @@ struct ExportDrivesView: View {
                     TextField("Password", text: $password)
                         .textFieldStyle(.roundedBorder)
                         .font(.body.monospaced())
-                        .frame(width: 240)
+                        .frame(width: Pane.fieldColumn)
                 }
                 SettingRow("A new strong password") {
                     Button("New Password") { password = Passphrase.generate() }
@@ -153,23 +154,24 @@ struct ExportDrivesView: View {
             // A password that's too short is refused with the reason when pressed, not by a
             // button that's greyed out with nothing to say why.
             .disabled(chosen.isEmpty)
-            if let message {
-                Text(message)
-                    .foregroundStyle(.secondary)
-            }
-            if let problem {
-                Text(problem)
-                    .foregroundStyle(.red)
-            }
-            HStack {
-                Spacer()
-                Button("Done") { dismiss() }
-                    .keyboardShortcut(.defaultAction)
+        } footer: {
+            VStack(alignment: .leading, spacing: 8) {
+                if let message {
+                    Text(message)
+                        .foregroundStyle(.secondary)
+                }
+                if let problem {
+                    Text(problem)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                HStack {
+                    Spacer()
+                    Button("Done") { dismiss() }
+                        .keyboardShortcut(.defaultAction)
+                }
             }
         }
-        .padding(20)
-        .frame(width: 540)
-        .fixedSize(horizontal: false, vertical: true)
         .fileExporter(
             isPresented: $isSaving, document: document, contentType: .drivesFile,
             defaultFilename: DrivesFile.suggestedName()
@@ -267,9 +269,10 @@ struct ImportDrivesView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Design.sectionGap) {
+        SheetPage {
             Text("Import Drives")
                 .font(.headline)
+        } content: {
             if let rows {
                 review(rows)
             } else {
@@ -277,7 +280,7 @@ struct ImportDrivesView: View {
                     SettingRow("The file's password") {
                         SecureField("Password", text: $password)
                             .textFieldStyle(.roundedBorder)
-                            .frame(width: 270)
+                            .frame(width: Pane.fieldColumn)
                             .onSubmit(open)
                     }
                     SettingRow("Read the drives in it") {
@@ -287,20 +290,21 @@ struct ImportDrivesView: View {
                     }
                 }
             }
-            if let problem {
-                Text(problem)
-                    .foregroundStyle(.red)
-            }
-            HStack {
-                Spacer()
-                Button("Done") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                    .disabled(isWorking)
+        } footer: {
+            VStack(alignment: .leading, spacing: 8) {
+                if let problem {
+                    Text(problem)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                HStack {
+                    Spacer()
+                    Button("Done") { dismiss() }
+                        .keyboardShortcut(.cancelAction)
+                        .disabled(isWorking)
+                }
             }
         }
-        .padding(16)
-        .frame(width: 520)
-        .fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder
@@ -309,32 +313,26 @@ struct ImportDrivesView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-        BoundedList(rows: rows.count, rowHeight: RowHeight.double, visibleRows: 5) {
+        // Each drive takes the height it needs, the http question included. The sheet scrolls,
+        // so a file with many drives doesn't need a list of its own.
+        SettingsSection {
             ForEach(rows) { row in
-                VStack(alignment: .leading, spacing: 4) {
-                    ListRow(height: RowHeight.double) {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(row.entry.name)
-                            Text(result(of: row) ?? row.note ?? row.entry.shownLocation)
-                                .font(.caption)
-                                .foregroundStyle(isFailed(row) ? .red : .secondary)
-                                .lineLimit(2)
-                        }
-                    } controls: {
+                VStack(alignment: .leading, spacing: 6) {
+                    SettingRow(
+                        Text(verbatim: row.entry.name),
+                        caption: Text(verbatim: result(of: row) ?? row.note ?? row.entry.shownLocation),
+                        captionColor: isFailed(row) ? .red : .secondary
+                    ) {
                         Picker("What to do with \(row.entry.name)", selection: step(for: row)) {
                             ForEach(row.steps, id: \.self) { step in
                                 Text(step.title).tag(step)
                             }
                         }
-                        .labelsHidden()
-                        .frame(width: 210)
+                        .frame(width: Pane.valueColumn)
                         .disabled(results[row.id] != nil || isWorking)
                     }
                     if row.needsInsecureConsent, chosenStep(for: row) != .skip {
-                        ListRow(height: RowHeight.single) {
-                            Text("Send its password over plain http")
-                                .font(.caption)
-                        } controls: {
+                        SettingRow("Send its password over plain http") {
                             RowSwitch(label: "Allow plain http for \(row.entry.name)", isOn: allowed(row))
                         }
                     }

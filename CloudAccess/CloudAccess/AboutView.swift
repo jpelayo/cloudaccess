@@ -5,31 +5,42 @@ import CloudCore
 import CloudDesign
 import SwiftUI
 
-/// About CloudAccess, and the uninstall that starts from it. The window changes size to fit each
-/// page, so the steps, their checks and every message are on screen at once, with no scrolling
-/// but the list of steps.
+/// About CloudAccess, and the uninstall that starts from it. Each page has a size of its own, set
+/// rather than measured, so the window opens at it and nothing that appears during an uninstall
+/// resizes it. A page taller than its window scrolls inside it.
 struct AboutView: View {
     @Environment(Drives.self) private var drives
     /// Tells the window the size this page needs.
     let fit: (CGSize) -> Void
 
-    private var width: CGFloat {
-        drives.uninstaller == nil ? 340 : 480
+    static let aboutSize = CGSize(width: 340, height: 380)
+
+    @MainActor static var uninstallSize: CGSize {
+        CGSize(width: Pane.width, height: Pane.fitting(Pane.height))
+    }
+
+    @MainActor static func size(isUninstalling: Bool) -> CGSize {
+        isUninstalling ? uninstallSize : aboutSize
+    }
+
+    private var size: CGSize {
+        Self.size(isUninstalling: drives.uninstaller != nil)
     }
 
     var body: some View {
-        page
-            .padding(.horizontal, 20)
-            .padding(.top, 28)
-            .padding(.bottom, 20)
-            .frame(width: width)
-            .fixedSize(horizontal: false, vertical: true)
-            .onGeometryChange(for: CGSize.self) { $0.size } action: { fit($0) }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            // The window is sized to this content, title bar included, as Settings is. Left in the
-            // safe area, the content sat 28 points lower than measured, and the bottom margin and
-            // the edge of the last card fell outside the window.
-            .ignoresSafeArea(.container, edges: .top)
+        ScrollView {
+            page
+                .padding(.horizontal, 20)
+                .padding(.top, 28)
+                .padding(.bottom, 20)
+                .frame(maxWidth: .infinity, alignment: .top)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(width: size.width, height: size.height)
+        .onChange(of: drives.uninstaller == nil, initial: true) { fit(size) }
+        // The window is this size, title bar included, as Settings is. Left in the safe area, the
+        // content sat 28 points lower and the bottom fell outside the window.
+        .ignoresSafeArea(.container, edges: .top)
     }
 
     @ViewBuilder private var page: some View {

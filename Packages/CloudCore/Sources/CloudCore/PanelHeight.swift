@@ -20,3 +20,18 @@ public enum PanelHeight {
         return chrome + Double(min(rows, max(1, fitting))) * rowHeight
     }
 }
+
+/// How tall a settings window or sheet is. It's chosen, never measured from its content, so
+/// nothing that loads later can resize it. A screen too short for it makes it shorter, and what's
+/// inside scrolls.
+public enum PaneHeight {
+    /// Room for the title bar a sheet hangs from, the gap above the window, and a margin. The
+    /// Settings window opens near the top of the screen, so its sheets have the rest.
+    public static let reserved: Double = 100
+    /// Enough for a header, a footer and a few rows, on any screen.
+    public static let minimum: Double = 320
+
+    public static func fitting(_ ideal: Double, screenHeight: Double) -> Double {
+        max(minimum, min(ideal, screenHeight - reserved))
+    }
+}

@@ -34,6 +34,7 @@ struct ConnectionEditor: View {
     @State private var problem: String?
     @State private var browsing: FolderBrowsing?
     @State private var isBrowsing = false
+    @State private var hasSavedKey = false
 
     init(
         connection: Connection, saveRequests: Int, hasUnsavedEdits: Binding<Bool>,
@@ -76,10 +77,11 @@ struct ConnectionEditor: View {
             : String(localized: "Not saved yet")
     }
 
-    /// The chosen key's file name, as it is, or what the button does.
+    /// The chosen key's file name, as it is, or what the button does. Whether the drive already has
+    /// a key is read from the keychain once, when the page opens, not on every redraw.
     private var keyButtonTitle: String {
         if let privateKeyName { return privateKeyName }
-        return drives.signsInWithKey(connection) ? String(localized: "Replace…") : String(localized: "Choose…")
+        return hasSavedKey ? String(localized: "Replace…") : String(localized: "Choose…")
     }
 
     /// Only a mounted drive has anything to rebuild. An ejected one is just its saved details.
@@ -107,6 +109,8 @@ struct ConnectionEditor: View {
                         Text(kind.title)
                     }
                 }
+                // As wide as the fields above and below it.
+                .frame(width: Pane.fieldColumn)
             }
             FieldRow(label: "Host", text: $form.host)
             FieldRow(label: "Port", text: $form.port, prompt: form.kind.defaultPort)
@@ -160,6 +164,11 @@ struct ConnectionEditor: View {
         }
         .onChange(of: hasChanges, initial: true) {
             hasUnsavedEdits = hasChanges
+        }
+        .task(id: connection.id) {
+            if case .sftp = connection.endpoint {
+                hasSavedKey = drives.signsInWithKey(connection)
+            }
         }
         .onChange(of: saveRequests) {
             if canSave {

@@ -322,7 +322,8 @@ public final class RemoteEngine: RemoteBackend {
         public let deletedAt: Int64
         public let device: String
         public let isDirectory: Bool
-        /// Its details can't be trusted, so it can't be restored. It's purged by age.
+        /// Its details can't be trusted, so it can't be restored. It's purged by age, or deleted
+        /// by hand.
         public let isDamaged: Bool
         /// A save replaced this, so the file itself is still on the drive.
         public let isVersion: Bool
@@ -366,6 +367,14 @@ public final class RemoteEngine: RemoteBackend {
         values.path = id
         let restored: EngineItem = try await Self.call("trashRestore", values, path: .root)
         return RemotePath(restored.path)
+    }
+
+    /// Removes one entry from the trash for good, now, because a person chose it. One already gone
+    /// counts as done.
+    public func purgeFromTrash(_ id: String) async throws {
+        var values = Arguments(drive: driveID)
+        values.path = id
+        let _: Empty = try await Self.call("trashPurge", values, path: .root)
     }
 
     /// Clears what's past its time: old trash, abandoned uploads, and crashed claims.

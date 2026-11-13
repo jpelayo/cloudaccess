@@ -389,6 +389,32 @@ func (d *drive) restoreFromTrash(ctx context.Context, id string) (remoteItem, er
 	return restored, nil
 }
 
+// purgeFromTrash removes one entry for good, now, because a person chose it. It takes the claim a
+// restore takes, so a restore on another device can't lose its entry halfway, and only ever an
+// entry's own folder. An entry that's already gone counts as done, because that's what was asked,
+// and so replaying it is harmless.
+func (d *drive) purgeFromTrash(ctx context.Context, id string) error {
+	if d.server == nil || strings.ContainsAny(id, "/\\") || id == "" || id == "." || id == ".." {
+		return errNotInTrash
+	}
+	entryPath := trashFolder + "/" + id
+	held, err := acquireClaim(ctx, d.server, entryPath)
+	if err != nil {
+		return err
+	}
+	defer releaseClaim(d.server, held)
+	if _, err := d.server.statRaw(ctx, entryPath); err != nil {
+		if isNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	if err := held.stillOwned(ctx, d.server); err != nil {
+		return err
+	}
+	return d.server.removeAll(ctx, entryPath)
+}
+
 // maintenanceResult says what a maintenance pass cleared.
 type maintenanceResult struct {
 	PurgedEntries int `json:"purgedEntries"`

@@ -294,3 +294,86 @@ func TestTrashEntriesSayWhetherTheyAreFolders(t *testing.T) {
 		}
 	}
 }
+
+// trashed saves and deletes each name, and returns the trash's entry IDs by original path.
+func trashed(t *testing.T, d *drive, names ...string) map[string]string {
+	t.Helper()
+	ctx := context.Background()
+	for _, name := range names {
+		base := saved(t, d, name, name)
+		if err := d.trash(ctx, name, base.Item.Version); err != nil {
+			t.Fatal(err)
+		}
+	}
+	entries, err := d.trashEntries(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := map[string]string{}
+	for _, entry := range entries {
+		ids[entry.OriginalPath] = entry.ID
+	}
+	return ids
+}
+
+// A person can delete what they choose for good, now, and only that.
+func TestAnEntryCanBeDeletedForGood(t *testing.T) {
+	ctx := context.Background()
+	a, _, _ := twoDevices(t)
+	ids := trashed(t, a, "keep.txt", "gone.txt")
+
+	if err := a.purgeFromTrash(ctx, ids["gone.txt"]); err != nil {
+		t.Fatal(err)
+	}
+	remaining, err := a.trashEntries(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remaining) != 1 || remaining[0].ID != ids["keep.txt"] {
+		t.Fatalf("left in the trash: %+v", remaining)
+	}
+	// Pressed twice, or replayed: it's already gone, which is what was asked.
+	if err := a.purgeFromTrash(ctx, ids["gone.txt"]); err != nil {
+		t.Errorf("second delete = %v", err)
+	}
+	if _, err := a.restoreFromTrash(ctx, ids["keep.txt"]); err != nil {
+		t.Errorf("the other entry can't be restored: %v", err)
+	}
+}
+
+// Only an entry's own folder can go, never anything beside or above it.
+func TestDeletingByHandRefusesAnythingButAnEntryName(t *testing.T) {
+	ctx := context.Background()
+	a, _, _ := twoDevices(t)
+	trashed(t, a, "doc.txt")
+	for _, id := range []string{"", ".", "..", "a/b", "../x", `a\b`} {
+		if err := a.purgeFromTrash(ctx, id); !errors.Is(err, errNotInTrash) {
+			t.Errorf("%q = %v", id, err)
+		}
+	}
+	if entries, _ := a.trashEntries(ctx); len(entries) != 1 {
+		t.Errorf("entries = %+v", entries)
+	}
+}
+
+// A restore on another device holds the entry's claim. The delete waits for it rather than
+// pulling the entry out from under it.
+func TestDeletingByHandWaitsForARestoreInProgress(t *testing.T) {
+	ctx := context.Background()
+	a, b, _ := twoDevices(t)
+	id := trashed(t, a, "doc.txt")["doc.txt"]
+	held, err := acquireClaim(ctx, b.server, trashFolder+"/"+id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseClaim(b.server, held)
+
+	short, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+	if err := a.purgeFromTrash(short, id); err == nil {
+		t.Fatal("deleted while another device held the entry")
+	}
+	if entries, _ := a.trashEntries(ctx); len(entries) != 1 {
+		t.Errorf("entries = %+v", entries)
+	}
+}

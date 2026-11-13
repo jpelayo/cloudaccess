@@ -34,6 +34,24 @@ import Testing
     }
 }
 
+/// A settings window or sheet has a height chosen for it, never measured from what it holds, and
+/// it always fits the screen.
+@Suite struct PaneHeightTests {
+    @Test func aPaneKeepsItsHeightWhereThereIsRoom() {
+        #expect(PaneHeight.fitting(600, screenHeight: 1000) == 600)
+    }
+
+    /// A 13-inch screen: it keeps room for the menu bar and the title bar it hangs from.
+    @Test func aShortScreenMakesItShorter() {
+        #expect(PaneHeight.fitting(600, screenHeight: 700) == 700 - PaneHeight.reserved)
+    }
+
+    @Test func itNeverGetsTooSmallToUse() {
+        #expect(PaneHeight.fitting(600, screenHeight: 300) == PaneHeight.minimum)
+        #expect(PaneHeight.fitting(600, screenHeight: 0) == PaneHeight.minimum)
+    }
+}
+
 @Suite struct DriveDetailsTests {
     @Test func aDriveSaysWhereItIsAndWhatKindItIs() throws {
         let url = try #require(URL(string: "https://example.com/cloudmount-test"))

@@ -807,7 +807,7 @@ func (d *drive) remove(ctx context.Context, p string) error {
 // changesTheDrive lists every call that writes to the server. Read-only is checked here, in one
 // place, so no path around the app's own checks can write.
 var changesTheDrive = map[string]bool{
-	"trashRestore": true, "maintain": true, "setPolicy": true, "retireVault": true, "probe": true,
+	"trashRestore": true, "trashPurge": true, "maintain": true, "setPolicy": true, "retireVault": true, "probe": true,
 	"upload": true, "save": true, "stage": true, "commit": true, "mkdir": true, "move": true,
 	"delete": true, "trash": true, "cleanControlFolder": true,
 }
@@ -896,6 +896,8 @@ func dispatch(ctx context.Context, method string, arguments []byte, bytes *atomi
 		return d.trashEntries(ctx)
 	case "trashRestore":
 		return d.restoreFromTrash(ctx, a.Path)
+	case "trashPurge":
+		return nil, d.purgeFromTrash(ctx, a.Path)
 	case "maintain":
 		return d.maintain(ctx)
 	case "controlFolder":

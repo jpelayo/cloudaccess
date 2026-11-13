@@ -61,7 +61,8 @@ struct ServerFolderPicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Design.sectionGap) {
             header
-            BoundedList(rows: rows, rowHeight: RowHeight.single, visibleRows: 10) {
+            // Always its full height, so the sheet doesn't change size as folders load or open.
+            BoundedList(rows: rows, rowHeight: RowHeight.single, visibleRows: 10, reserves: true) {
                 if isNaming {
                     nameRow
                 }
@@ -90,17 +91,17 @@ struct ServerFolderPicker: View {
                     }
                 }
             }
-            // The chosen folder's place, shown only once one is chosen.
-            if let chosenPlace {
-                Text(verbatim: chosenPlace)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .truncationMode(.head)
-            }
+            // The chosen folder's place. Its two lines are kept free until one is chosen.
+            Text(verbatim: chosenPlace ?? "")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .truncationMode(.head)
+                .frame(maxWidth: .infinity, minHeight: 30, alignment: .topLeading)
         }
         .padding(16)
-        .frame(width: 480)
+        // Narrower than the sheet it opens from, so it reads as a sheet of its own.
+        .frame(width: Pane.innerWidth)
         .fixedSize(horizontal: false, vertical: true)
         .task { await tree.load() }
         .toolbar {

@@ -20,7 +20,7 @@ You may already pay for storage, such as a storage box from a hosting company, a
 - **It doesn't fill your Mac.** Files stay on your storage and download when you open them. Copies you haven't used for a while are removed from the Mac and remain on the storage.
 - **You choose what stays.** Mark a folder to keep it downloaded, and it's available even without internet.
 - **It can encrypt your files.** With encryption on, files are encrypted on your Mac before they leave it. Whoever runs the storage sees unreadable data, not your files or their names.
-- **It doesn't lose your work.** Once your Mac confirms a save, the save is kept. If two computers change the same file at the same time, both versions are kept. Deleted files stay in a trash on the storage for a week, unless you choose otherwise. This is Safe mode, the default. See [Drive modes](#drive-modes).
+- **It doesn't lose your work.** Once your Mac confirms a save, the save is kept. If two computers change the same file at the same time, both versions are kept. Deleted files stay in a trash on the storage for a week, unless you choose otherwise. You can restore them, or tick some and delete them for good right away, from the drive's Deleted Files page. This is Safe mode, the default. See [Drive modes](#drive-modes).
 - **Your drives move with you.** One encrypted file takes your drives and their passwords to another Mac or an iPhone, by AirDrop.
 - **Nothing locks you in.** Files are stored in standard formats, so other tools can always read them, even without this app.
 
