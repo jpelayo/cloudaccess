@@ -13,6 +13,8 @@ struct FolderBrowsing: Identifiable {
     let engine: RemoteEngine
     /// The folder already in the form, relative to `start`, if it's inside it.
     let typed: RemotePath?
+    /// Whether + may make a folder. A read-only drive writes nothing, not even from here.
+    var canMake = true
 }
 
 /// Chooses where a new drive goes, from the folders on its server. A folder's name goes inside
@@ -33,10 +35,9 @@ struct ServerFolderPicker: View {
         self.session = session
         self.chosen = chosen
         let engine = session.engine
-        _tree = State(initialValue: FolderTree(
-            chosen: session.typed,
-            list: { try await engine.list($0) },
-            make: { try await engine.createDirectory($0) }))
+        let list: FolderTree.Lister = { try await engine.list($0) }
+        let make: FolderTree.Maker = { try await engine.createDirectory($0) }
+        _tree = State(initialValue: FolderTree(chosen: session.typed, list: list, make: session.canMake ? make : nil))
     }
 
     private var isSFTP: Bool {
@@ -136,16 +137,18 @@ struct ServerFolderPicker: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 8)
-            Button {
-                isNaming = true
-                isNameFocused = true
-            } label: {
-                Image(systemName: "plus")
+            if session.canMake {
+                Button {
+                    isNaming = true
+                    isNameFocused = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .buttonStyle(.icon)
+                .disabled(tree.isLoading)
+                .help("New Folder")
+                .accessibilityLabel(Text("New Folder"))
             }
-            .buttonStyle(.icon)
-            .disabled(tree.isLoading)
-            .help("New Folder")
-            .accessibilityLabel(Text("New Folder"))
         }
     }
 
