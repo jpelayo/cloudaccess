@@ -32,6 +32,8 @@ struct ConnectionEditor: View {
     @State private var pendingMove: Connection?
     @State private var isSaving = false
     @State private var problem: String?
+    @State private var browsing: FolderBrowsing?
+    @State private var isBrowsing = false
 
     init(
         connection: Connection, saveRequests: Int, hasUnsavedEdits: Binding<Bool>,
@@ -57,6 +59,10 @@ struct ConnectionEditor: View {
 
     private var needsConsent: Bool {
         form.needsInsecureConsent(comparedTo: connection)
+    }
+
+    private var canBrowse: Bool {
+        !isBrowsing && !isSaving && form.tidied.browsingConnection() != nil && (!needsConsent || allowsInsecure)
     }
 
     private var canSave: Bool {
@@ -105,6 +111,11 @@ struct ConnectionEditor: View {
             FieldRow(label: "Host", text: $form.host)
             FieldRow(label: "Port", text: $form.port, prompt: form.kind.defaultPort)
             FieldRow(label: "Folder", text: $form.path)
+            SettingRow("Choose it on the server") {
+                Button("Browse…") { browse() }
+                    .buttonStyle(.pill)
+                    .disabled(!canBrowse)
+            }
             FieldRow(label: "User", text: $form.username)
             FieldRow(label: "Password", text: $password, prompt: "Unchanged", isSecure: true)
             if form.kind == .sftp {
@@ -159,6 +170,13 @@ struct ConnectionEditor: View {
         }
         .fileImporter(isPresented: $isChoosingKey, allowedContentTypes: [.item], onCompletion: loadKey)
         .fileDialogBrowserOptions(.includeHiddenFiles)
+        .sheet(item: $browsing) { session in
+            ServerFolderPicker(session: session) { folder in
+                form.path = session.start.folderField(for: folder)
+            }
+            .presentationBackground(.regularMaterial)
+            .presentationSizing(.fitted)
+        }
         .onChange(of: [form.kind.rawValue, form.host, form.port]) {
             // A different address is a different server, so it can't inherit this trust.
             hostKey = nil
@@ -186,6 +204,45 @@ struct ConnectionEditor: View {
         } catch {
             let reason = error.localizedDescription
             problem = String(localized: "That key can't be read: \(reason)")
+        }
+    }
+
+    /// Connects to the server as the fields now say, with nothing saved, to choose a folder from
+    /// its tree. The chosen folder fills the field, and Save moves the drive as for a typed one.
+    private func browse() {
+        form = form.tidied
+        let start = form.browseStart
+        // The server's saved identity still holds while host and port are unchanged.
+        let knownKey = hostKey?.key ?? form.applied(to: connection)?.hostKey
+        guard var probe = start.browsingConnection(hostKey: knownKey) else {
+            problem = String(localized: "Check the server's details.")
+            return
+        }
+        probe.allowsInsecure = needsConsent ? allowsInsecure : connection.allowsInsecure
+        isBrowsing = true
+        problem = nil
+        Task {
+            defer { isBrowsing = false }
+            do {
+                #if DEBUG
+                guard probe.isTestDrive else { throw Drives.DriveError.notATestFolder }
+                #endif
+                // A new server's identity is shown first, as Save does.
+                if case .sftp(let host, let port) = probe.endpoint, probe.hostKey == nil {
+                    hostKey = try await RemoteEngine.hostKey(host: host, port: port)
+                    problem = String(localized: "Check the server's identity below, then press Browse again.")
+                    return
+                }
+                let credentials = try drives.browsingSignIn(for: connection, editedBy: signIn)
+                let engine = try await RemoteEngine(connection: probe, credentials: credentials)
+                browsing = FolderBrowsing(
+                    start: start, engine: engine, typed: form.typedFolder(inside: start),
+                    canMake: !connection.isReadOnly)
+            } catch {
+                problem = String(localized: "Couldn't connect. Checking why…")
+                let reason = await ConnectionChecks.explain(error, for: probe, device: .mac)
+                problem = String(localized: "Couldn't connect: \(reason)")
+            }
         }
     }
 
