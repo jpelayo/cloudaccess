@@ -158,7 +158,9 @@ struct SettingsView: View {
                         }
                     }
                     .labelsHidden()
-                    .frame(width: 140)
+                    // Flush right, like every other row's control.
+                    .fixedSize()
+                    .frame(width: 140, alignment: .trailing)
                 }
                 if languageChanged {
                     if LoginAgent.canRestart {
