@@ -181,7 +181,8 @@ public final class ConnectionChecks {
             for connection in byServer[target] ?? [] {
                 let finding = ConnectionFinding.decide(
                     facts, engine: reasons[connection.id] ?? .unknown, host: target.host, port: target.port,
-                    isSFTP: target.isSFTP, device: device, otherServersOnline: otherServersOnline(connection),
+                    isSFTP: target.isSFTP, usesTLS: target.usesTLS, device: device,
+                    otherServersOnline: otherServersOnline(connection),
                     checked: now())
                 findings[connection.id] = finding
                 log(finding.logLine)
@@ -206,7 +207,7 @@ public final class ConnectionChecks {
         let facts = await ConnectionCheck.run(target, network: network, asksTheService: true)
         return ConnectionFinding.decide(
             facts, engine: reason, host: target.host, port: target.port, isSFTP: target.isSFTP,
-            device: device, otherServersOnline: false
+            usesTLS: target.usesTLS, device: device, otherServersOnline: false
         ).sentence
     }
 }

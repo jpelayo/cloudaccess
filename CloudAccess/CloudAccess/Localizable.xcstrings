@@ -51,16 +51,6 @@
         }
       }
     },
-    "%@. Your Mac is low on space. Files stay on it until they're uploaded." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@. Su Mac tiene poco espacio. Los archivos se quedan en él hasta que se suban."
-          }
-        }
-      }
-    },
     "%@/s" : {
       "localizations" : {
         "es" : {
@@ -228,46 +218,6 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld archivos fallidos"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld files" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld file"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld files"
-                }
-              }
-            }
-          }
-        },
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld archivo"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld archivos"
                 }
               }
             }
@@ -528,66 +478,6 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld archivos por subir"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld files, about %@ to go" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$#@files@, about %2$@ to go"
-          },
-          "substitutions" : {
-            "files" : {
-              "argNum" : 1,
-              "formatSpecifier" : "lld",
-              "variations" : {
-                "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "translated",
-                      "value" : "%arg file"
-                    }
-                  },
-                  "other" : {
-                    "stringUnit" : {
-                      "state" : "translated",
-                      "value" : "%arg files"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$#@files@, faltan unos %2$@"
-          },
-          "substitutions" : {
-            "files" : {
-              "argNum" : 1,
-              "formatSpecifier" : "lld",
-              "variations" : {
-                "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "translated",
-                      "value" : "%arg archivo"
-                    }
-                  },
-                  "other" : {
-                    "stringUnit" : {
-                      "state" : "translated",
-                      "value" : "%arg archivos"
-                    }
-                  }
                 }
               }
             }
@@ -1213,16 +1103,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Compruebe que coincide con su servidor y pulse Guardar para confiar en ella."
-          }
-        }
-      }
-    },
-    "Checked at %@. CloudAccess also checks every 30 seconds." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Comprobado a las %@. CloudAccess también comprueba cada 30 segundos."
           }
         }
       }
@@ -3679,16 +3559,6 @@
         }
       }
     },
-    "Server last checked" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Última comprobación del servidor"
-          }
-        }
-      }
-    },
     "Set up CloudWanderer" : {
       "localizations" : {
         "es" : {
@@ -3999,12 +3869,492 @@
         }
       }
     },
-    "syncing %lld" : {
+    "uploading %lld files" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "uploading %lld file"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "uploading %lld files"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "subiendo %lld archivo"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "subiendo %lld archivos"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld files to upload on %lld drives" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "sincronizando %lld"
+            "value" : "%lld archivos por subir en %lld unidades"
+          }
+        }
+      }
+    },
+    "%@ left, at %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quedan %@, a %@"
+          }
+        }
+      }
+    },
+    "%@ left" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quedan %@"
+          }
+        }
+      }
+    },
+    "%@ of %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ de %@"
+          }
+        }
+      }
+    },
+    "And %lld more waiting" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Y %lld más en espera"
+          }
+        }
+      }
+    },
+    "Your Mac is low on space. Files stay on it until they're uploaded." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Su Mac tiene poco espacio. Los archivos se quedan en él hasta que se suban."
+          }
+        }
+      }
+    },
+    "Server last checked: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Última comprobación del servidor: %@"
+          }
+        }
+      }
+    },
+    "Your files are still on this Mac. What you save uploads when the connection returns." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sus archivos siguen en este Mac. Lo que guarde se subirá cuando vuelva la conexión."
+          }
+        }
+      }
+    },
+    "Your files are still on this Mac. Nothing uploads until this is fixed." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sus archivos siguen en este Mac. No se subirá nada hasta que se solucione."
+          }
+        }
+      }
+    },
+    "This Mac's network changed, or the Mac just woke. CloudAccess is connecting the drive again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La red de este Mac ha cambiado, o el Mac acaba de despertar. CloudAccess vuelve a conectar la unidad."
+          }
+        }
+      }
+    },
+    "Checked at %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobado a las %@"
+          }
+        }
+      }
+    },
+    "CloudAccess tries again every 30 seconds." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudAccess lo vuelve a intentar cada 30 segundos."
+          }
+        }
+      }
+    },
+    "Checking the connection…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobando la conexión…"
+          }
+        }
+      }
+    },
+    "CloudAccess couldn't connect, and is checking why." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudAccess no ha podido conectar y está comprobando por qué."
+          }
+        }
+      }
+    },
+    "Open General" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir General"
+          }
+        }
+      }
+    },
+    "Turn it on, and the drive connects by itself." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actívelo y la unidad se conectará sola."
+          }
+        }
+      }
+    },
+    "Allow CloudAccess there, and the drive connects by itself." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permita CloudAccess ahí y la unidad se conectará sola."
+          }
+        }
+      }
+    },
+    "Open System Settings…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes del Sistema…"
+          }
+        }
+      }
+    },
+    "Address" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dirección"
+          }
+        }
+      }
+    },
+    "Correct it in the General tab." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Corríjala en la pestaña General."
+          }
+        }
+      }
+    },
+    "Check it in the General tab." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compruébelo en la pestaña General."
+          }
+        }
+      }
+    },
+    "Protocol and port" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protocolo y puerto"
+          }
+        }
+      }
+    },
+    "Check them in the General tab." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compruébelos en la pestaña General."
+          }
+        }
+      }
+    },
+    "Connection to the server" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conexión con el servidor"
+          }
+        }
+      }
+    },
+    "Works" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funciona"
+          }
+        }
+      }
+    },
+    "Sign-in" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicio de sesión"
+          }
+        }
+      }
+    },
+    "Accepted" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aceptado"
+          }
+        }
+      }
+    },
+    "Refused" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechazado"
+          }
+        }
+      }
+    },
+    "Last try" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Último intento"
+          }
+        }
+      }
+    },
+    "The server refuses the sign-in" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El servidor rechaza el inicio de sesión"
+          }
+        }
+      }
+    },
+    "The user name or password is no longer valid." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El nombre de usuario o la contraseña ya no son válidos."
+          }
+        }
+      }
+    },
+    "Enter it again in the General tab." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introdúzcala de nuevo en la pestaña General."
+          }
+        }
+      }
+    },
+    "The encryption password isn't right" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La contraseña de cifrado no es correcta"
+          }
+        }
+      }
+    },
+    "The encryption password saved on this Mac can't read the files on the server." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con la contraseña de cifrado guardada en este Mac no se pueden leer los archivos del servidor."
+          }
+        }
+      }
+    },
+    "Wrong password" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraseña incorrecta"
+          }
+        }
+      }
+    },
+    "Encrypted drive retired" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unidad cifrada retirada"
+          }
+        }
+      }
+    },
+    "This encrypted drive was retired when its encryption password changed." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta unidad cifrada se retiró al cambiar su contraseña de cifrado."
+          }
+        }
+      }
+    },
+    "Retired" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retirada"
+          }
+        }
+      }
+    },
+    "The server's identity has changed" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La identidad del servidor ha cambiado"
+          }
+        }
+      }
+    },
+    "Server's identity" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identidad del servidor"
+          }
+        }
+      }
+    },
+    "Compare the two keys in the General tab." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare las dos claves en la pestaña General."
+          }
+        }
+      }
+    },
+    "Different" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distinta"
+          }
+        }
+      }
+    },
+    "Server not supported" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servidor no compatible"
+          }
+        }
+      }
+    },
+    "Server features" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funciones del servidor"
+          }
+        }
+      }
+    },
+    "One is missing" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falta una"
           }
         }
       }

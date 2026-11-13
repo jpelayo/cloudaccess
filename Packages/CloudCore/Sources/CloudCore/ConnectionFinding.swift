@@ -98,7 +98,7 @@ public struct ConnectionFacts: Equatable, Sendable {
 /// Why a server can't be reached, as far as checking proved it, and nothing further. When the
 /// evidence fits several causes, the sentence names them all instead of picking one.
 public struct ConnectionFinding: Equatable, Sendable {
-    public enum Kind: Equatable, Sendable {
+    public enum Kind: Equatable, Sendable, CaseIterable {
         // This device: one fix mends every drive it touches.
         case noNetwork
         case mobileDataNotAllowed
@@ -155,6 +155,12 @@ public struct ConnectionFinding: Equatable, Sendable {
         public var title: String
         public var result: String
         public var mark: Mark
+
+        public init(title: String, result: String, mark: Mark) {
+            self.title = title
+            self.result = result
+            self.mark = mark
+        }
     }
 
     public var kind: Kind
@@ -215,15 +221,28 @@ public struct ConnectionFinding: Equatable, Sendable {
 
     /// Decides the finding from what the check saw. Every branch needs the step that proves it,
     /// and a cause nothing proved is never named.
-    /// - Parameter engine: Why the engine itself last failed, used only once every step passed.
+    /// - Parameters:
+    ///   - engine: Why the engine itself last failed, used only once every step passed.
+    ///   - usesTLS: Whether a WebDAV drive uses https. Nil means it does.
     public static func decide(
         _ facts: ConnectionFacts, engine: UnreachableReason, host: String, port: Int, isSFTP: Bool,
-        device: DeviceKind, otherServersOnline: Bool, checked: Date = Date()
+        usesTLS: Bool? = nil, device: DeviceKind, otherServersOnline: Bool, checked: Date = Date()
     ) -> ConnectionFinding {
-        ConnectionFinding(
-            kind: kind(facts, engine: engine), host: host, port: port, isSFTP: isSFTP, device: device,
-            otherServersOnline: otherServersOnline, steps: steps(facts, port: port, isSFTP: isSFTP, device: device),
+        let kind = kind(facts, engine: engine)
+        let chain = Chain(host: host, port: port, isSFTP: isSFTP, usesTLS: !isSFTP && (usesTLS ?? true), device: device)
+        return ConnectionFinding(
+            kind: kind, host: host, port: port, isSFTP: isSFTP, device: device,
+            otherServersOnline: otherServersOnline, steps: steps(facts, kind: kind, chain: chain),
             checked: checked, certificateExpiry: facts.certificateExpiry)
+    }
+
+    /// What a drive's connection goes through, in order, so each step can be listed, reached or not.
+    struct Chain {
+        var host: String
+        var port: Int
+        var isSFTP: Bool
+        var usesTLS: Bool
+        var device: DeviceKind
     }
 
     static func kind(_ facts: ConnectionFacts, engine: UnreachableReason) -> Kind {
@@ -312,36 +331,54 @@ public struct ConnectionFinding: Equatable, Sendable {
         }
     }
 
-    /// The check's steps as a person reads them, up to the one that failed.
-    static func steps(_ facts: ConnectionFacts, port: Int, isSFTP: Bool, device: DeviceKind) -> [Step] {
+    /// Every step a connection goes through, as a person reads them. Once one fails, each later
+    /// step is still listed, as not checked, so nothing after a failure looks fine. When every
+    /// check passes, the drive's own request is the step that failed: without it, a row of green
+    /// beside "not connected" says nothing.
+    static func steps(_ facts: ConnectionFacts, kind: Kind, chain: Chain) -> [Step] {
         var steps: [Step] = []
-        let mac = device == .mac
-        let network = Words.text(mac ? "This Mac's network" : "This iPhone's network")
-        guard facts.network.isUp else {
-            steps.append(Step(title: network, result: Words.text("Not connected"), mark: .failed))
-            return steps
+        var hasFailed = false
+        func add(_ title: String, _ result: String, _ mark: Step.Mark) {
+            if hasFailed {
+                steps.append(Step(title: title, result: Words.text("Not checked"), mark: .notReached))
+                return
+            }
+            steps.append(Step(title: title, result: result, mark: mark))
+            if mark == .failed { hasFailed = true }
         }
-        steps.append(Step(title: network, result: Words.text("Connected"), mark: .passed))
+        func notChecked(_ title: String) {
+            add(title, Words.text("Not checked"), .notReached)
+        }
+
+        let network = Words.text(chain.device == .mac ? "This Mac's network" : "This iPhone's network")
+        if facts.network.isUp {
+            add(network, Words.text("Connected"), .passed)
+        } else {
+            let denied: [DeviceNetwork.Unsatisfied?] = [.cellularDenied, .wifiDenied, .localNetworkDenied]
+            add(network, Words.text(denied.contains(facts.network.unsatisfied) ? "Not allowed" : "Not connected"), .failed)
+        }
 
         if [.tailscaleName, .tailscaleAddress, .sharedVPNAddress].contains(facts.place) {
             let on = facts.network.hasTailnetAddress
-            steps.append(Step(title: "Tailscale", result: Words.text(on ? "On" : "Off"), mark: on ? .passed : .failed))
-            if !on { return steps }
+            add("Tailscale", Words.text(on ? "On" : "Off"), on ? .passed : .failed)
         }
 
-        switch facts.lookup {
-        case .found?:
-            steps.append(Step(title: Words.text("Name"), result: Words.text("Found"), mark: .passed))
-        case .notFound?:
-            steps.append(Step(title: Words.text("Name"), result: Words.text("Doesn't exist"), mark: .failed))
-            return steps
-        case .noAnswer?:
-            steps.append(Step(title: Words.text("Name"), result: Words.text("No answer"), mark: .failed))
-            return steps
-        case .notNeeded?, nil:
-            break
+        // An address has nothing to look up.
+        if IPRange.bytes(of: chain.host) == nil {
+            let name = Words.text("Name")
+            switch facts.lookup {
+            case .found?, .notNeeded?:
+                add(name, Words.text("Found"), .passed)
+            case .notFound?:
+                add(name, Words.text("Doesn't exist"), .failed)
+            case .noAnswer?:
+                add(name, Words.text(facts.port == .localNetworkDenied ? "Not allowed" : "No answer"), .failed)
+            case nil:
+                notChecked(name)
+            }
         }
 
+        let routeTitle = Words.text("Route")
         if let route = facts.route {
             let result: String
             switch route {
@@ -351,48 +388,68 @@ public struct ConnectionFinding: Equatable, Sendable {
             case .router: result = Words.text("Through the router")
             case .unroutable: result = Words.text("None")
             }
-            steps.append(Step(title: Words.text("Route"), result: result, mark: route == .unroutable ? .failed : .passed))
-            if route == .unroutable { return steps }
+            add(routeTitle, result, route == .unroutable || kind == .tailscaleBypassed ? .failed : .passed)
+        } else {
+            notChecked(routeTitle)
         }
 
-        let portTitle = Words.format("Port %lld", port)
+        let portTitle = Words.format("Port %lld", chain.port)
         switch facts.port {
         case .open?:
-            steps.append(Step(title: portTitle, result: Words.text("Accepts connections"), mark: .passed))
+            add(portTitle, Words.text("Accepts connections"), .passed)
         case .refused?:
-            steps.append(Step(title: portTitle, result: Words.text("Refused"), mark: .failed))
+            add(portTitle, Words.text("Refused"), .failed)
         case .hostDown?, .timedOut?:
-            steps.append(Step(title: portTitle, result: Words.text("No answer"), mark: .failed))
+            add(portTitle, Words.text("No answer"), .failed)
         case .localNetworkDenied?:
-            steps.append(Step(title: portTitle, result: Words.text("Not allowed"), mark: .failed))
+            add(portTitle, Words.text("Not allowed"), .failed)
         case .noRoute?:
-            steps.append(Step(title: portTitle, result: Words.text("No route"), mark: .failed))
+            add(portTitle, Words.text("No route"), .failed)
         case nil:
-            steps.append(Step(title: portTitle, result: Words.text("Not checked"), mark: .notReached))
+            notChecked(portTitle)
         }
-        guard facts.port == .open else { return steps }
 
-        let serviceTitle = isSFTP ? Words.text("SFTP service") : "HTTPS"
-        switch facts.answer {
-        case .ssh?, .tls?:
-            steps.append(Step(title: serviceTitle, result: Words.text("Answered"), mark: .passed))
-        case .notSSH?:
-            steps.append(Step(title: serviceTitle, result: Words.text("Not SFTP"), mark: .failed))
-        case .closed?:
-            steps.append(Step(title: serviceTitle, result: Words.text("Closed the connection"), mark: .failed))
-        case .silent?:
-            steps.append(Step(title: serviceTitle, result: Words.text("No answer"), mark: .failed))
-        case .certificateExpired?:
-            steps.append(Step(title: serviceTitle, result: Words.text("Certificate expired"), mark: .failed))
-        case .certificateUntrusted?:
-            steps.append(Step(title: serviceTitle, result: Words.text("Certificate not trusted"), mark: .failed))
-        case .certificateWrongName?:
-            steps.append(Step(title: serviceTitle, result: Words.text("Certificate for another name"), mark: .failed))
-        case .notTLS?:
-            steps.append(Step(title: serviceTitle, result: Words.text("Not HTTPS"), mark: .failed))
-        case .notAsked?, nil:
-            break
+        let serviceTitle: String? = chain.isSFTP ? Words.text("SFTP service") : chain.usesTLS ? "HTTPS" : nil
+        if let serviceTitle {
+            switch facts.answer {
+            case .ssh?, .tls?:
+                add(serviceTitle, Words.text("Answered"), .passed)
+            case .notSSH?:
+                add(serviceTitle, Words.text("Not SFTP"), .failed)
+            case .closed?:
+                add(serviceTitle, Words.text("Closed the connection"), .failed)
+            case .silent?:
+                add(serviceTitle, Words.text("No answer"), .failed)
+            case .certificateExpired?:
+                add(serviceTitle, Words.text("Certificate expired"), .failed)
+            case .certificateUntrusted?:
+                add(serviceTitle, Words.text("Certificate not trusted"), .failed)
+            case .certificateWrongName?:
+                add(serviceTitle, Words.text("Certificate for another name"), .failed)
+            case .notTLS?:
+                add(serviceTitle, Words.text("Not HTTPS"), .failed)
+            case .notAsked?, nil:
+                // Not due to be asked this time. The engine's own error can still prove it.
+                switch kind {
+                case .certificateExpired: add(serviceTitle, Words.text("Certificate expired"), .failed)
+                case .certificateUntrusted: add(serviceTitle, Words.text("Certificate not trusted"), .failed)
+                case .certificateWrongName: add(serviceTitle, Words.text("Certificate for another name"), .failed)
+                case .notHTTPS: add(serviceTitle, Words.text("Not HTTPS"), .failed)
+                default: notChecked(serviceTitle)
+                }
+            }
         }
+
+        let request = chain.isSFTP ? Words.text("Sign-in") : "WebDAV"
+        let result: String
+        switch kind {
+        case .closedAtOnce: result = Words.text("Closed the connection")
+        case .tooSlow: result = Words.text("Too slow")
+        case .notWebDAV: result = Words.text("Unexpected answer")
+        case .refused: result = Words.text("Refused")
+        default: result = Words.text("Failed")
+        }
+        add(request, result, .failed)
         return steps
     }
 
@@ -478,6 +535,131 @@ public struct ConnectionFinding: Equatable, Sendable {
         case .couldntTell:
             return Words.format(mac ? "%@ can't be reached, and CloudAccess couldn't tell why. The details are in the log."
                 : "%@ can't be reached, and CloudWanderer couldn't tell why. What it checked is in the log.", shownHost)
+        }
+    }
+
+    /// Whether only the server, or the way to it, can mend this, so the app waits and keeps trying
+    /// rather than asking a person to change something.
+    public var waitsForTheServer: Bool {
+        switch kind {
+        case .tailnetPeerSilent, .nameNotAnswered, .localNameSilent, .noRoute, .nothingAnswersHere, .noAnswer,
+             .closedAtOnce, .silentService, .certificateWrongName, .notWebDAV, .tooSlow, .couldntTell:
+            true
+        default:
+            false
+        }
+    }
+
+    /// The finding in a few words, for the top of a drive's Information page. The server's name
+    /// has a line of its own there, so it's never in here.
+    public var title: String {
+        let mac = device == .mac
+        if waitsForTheServer {
+            return Words.text("Waiting for the server")
+        }
+        switch kind {
+        case .noNetwork: return Words.text(mac ? "This Mac has no network" : "This iPhone has no network")
+        case .mobileDataNotAllowed: return Words.text("Mobile data isn't allowed")
+        case .wifiNotAllowed: return Words.text("Wi-Fi isn't allowed")
+        case .tailscaleOff: return Words.text("Tailscale is off")
+        case .localNetworkDenied: return Words.text("Local network permission is missing")
+        case .tailscaleBypassed: return Words.text("Another VPN is in the way")
+        case .tailnetNameUnknown: return Words.text("Tailscale doesn't know that name")
+        case .nameNotFound: return Words.text("No server has that name")
+        case .privateAddressElsewhere: return Words.text("The server is on another network")
+        case .refused: return Words.text(isSFTP ? "The SFTP service isn't running" : "The WebDAV service isn't running")
+        case .notSFTP: return Words.text("Not an SFTP server")
+        case .notHTTPS: return Words.text("The server doesn't use HTTPS")
+        case .certificateExpired: return Words.text("The server's certificate has expired")
+        case .certificateUntrusted:
+            return Words.text(mac ? "This Mac doesn't trust the certificate" : "This iPhone doesn't trust the certificate")
+        default: return Words.text("Waiting for the server")
+        }
+    }
+
+    /// Why, in a sentence or two under the title, without the server's name.
+    public var cause: String {
+        let mac = device == .mac
+        switch kind {
+        case .noNetwork:
+            return Words.text(mac
+                ? "This Mac isn't connected to any network. The drive connects by itself when it's back."
+                : "This iPhone isn't connected to any network. The drive connects by itself when it's back.")
+        case .mobileDataNotAllowed, .wifiNotAllowed:
+            return sentence
+        case .tailscaleOff:
+            return Words.text(Tailnet.isTailscaleOnly(host: host)
+                ? "This server can only be reached through Tailscale."
+                : "This server can only be reached through Tailscale, or the VPN that reaches it.")
+        case .localNetworkDenied:
+            return Words.text(mac
+                ? "CloudAccess isn't allowed to reach devices on your local network."
+                : "CloudWanderer isn't allowed to reach devices on your local network.")
+        case .tailscaleBypassed:
+            return Words.text(mac
+                ? "Tailscale is on, but this Mac sends this server's traffic another way. Another VPN may be in the way."
+                : "Tailscale is on, but this iPhone sends this server's traffic another way. Another VPN may be in the way.")
+        case .tailnetPeerSilent:
+            return Words.text("Tailscale is on, but the server doesn't answer through it. It may be off or asleep, or signed out of Tailscale.")
+        case .tailnetNameUnknown:
+            return Words.text("The device may have been renamed, or removed from your tailnet.")
+        case .nameNotFound:
+            return Words.text("The drive's address may have a typo.")
+        case .nameNotAnswered:
+            return Words.text(otherServersOnline
+                ? "Looking up the name got no answer, though your other drives connect. The name's own server may be down."
+                : "Looking up the name got no answer. The network may need a sign-in page, its router may be down, or the name's own server may be.")
+        case .localNameSilent:
+            return Words.text("No device with that name answered on this network. It may be off, or on another network.")
+        case .privateAddressElsewhere:
+            return Words.text(mac
+                ? "This address belongs to another local network, not the one this Mac is on. Connect to that network, or to a VPN that reaches it."
+                : "This address belongs to another local network, not the one this iPhone is on. Connect to that network, or to a VPN that reaches it.")
+        case .noRoute:
+            return Words.text(mac
+                ? "This Mac has no way to reach the server from the network it's on."
+                : "This iPhone has no way to reach the server from the network it's on.")
+        case .nothingAnswersHere:
+            return Words.text("Nothing answers at that address on this network. The server may be off or asleep, or have a new address.")
+        case .refused:
+            return Words.format(isSFTP
+                ? "The server is on, but nothing accepts connections on port %lld. Check that its SFTP service is running, and the port."
+                : "The server is on, but nothing accepts connections on port %lld. Check that its WebDAV service is running, and the port.", port)
+        case .noAnswer:
+            let first = Words.format("The server doesn't answer on port %lld. It may be off or offline, or a firewall may be blocking the port.", port)
+            guard otherServersOnline else { return first }
+            return first + " " + Words.text(mac ? "Your other drives connect, so this Mac's network is working." : "Your other drives connect, so this iPhone's network is working.")
+        case .notSFTP:
+            return Words.format("Something answers on port %lld, but it isn't an SFTP server.", port)
+        case .closedAtOnce:
+            return Words.text("The server cuts the connection as soon as it starts. Servers do this when they get too many connections at once, or when they block an address for a while.")
+        case .silentService:
+            return Words.format(isSFTP
+                ? "The server accepts connections on port %lld, but doesn't answer. It may be busy, or it isn't an SFTP server."
+                : "The server accepts connections on port %lld, but doesn't answer. It may be busy, or it isn't a WebDAV server.", port)
+        case .certificateExpired:
+            guard let certificateExpiry else {
+                return Words.text("Whoever runs the server has to renew it.")
+            }
+            return Words.format(
+                "It expired on %@. Whoever runs the server has to renew it.",
+                certificateExpiry.formatted(date: .long, time: .omitted))
+        case .certificateUntrusted:
+            return Words.text(mac
+                ? "This Mac doesn't trust the server's certificate, so nothing is sent to it."
+                : "This iPhone doesn't trust the server's certificate, so nothing is sent to it.")
+        case .certificateWrongName:
+            return Words.text("The certificate received isn't this server's. The network may be redirecting traffic, for example to a sign-in page.")
+        case .notHTTPS:
+            return Words.format("The server doesn't use HTTPS on port %lld.", port)
+        case .notWebDAV:
+            return Words.text("Something other than the WebDAV server answered. The network may need a sign-in page.")
+        case .tooSlow:
+            return Words.text("The server answers, but too slowly. It may be busy, or the connection is very slow.")
+        case .couldntTell:
+            return Words.text(mac
+                ? "CloudAccess couldn't connect, and couldn't tell why. The details are in the log."
+                : "CloudWanderer couldn't connect, and couldn't tell why. What it checked is in the log.")
         }
     }
 

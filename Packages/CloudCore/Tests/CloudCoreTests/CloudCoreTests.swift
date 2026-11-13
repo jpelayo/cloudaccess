@@ -351,6 +351,38 @@ import Testing
         let older = Data(#"{"pid":42,"reason":"quit"}"#.utf8)
         let note = try JSONDecoder().decode(ExitNote.self, from: older)
         #expect(!ExitNote.shouldRun(afterExitOf: 42, note: note))
+        // It has no time, so it can't stop a copy launchd starts.
+        #expect(!ExitNote.isRevivalAfterQuit(previous: 42, note: note))
+    }
+
+    /// A Quit means it: if the copy that quit crashed on its way out, launchd brings it back
+    /// within seconds, and that copy has to leave again.
+    @Test func aCopyBroughtBackRightAfterAQuitLeaves() {
+        let quit = Date(timeIntervalSince1970: 1_000)
+        let note = ExitNote(pid: 42, reason: .quit, date: quit)
+        #expect(ExitNote.isRevivalAfterQuit(previous: 42, note: note, now: quit.addingTimeInterval(11)))
+    }
+
+    /// The next login starts the app as usual.
+    @Test func aCopyStartedLongAfterAQuitRuns() {
+        let quit = Date(timeIntervalSince1970: 1_000)
+        let note = ExitNote(pid: 42, reason: .quit, date: quit)
+        #expect(!ExitNote.isRevivalAfterQuit(previous: 42, note: note, now: quit.addingTimeInterval(600)))
+    }
+
+    @Test func onlyTheCopyThatQuitCounts() {
+        let quit = Date(timeIntervalSince1970: 1_000)
+        let note = ExitNote(pid: 7, reason: .quit, date: quit)
+        #expect(!ExitNote.isRevivalAfterQuit(previous: 42, note: note, now: quit.addingTimeInterval(5)))
+        #expect(!ExitNote.isRevivalAfterQuit(previous: nil, note: note, now: quit.addingTimeInterval(5)))
+        #expect(!ExitNote.isRevivalAfterQuit(previous: 42, note: nil))
+    }
+
+    /// A clock set back can't make an old Quit look recent.
+    @Test func aQuitFromTheFutureDoesntCount() {
+        let quit = Date(timeIntervalSince1970: 1_000)
+        let note = ExitNote(pid: 42, reason: .quit, date: quit)
+        #expect(!ExitNote.isRevivalAfterQuit(previous: 42, note: note, now: quit.addingTimeInterval(-60)))
     }
 }
 

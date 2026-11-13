@@ -12,6 +12,8 @@ struct DriveInformationView: View {
     @Environment(Drives.self) private var drives
 
     let connection: Connection
+    /// Shows the drive's General page, where a password, an address or a server's identity is fixed.
+    var openGeneral: () -> Void = {}
 
     @State private var report = DriveReport()
     @State private var isRetrying = false
@@ -63,38 +65,46 @@ struct DriveInformationView: View {
 
     // MARK: Right now
 
-    private var headline: (symbol: String, title: String, detail: String, tint: Color?) {
+    private var status: DriveStatus {
+        let note = report.lastChecked.map { checked in
+            let time = checked.formatted(date: .omitted, time: .standard)
+            return String(localized: "Server last checked: \(time)")
+        }
+        let retry: DriveStatus.Button? = canRetry ? .tryAgain : nil
         switch drives.status(of: connection) {
         case .unmounted:
-            return (
-                "eject.fill", String(localized: "Ejected"),
-                String(localized: "This drive isn't in Finder, so nothing syncs."), nil)
+            return DriveStatus(
+                symbol: "eject.fill", tone: .quiet, title: String(localized: "Ejected"),
+                cause: String(localized: "This drive isn't in Finder, so nothing syncs."), button: .mount)
         case .needsEnabling:
-            return (
-                "exclamationmark.triangle.fill", String(localized: "Turned off"),
-                String(localized: "Turn it on under System Settings, General, Login Items & Extensions."), .red)
+            return DriveStatus(
+                symbol: "power", tone: .needsYou, title: String(localized: "Turned off"),
+                cause: String(localized: "Turn it on under System Settings, General, Login Items & Extensions."),
+                button: .openExtensionSettings)
         case .offline:
-            return (
-                "exclamationmark.triangle.fill", String(localized: "Not connected"),
-                drives.offlineMessage(of: connection), .red)
+            return drives.offlineStatus(of: connection)
         case .syncing(let count):
-            return ("arrow.up.circle", String(localized: "\(count) files to upload"), speed, .blue)
+            return DriveStatus(
+                symbol: "arrow.up.circle", tone: .busy, title: String(localized: "\(count) files to upload"),
+                cause: speed, note: note, button: retry)
         case .needsAttention:
-            return (
-                "exclamationmark.triangle.fill", String(localized: "Waiting for you"),
-                String(localized: "These files are on this Mac and haven't reached the server. CloudAccess won't send them until you press Try Again, or rename them."),
-                .orange)
+            return DriveStatus(
+                symbol: "exclamationmark.triangle.fill", tone: .needsYou, title: String(localized: "Waiting for you"),
+                cause: String(localized: "These files are on this Mac and haven't reached the server. CloudAccess won't send them until you press Try Again, or rename them."),
+                button: .tryAgain)
         case .notMoving:
-            return ("pause.circle.fill", String(localized: "Uploads paused"), stuckReason, .orange)
+            return DriveStatus(
+                symbol: "pause.circle.fill", tone: .needsYou, title: String(localized: "Uploads paused"),
+                cause: stuckReason, button: .tryAgain)
         case .connected:
             if report.isBeingChecked {
-                return (
-                    "hourglass", String(localized: "macOS is checking this drive"),
-                    String(localized: "New files can wait until it finishes."), nil)
+                return DriveStatus(
+                    symbol: "hourglass", tone: .quiet, title: String(localized: "macOS is checking this drive"),
+                    cause: String(localized: "New files can wait until it finishes."), note: note, button: retry)
             }
-            return (
-                "checkmark.circle.fill", String(localized: "Up to date"),
-                String(localized: "Nothing is waiting to upload."), .green)
+            return DriveStatus(
+                symbol: "checkmark.circle.fill", tone: .good, title: String(localized: "Up to date"),
+                cause: String(localized: "Nothing is waiting to upload."), note: note, button: retry)
         }
     }
 
@@ -117,37 +127,33 @@ struct DriveInformationView: View {
     }
 
     private var summary: some View {
-        let shown = headline
-        return Card {
-            IconRow(shown.symbol, shown.title, subtitle: shown.detail, tint: shown.tint) {
-                if drives.status(of: connection) == .offline {
-                    CheckAgainButton(isChecking: drives.isChecking(connection)) {
-                        Task { await drives.checkAgain([connection]) }
-                    }
-                    .buttonStyle(.pill)
-                } else if canRetry {
-                    Button("Try Again") {
-                        isRetrying = true
-                        Task {
-                            await drives.retry(connection)
-                            isRetrying = false
-                        }
-                    }
-                    .buttonStyle(.pill)
-                    .disabled(isRetrying)
-                }
+        DriveStatusCard(
+            status: status, isChecking: drives.isChecking(connection), isRetrying: isRetrying,
+            press: press, fix: fix, showLogs: { drives.showLogs() })
+    }
+
+    private func press(_ button: DriveStatus.Button) {
+        switch button {
+        case .checkAgain:
+            Task { await drives.checkAgain([connection]) }
+        case .tryAgain:
+            isRetrying = true
+            Task {
+                await drives.retry(connection)
+                isRetrying = false
             }
-            if let lastChecked = report.lastChecked {
-                KeyValueRow(
-                    String(localized: "Server last checked"), lastChecked.formatted(date: .omitted, time: .standard))
-            }
-            if drives.status(of: connection) == .offline, let finding = drives.checks.findings[connection.id] {
-                ConnectionSteps(finding: finding)
-            }
-            IconRow("doc.text", "Logs", subtitle: "A record of what happened on your drives.") {
-                Button("Show Logs") { drives.showLogs() }
-                    .buttonStyle(.pill)
-            }
+        case .mount:
+            Task { await drives.toggleMount(connection) }
+        case .openExtensionSettings:
+            drives.openExtensionSettings()
+        }
+    }
+
+    private func fix(_ action: DriveStatus.Fix.Action) {
+        switch action {
+        case .openGeneral: openGeneral()
+        case .openTailscale: drives.openTailscale()
+        case .openLocalNetworkSettings: drives.openLocalNetworkSettings()
         }
     }
 
@@ -467,44 +473,3 @@ private struct FileRow: View {
     }
 }
 
-/// What a connection check went through, step by step, so the finding above can be followed up:
-/// a green check for each step that passed, a red triangle for the one that failed.
-struct ConnectionSteps: View {
-    let finding: ConnectionFinding
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(Array(finding.steps.enumerated()), id: \.offset) { _, step in
-                HStack(spacing: 8) {
-                    mark(step.mark)
-                        .frame(width: 16)
-                    Text(verbatim: step.title)
-                        .font(.system(size: 12))
-                    Spacer(minLength: 8)
-                    Text(verbatim: step.result)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            let time = finding.checked.formatted(date: .omitted, time: .shortened)
-            Text("Checked at \(time). CloudAccess also checks every 30 seconds.")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    @ViewBuilder
-    private func mark(_ mark: ConnectionFinding.Step.Mark) -> some View {
-        switch mark {
-        case .passed:
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                .accessibilityLabel(Text("Passed"))
-        case .failed:
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
-                .accessibilityLabel(Text("Failed"))
-        case .notReached:
-            Image(systemName: "circle").foregroundStyle(.secondary)
-                .accessibilityLabel(Text("Not reached"))
-        }
-    }
-}

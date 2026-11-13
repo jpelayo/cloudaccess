@@ -37,9 +37,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    /// Another app asked this one to quit, such as Activity Monitor or a logout.
+    /// Another app asked this one to quit, such as Activity Monitor or a logout. A logout, restart
+    /// or shutdown says why, and a person quitting doesn't.
     @objc private func quitRequested(_ event: NSAppleEventDescriptor, withReply reply: NSAppleEventDescriptor) {
-        LoginAgent.quit()
+        if event.attributeDescriptor(forKeyword: AEKeyword(kAEQuitReason)) != nil {
+            LoginAgent.endSession()
+        } else {
+            LoginAgent.quit()
+        }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

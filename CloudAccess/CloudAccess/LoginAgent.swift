@@ -84,6 +84,8 @@ enum LoginAgent {
             try? service.unregister()
             exit(0)
         }
+        // The copy that ran last, read before this one takes its place.
+        let previous = InstanceLock.holder(instanceURL)
         let role = LaunchRole.decide(
             launchedByAgent: launchedByAgent,
             agentEnabled: status == .on,
@@ -91,6 +93,11 @@ enum LoginAgent {
 
         switch role {
         case .run:
+            // A Quit means it, even when the copy that quit crashed on its way out and launchd
+            // brought it back. This exit is successful, so launchd leaves it there.
+            if launchedByAgent, ExitNote.isRevivalAfterQuit(previous: previous?.pid, note: readNote()) {
+                exit(0)
+            }
             return
         case .leave(let pid):
             DistributedNotificationCenter.default().postNotificationName(
@@ -280,9 +287,16 @@ enum LoginAgent {
         stopRequests = source
     }
 
-    /// Quit from the menu. The note stops a copy standing by from running instead.
+    /// Quit from the menu. The note stops a copy standing by from running instead, and a copy
+    /// launchd brings back if this one crashes on its way out.
     static func quit() {
         writeNote()
+        end()
+    }
+
+    /// Logging out, restarting or shutting down. That isn't a person quitting the app, so it
+    /// leaves no note, and the next login starts the app however soon it comes.
+    static func endSession() {
         end()
     }
 
@@ -354,7 +368,7 @@ enum LoginAgent {
     }
 
     private static func writeNote() {
-        let note = ExitNote(pid: ProcessInfo.processInfo.processIdentifier, reason: .quit)
+        let note = ExitNote(pid: ProcessInfo.processInfo.processIdentifier, reason: .quit, date: Date())
         try? FileManager.default.createDirectory(
             at: URL.applicationSupportDirectory, withIntermediateDirectories: true)
         try? JSONEncoder().encode(note).write(to: noteURL, options: .atomic)

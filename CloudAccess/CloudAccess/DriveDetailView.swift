@@ -315,10 +315,12 @@ struct DriveDetailView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Design.sectionGap) {
-            if drives.status(of: current) == .offline {
-                Label(drives.offlineMessage(of: current), systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
+            // The Information page explains it in full, so the other pages only name it, once.
+            if drives.status(of: current) == .offline, page != .information {
+                let offline = drives.offlineStatus(of: current)
+                Label(offline.title, systemImage: offline.symbol)
+                    .foregroundStyle(offline.tone.color)
+                    .lineLimit(1)
             }
             Picker("Page", selection: $page) {
                 ForEach(Page.allCases, id: \.self) { page in
@@ -340,7 +342,7 @@ struct DriveDetailView: View {
                 case .deleted:
                     TrashView(connection: current)
                 case .information:
-                    DriveInformationView(connection: current)
+                    DriveInformationView(connection: current) { page = .general }
                 }
             }
             .disabled(isWorking)

@@ -353,6 +353,68 @@
 "Certificate not trusted" = "Certificado no fiable";
 "Certificate for another name" = "Certificado para otro nombre";
 "Not HTTPS" = "No es HTTPS";
+"Sign-in" = "Inicio de sesión";
+"Too slow" = "Demasiado lento";
+"Unexpected answer" = "Respuesta inesperada";
+"Failed" = "Ha fallado";
+
+/* ConnectionFinding.swift: the finding's title, on a drive's Information page. */
+"Waiting for the server" = "Esperando al servidor";
+"This Mac has no network" = "Este Mac no tiene red";
+"This iPhone has no network" = "Este iPhone no tiene red";
+"Mobile data isn't allowed" = "Los datos móviles no están permitidos";
+"Wi-Fi isn't allowed" = "La Wi-Fi no está permitida";
+"Tailscale is off" = "Tailscale está desactivado";
+"Local network permission is missing" = "Falta el permiso de red local";
+"Another VPN is in the way" = "Otra VPN se interpone";
+"Tailscale doesn't know that name" = "Tailscale no conoce ese nombre";
+"No server has that name" = "No existe un servidor con ese nombre";
+"The server is on another network" = "El servidor está en otra red";
+"The SFTP service isn't running" = "El servicio SFTP no está en marcha";
+"The WebDAV service isn't running" = "El servicio WebDAV no está en marcha";
+"Not an SFTP server" = "No es un servidor SFTP";
+"The server doesn't use HTTPS" = "El servidor no usa HTTPS";
+"The server's certificate has expired" = "El certificado del servidor ha caducado";
+"This Mac doesn't trust the certificate" = "Este Mac no confía en el certificado";
+"This iPhone doesn't trust the certificate" = "Este iPhone no confía en el certificado";
+
+/* ConnectionFinding.swift: why, under the title, without the server's name. */
+"This Mac isn't connected to any network. The drive connects by itself when it's back." = "Este Mac no está conectado a ninguna red. La unidad se conectará sola cuando vuelva.";
+"This iPhone isn't connected to any network. The drive connects by itself when it's back." = "Este iPhone no está conectado a ninguna red. La unidad se conectará sola cuando vuelva.";
+"This server can only be reached through Tailscale." = "A este servidor solo se llega a través de Tailscale.";
+"This server can only be reached through Tailscale, or the VPN that reaches it." = "A este servidor solo se llega a través de Tailscale, o de la VPN que llega a él.";
+"CloudAccess isn't allowed to reach devices on your local network." = "CloudAccess no tiene permiso para acceder a dispositivos de su red local.";
+"CloudWanderer isn't allowed to reach devices on your local network." = "CloudWanderer no tiene permiso para acceder a dispositivos de su red local.";
+"Tailscale is on, but this Mac sends this server's traffic another way. Another VPN may be in the way." = "Tailscale está activado, pero este Mac envía el tráfico de este servidor por otra vía. Puede que otra VPN se interponga.";
+"Tailscale is on, but this iPhone sends this server's traffic another way. Another VPN may be in the way." = "Tailscale está activado, pero este iPhone envía el tráfico de este servidor por otra vía. Puede que otra VPN se interponga.";
+"Tailscale is on, but the server doesn't answer through it. It may be off or asleep, or signed out of Tailscale." = "Tailscale está activado, pero el servidor no responde a través de él. Puede que esté apagado o en reposo, o con la sesión de Tailscale cerrada.";
+"The device may have been renamed, or removed from your tailnet." = "Puede que el dispositivo se haya renombrado, o eliminado de su tailnet.";
+"The drive's address may have a typo." = "Puede que la dirección de la unidad tenga una errata.";
+"Looking up the name got no answer, though your other drives connect. The name's own server may be down." = "La búsqueda del nombre no ha obtenido respuesta, aunque sus otras unidades se conectan. Puede que el servidor de ese nombre no funcione.";
+"Looking up the name got no answer. The network may need a sign-in page, its router may be down, or the name's own server may be." = "La búsqueda del nombre no ha obtenido respuesta. Puede que la red necesite una página de inicio de sesión, que su router no funcione o que no funcione el servidor de ese nombre.";
+"No device with that name answered on this network. It may be off, or on another network." = "Ningún dispositivo con ese nombre ha respondido en esta red. Puede que esté apagado o en otra red.";
+"This address belongs to another local network, not the one this Mac is on. Connect to that network, or to a VPN that reaches it." = "Esta dirección pertenece a otra red local, no a la de este Mac. Conéctese a esa red o a una VPN que llegue a ella.";
+"This address belongs to another local network, not the one this iPhone is on. Connect to that network, or to a VPN that reaches it." = "Esta dirección pertenece a otra red local, no a la de este iPhone. Conéctese a esa red o a una VPN que llegue a ella.";
+"This Mac has no way to reach the server from the network it's on." = "Este Mac no tiene forma de llegar al servidor desde la red en la que está.";
+"This iPhone has no way to reach the server from the network it's on." = "Este iPhone no tiene forma de llegar al servidor desde la red en la que está.";
+"Nothing answers at that address on this network. The server may be off or asleep, or have a new address." = "Nada responde en esa dirección en esta red. Puede que el servidor esté apagado o en reposo, o que tenga una dirección nueva.";
+"The server is on, but nothing accepts connections on port %lld. Check that its SFTP service is running, and the port." = "El servidor está encendido, pero nada acepta conexiones en el puerto %lld. Compruebe que su servicio SFTP está en marcha, y el puerto.";
+"The server is on, but nothing accepts connections on port %lld. Check that its WebDAV service is running, and the port." = "El servidor está encendido, pero nada acepta conexiones en el puerto %lld. Compruebe que su servicio WebDAV está en marcha, y el puerto.";
+"The server doesn't answer on port %lld. It may be off or offline, or a firewall may be blocking the port." = "El servidor no responde en el puerto %lld. Puede que esté apagado o sin conexión, o que un cortafuegos bloquee el puerto.";
+"Something answers on port %lld, but it isn't an SFTP server." = "Algo responde en el puerto %lld, pero no es un servidor SFTP.";
+"The server cuts the connection as soon as it starts. Servers do this when they get too many connections at once, or when they block an address for a while." = "El servidor corta la conexión nada más empezar. Los servidores lo hacen cuando reciben demasiadas conexiones a la vez, o cuando bloquean una dirección durante un tiempo.";
+"The server accepts connections on port %lld, but doesn't answer. It may be busy, or it isn't an SFTP server." = "El servidor acepta conexiones en el puerto %lld, pero no responde. Puede que esté ocupado, o que no sea un servidor SFTP.";
+"The server accepts connections on port %lld, but doesn't answer. It may be busy, or it isn't a WebDAV server." = "El servidor acepta conexiones en el puerto %lld, pero no responde. Puede que esté ocupado, o que no sea un servidor WebDAV.";
+"Whoever runs the server has to renew it." = "Quien gestione el servidor tiene que renovarlo.";
+"It expired on %@. Whoever runs the server has to renew it." = "Caducó el %@. Quien gestione el servidor tiene que renovarlo.";
+"This Mac doesn't trust the server's certificate, so nothing is sent to it." = "Este Mac no confía en el certificado del servidor, así que no se le envía nada.";
+"This iPhone doesn't trust the server's certificate, so nothing is sent to it." = "Este iPhone no confía en el certificado del servidor, así que no se le envía nada.";
+"The certificate received isn't this server's. The network may be redirecting traffic, for example to a sign-in page." = "El certificado recibido no es de este servidor. Puede que la red esté redirigiendo el tráfico, por ejemplo a una página de inicio de sesión.";
+"The server doesn't use HTTPS on port %lld." = "El servidor no usa HTTPS en el puerto %lld.";
+"Something other than the WebDAV server answered. The network may need a sign-in page." = "Ha respondido algo que no es el servidor WebDAV. Puede que la red necesite una página de inicio de sesión.";
+"The server answers, but too slowly. It may be busy, or the connection is very slow." = "El servidor responde, pero con demasiada lentitud. Puede que esté ocupado o que la conexión sea muy lenta.";
+"CloudAccess couldn't connect, and couldn't tell why. The details are in the log." = "CloudAccess no ha podido conectar ni averiguar por qué. Los detalles están en el registro.";
+"CloudWanderer couldn't connect, and couldn't tell why. What it checked is in the log." = "CloudWanderer no ha podido conectar ni averiguar por qué. Lo que ha comprobado está en el registro.";
 
 /* ConnectionFinding.swift: why a server can't be reached, as far as a check proved it. */
 "This Mac isn't connected to a network." = "Este Mac no está conectado a ninguna red.";

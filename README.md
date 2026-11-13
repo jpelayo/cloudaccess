@@ -64,7 +64,9 @@ To change a drive later, swipe it and choose Edit. To add several drives at once
 
 ### When a drive can't connect
 
-Both apps check what's wrong, step by step: this device's network, Tailscale, the server's name, the route, the server's port, and the server's answer. They say only what they found. For example, with Tailscale on and the server turned off, they say Tailscale is on and the server doesn't answer through it. They don't tell you to check Tailscale.
+Both apps check what's wrong, step by step: this device's network, Tailscale, the server's name, the route, the server's port, the server's answer, and the drive's own request. They say only what they found. For example, with Tailscale on and the server turned off, they say Tailscale is on and the server doesn't answer through it. They don't tell you to check Tailscale.
+
+On the Mac, a drive's Information page shows it once, at the top: what's happening, why, and whether your files on this Mac are safe. Under that are the steps, with the one that failed in red and any it never reached in gray. A problem only the server can fix says "Waiting for the server", and CloudAccess keeps trying.
 
 - **A drive whose server fails shows it only on that drive,** in its row and its details. The menu bar icon and the status in the panel change only for a problem with the device itself, such as no network, or Tailscale turned off.
 - **Check Again** checks at once. On the Mac it's the circular arrow beside a drive's QR and Eject buttons, shown while the drive can't connect. Both apps also keep checking by themselves: the Mac every 30 seconds, and the iPhone while it's open. After a change of network, or waking up, they check every drive again.

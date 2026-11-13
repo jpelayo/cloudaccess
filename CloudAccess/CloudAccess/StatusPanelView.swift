@@ -442,7 +442,11 @@ struct StatusPanelView: View {
 
     @ViewBuilder
     private var activity: some View {
-        if let line = drives.activityLine {
+        if let line = drives.activityLine, !line.isStuck {
+            UploadProgressCard(line: line) {
+                panel.leave { AppWindows.showDrive(line.connection, .information, drives: drives) }
+            }
+        } else if let line = drives.activityLine {
             Button {
                 panel.leave { AppWindows.showDrive(line.connection, .information, drives: drives) }
             } label: {

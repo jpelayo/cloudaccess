@@ -73,6 +73,21 @@ struct ActivityLine {
     let title: String
     let summary: String
     let isStuck: Bool
+    /// The drives uploading now, whose files the panel lists.
+    var uploading: [Connection] = []
+    /// Files waiting to upload, on all of them.
+    var count = 0
+    /// What macOS has sent of the uploads it's been given since the last time it had none, and
+    /// their whole size. Zero when it doesn't know.
+    var sent: Int64 = 0
+    var total: Int64 = 0
+    var isLowOnSpace = false
+}
+
+/// How far macOS has got with the uploads it's been given since it last had none.
+struct UploadBatch: Equatable {
+    var sent: Int64
+    var total: Int64
 }
 
 /// The app's list of drives, registering them with macOS, and checking them for changes.
@@ -149,7 +164,7 @@ final class Drives {
         var shownLabel: String? {
             switch self {
             case .connected: nil
-            case .syncing(let count): String(localized: "syncing \(count)")
+            case .syncing(let count): String(localized: "uploading \(count) files")
             case .notMoving(let count): String(localized: "\(count) uploads paused")
             case .needsAttention(let count): String(localized: "\(count) files need attention")
             case .offline: String(localized: "offline")
@@ -225,6 +240,8 @@ final class Drives {
     private(set) var changedHostKeys: Set<UUID> = []
     /// How much is left to upload, from macOS's progress, which doesn't always know.
     private var waitingBytes: [UUID: Int64] = [:]
+    /// The same progress as a batch, for the panel's bar.
+    private var uploadBatches: [UUID: UploadBatch] = [:]
     /// Whether the disk is below a drive's reserve. Files waiting to upload can't be removed to
     /// make room, so that's worth saying while they wait.
     private var isLowOnSpace = false
@@ -473,19 +490,26 @@ final class Drives {
         let uploading = connections.filter { isTransferring($0) && (waiting[$0.id] ?? 0) > 0 }
         guard let first = uploading.first else { return nil }
         let count = uploading.reduce(0) { $0 + (waiting[$1.id] ?? 0) }
-        let left = uploading.reduce(Int64(0)) { $0.addingReportingOverflow(waitingBytes[$1.id] ?? 0).partialValue }
-        var summary: String
-        if left > 0 {
-            let bytes = left.formatted(.byteCount(style: .file))
-            summary = String(localized: "\(count) files, about \(bytes) to go")
-        } else {
-            summary = String(localized: "\(count) files")
+        var sent: Int64 = 0
+        var total: Int64 = 0
+        for connection in uploading {
+            guard let batch = uploadBatches[connection.id] else { continue }
+            sent = sent.addingReportingOverflow(batch.sent).partialValue
+            total = total.addingReportingOverflow(batch.total).partialValue
         }
-        // Saves can't be held back, because macOS owns them, so this can only say so.
-        if isLowOnSpace {
-            summary = String(localized: "\(summary). Your Mac is low on space. Files stay on it until they're uploaded.")
+        return ActivityLine(
+            connection: first, title: String(localized: "Uploading"), summary: "", isStuck: false,
+            uploading: uploading, count: count, sent: sent, total: total, isLowOnSpace: isLowOnSpace)
+    }
+
+    /// The uploads moving now on these drives, read fresh, for the panel while it's open.
+    func uploadsMoving(on chosen: [Connection]) async -> [(connection: Connection, transfer: SyncTransfer)] {
+        var moving: [(connection: Connection, transfer: SyncTransfer)] = []
+        for connection in chosen {
+            guard let state = try? await localState(connection), let transfers = try? state.liveTransfers() else { continue }
+            moving += transfers.filter { $0.direction == .upload }.map { (connection, $0) }
         }
-        return ActivityLine(connection: first, title: String(localized: "Uploading"), summary: summary, isStuck: false)
+        return moving
     }
 
     /// What the side panel says about a drive, above its actions.
@@ -968,6 +992,8 @@ final class Drives {
             if downloading[id] != down { downloading[id] = down }
             let bytes = uploads[id].map { max(0, $0.totalUnitCount - $0.completedUnitCount) } ?? 0
             if waitingBytes[id] != bytes { waitingBytes[id] = bytes }
+            let batch = uploads[id].map { UploadBatch(sent: max(0, $0.completedUnitCount), total: max(0, $0.totalUnitCount)) }
+            if uploadBatches[id] != batch { uploadBatches[id] = batch }
             let bytesOut = uploads[id]?.completedUnitCount ?? 0
             if lastUploaded[id]?.bytes != bytesOut {
                 lastUploaded[id] = (bytesOut, now)

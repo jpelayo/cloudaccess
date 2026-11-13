@@ -28,8 +28,8 @@ import Testing
         isSFTP: Bool = true, otherServersOnline: Bool = false, device: DeviceKind = .mac
     ) -> ConnectionFinding {
         ConnectionFinding.decide(
-            facts, engine: engine, host: host, port: isSFTP ? 22 : 443, isSFTP: isSFTP, device: device,
-            otherServersOnline: otherServersOnline, checked: Date(timeIntervalSince1970: 0))
+            facts, engine: engine, host: host, port: isSFTP ? 22 : 443, isSFTP: isSFTP, usesTLS: !isSFTP,
+            device: device, otherServersOnline: otherServersOnline, checked: Date(timeIntervalSince1970: 0))
     }
 
     @Test func aTailnetServerThatIsOffIsntBlamedOnTailscale() {
@@ -41,7 +41,99 @@ import Testing
         #expect(found.scope == .server)
         #expect(found.sentence == "Tailscale is on, but nas.tail1234.ts.net doesn't answer through it. It may be off, asleep, or signed out of Tailscale.")
         #expect(found.action == nil)
-        #expect(found.steps.map(\.mark) == [.passed, .passed, .passed, .passed, .failed])
+        #expect(found.steps.map(\.mark) == [.passed, .passed, .passed, .passed, .failed, .notReached, .notReached])
+    }
+
+    /// A check that stops still lists what it never got to, so nothing after a failure looks fine.
+    @Test func aCheckThatStopsListsWhatItNeverReached() {
+        let facts = ConnectionFacts(network: Self.up, place: .elsewhere, lookup: .found("203.0.113.5"), route: .router, port: .refused)
+        let found = finding(facts, host: "files.example.com")
+        #expect(found.steps.map(\.title) == ["This Mac's network", "Name", "Route", "Port 22", "SFTP service", "Sign-in"])
+        #expect(found.steps.map(\.mark) == [.passed, .passed, .passed, .failed, .notReached, .notReached])
+        #expect(found.steps.last?.result == "Not checked")
+    }
+
+    /// The case that showed every step green beside "not connected": the server answered, then cut
+    /// the drive's own request. That request is a step too, and it's the one that failed.
+    @Test func whenEveryStepPassesTheDrivesOwnRequestFailed() {
+        let facts = ConnectionFacts(network: Self.up, place: .elsewhere, lookup: .found("203.0.113.5"), route: .router, port: .open, answer: .tls)
+        let found = finding(facts, engine: .connectionReset, host: "files.example.com", isSFTP: false)
+        #expect(found.kind == .closedAtOnce)
+        #expect(found.steps.map(\.title) == ["This Mac's network", "Name", "Route", "Port 443", "HTTPS", "WebDAV"])
+        #expect(found.steps.map(\.mark) == [.passed, .passed, .passed, .passed, .passed, .failed])
+        #expect(found.steps.last?.result == "Closed the connection")
+        #expect(finding(facts, engine: .tooSlow, host: "files.example.com", isSFTP: false).steps.last?.result == "Too slow")
+        #expect(finding(facts, engine: .notWebDAV, host: "files.example.com", isSFTP: false).steps.last?.result == "Unexpected answer")
+        #expect(finding(facts, engine: .unknown, host: "files.example.com", isSFTP: false).steps.last?.result == "Failed")
+    }
+
+    /// Plain http has no TLS to check, and an address has no name to look up.
+    @Test func onlyTheStepsThatApplyAreListed() {
+        let facts = ConnectionFacts(network: Self.up, place: .privateAddress, isOnOwnNetwork: true, lookup: .notNeeded, route: .ownNetwork, port: .open, answer: .notAsked)
+        let found = ConnectionFinding.decide(
+            facts, engine: .tooSlow, host: "192.168.30.40", port: 80, isSFTP: false, usesTLS: false, device: .mac,
+            otherServersOnline: false, checked: Date(timeIntervalSince1970: 0))
+        #expect(found.steps.map(\.title) == ["This Mac's network", "Route", "Port 80", "WebDAV"])
+        #expect(found.steps.map(\.mark) == [.passed, .passed, .passed, .failed])
+    }
+
+    /// The route is what proves another VPN is in the way, so it's the step that failed.
+    @Test func aRouteAroundTailscaleIsTheStepThatFailed() {
+        let facts = ConnectionFacts(network: Self.upWithTailscale, place: .tailscaleName, lookup: .found("100.90.1.2"), route: .otherTunnel)
+        let found = finding(facts)
+        #expect(found.kind == .tailscaleBypassed)
+        #expect(found.steps.map(\.mark) == [.passed, .passed, .passed, .failed, .notReached, .notReached, .notReached])
+        #expect(found.steps[3].result == "Through a VPN")
+    }
+
+    /// The service step wasn't due, but the engine's own error proved the certificate.
+    @Test func anEngineCertificateErrorFailsTheHTTPSStep() {
+        let facts = ConnectionFacts(network: Self.up, place: .elsewhere, lookup: .found("203.0.113.5"), route: .router, port: .open, answer: .notAsked)
+        let found = finding(facts, engine: .certificateExpired, host: "files.example.com", isSFTP: false)
+        #expect(found.steps.map(\.mark) == [.passed, .passed, .passed, .passed, .failed, .notReached])
+        #expect(found.steps[4].result == "Certificate expired")
+        let unasked = finding(facts, engine: .connectionReset, host: "files.example.com", isSFTP: false)
+        #expect(unasked.steps.map(\.mark) == [.passed, .passed, .passed, .passed, .notReached, .failed])
+    }
+
+    @Test func noNetworkListsEveryStepAsNotChecked() {
+        let facts = ConnectionFacts(network: DeviceNetwork(isUp: false, unsatisfied: .notAvailable), place: .elsewhere)
+        let found = finding(facts, host: "files.example.com", isSFTP: false)
+        #expect(found.steps.map(\.mark) == [.failed, .notReached, .notReached, .notReached, .notReached, .notReached])
+        #expect(found.steps.first?.result == "Not connected")
+    }
+
+    /// The server's name has a line of its own, so the title and the cause never repeat it, and
+    /// every finding has both.
+    @Test func titlesAndCausesNeverNameTheServer() {
+        for kind in ConnectionFinding.Kind.allCases {
+            for device in [DeviceKind.mac, .iPhone] {
+                let found = ConnectionFinding(
+                    kind: kind, host: "files.example.com", port: 22, isSFTP: true, device: device,
+                    otherServersOnline: false, steps: [], checked: Date(timeIntervalSince1970: 0))
+                #expect(!found.title.isEmpty, "\(kind)")
+                #expect(!found.cause.isEmpty, "\(kind)")
+                #expect(!found.title.contains("files.example.com"), "\(kind)")
+                #expect(!found.cause.contains("files.example.com"), "\(kind)")
+            }
+        }
+    }
+
+    /// A server that's down or busy is waited for. Only what a person has to change asks them.
+    @Test func whatOnlyTheServerCanFixIsWaitedFor() {
+        func finding(_ kind: ConnectionFinding.Kind) -> ConnectionFinding {
+            ConnectionFinding(
+                kind: kind, host: "nas", port: 22, isSFTP: true, device: .mac, otherServersOnline: false,
+                steps: [], checked: Date(timeIntervalSince1970: 0))
+        }
+        for kind in [ConnectionFinding.Kind.closedAtOnce, .noAnswer, .tooSlow, .couldntTell, .tailnetPeerSilent] {
+            #expect(finding(kind).waitsForTheServer, "\(kind)")
+            #expect(finding(kind).title == "Waiting for the server", "\(kind)")
+        }
+        for kind in [ConnectionFinding.Kind.nameNotFound, .refused, .tailscaleOff, .noNetwork, .certificateExpired] {
+            #expect(!finding(kind).waitsForTheServer, "\(kind)")
+        }
+        #expect(finding(.closedAtOnce).cause == "The server cuts the connection as soon as it starts. Servers do this when they get too many connections at once, or when they block an address for a while.")
     }
 
     @Test func tailscaleIsBlamedOnlyWhenThisDeviceHasNoTailnetAddress() {

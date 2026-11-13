@@ -34,14 +34,33 @@ public struct ExitNote: Codable, Equatable, Sendable {
 
     public var pid: Int32
     public var reason: Reason
+    /// When it quit. A note from an older build has none.
+    public var date: Date?
 
-    public init(pid: Int32, reason: Reason) {
+    public init(pid: Int32, reason: Reason, date: Date? = nil) {
         self.pid = pid
         self.reason = reason
+        self.date = date
     }
+
+    /// How soon after a Quit a copy launchd starts counts as brought back. launchd waits at
+    /// least its 10-second throttle, and a login comes much later than this.
+    public static let revivalWindow: TimeInterval = 30
 
     /// Only a Quit by that very process keeps a copy standing by from running.
     public static func shouldRun(afterExitOf pid: Int32, note: ExitNote?) -> Bool {
         !(note?.pid == pid && note?.reason == .quit)
+    }
+
+    /// Whether launchd brought this copy back right after the last copy was quit on purpose. That
+    /// happens when a copy crashes on its way out, which launchd takes for a failure. A Quit has
+    /// to mean it, so that copy leaves. A copy started at the next login comes long after, and runs.
+    /// - Parameter previous: The copy that held the lock last.
+    public static func isRevivalAfterQuit(previous: Int32?, note: ExitNote?, now: Date = Date()) -> Bool {
+        guard let previous, let note, note.pid == previous, note.reason == .quit, let date = note.date else {
+            return false
+        }
+        let age = now.timeIntervalSince(date)
+        return age >= 0 && age < revivalWindow
     }
 }
