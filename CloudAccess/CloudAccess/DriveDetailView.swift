@@ -392,6 +392,7 @@ struct DriveDetailView: View {
         }
         .sheet(isPresented: $isShowingCode) {
             ConnectionCodeView(connection: current, signsInWithKey: drives.signsInWithKey(current))
+                .presentationSizing(.fitted)
         }
         .savesText($recoveryKit, named: "\(connection.displayName) Recovery Kit.txt")
         .confirmationDialog(
