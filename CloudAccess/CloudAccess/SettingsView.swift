@@ -15,7 +15,6 @@ struct SettingsView: View {
     @State private var recoveryKitDrive: Connection?
     @State private var sheet: DriveRequest?
     @State private var isConfirmingForgetAll = false
-    @State private var loginStatus = LoginAgent.status
     @State private var diagnostics: TextFile?
     @State private var isExporting = false
     @State private var isChoosingImport = false
@@ -37,10 +36,10 @@ struct SettingsView: View {
 
     private var launchAtLogin: Binding<Bool> {
         Binding {
-            loginStatus != .off
+            drives.loginStatus != .off
         } set: { isOn in
             LoginAgent.set(isOn)
-            loginStatus = LoginAgent.status
+            drives.noteLoginChanged()
         }
     }
 
@@ -62,7 +61,7 @@ struct SettingsView: View {
                     drives.openExtensionSettings()
                 }
             }
-            if loginStatus == .needsApproval {
+            if drives.loginStatus == .needsApproval {
                 PermissionRow("Allow CloudAccess in Login Items.") {
                     LoginAgent.openLoginItems()
                 }

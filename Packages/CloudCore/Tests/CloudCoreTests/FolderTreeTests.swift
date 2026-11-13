@@ -43,8 +43,11 @@ private final class Folders: Sendable {
 
     private func tree(chosen: RemotePath? = nil, canMake: Bool = true) -> FolderTree {
         let server = server
-        return FolderTree(
-            chosen: chosen, list: { try server.list($0) }, make: canMake ? { server.make($0) } : nil)
+        // A closure inside `? :` isn't taken as sendable, so each case is written whole.
+        guard canMake else {
+            return FolderTree(chosen: chosen, list: { try server.list($0) })
+        }
+        return FolderTree(chosen: chosen, list: { try server.list($0) }, make: { server.make($0) })
     }
 
     @Test func onlyFoldersAreListedAndHiddenOnesArent() async {

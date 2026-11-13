@@ -51,7 +51,7 @@ There's no download yet. For now, build it from source, as described in [For dev
 
 In a drive's details, you choose how long downloaded copies stay, how much space they can use, and which folders stay downloaded.
 
-To start CloudAccess when you log in, turn on **Launch at login** in Settings.
+To start CloudAccess when you log in, turn on **Launch at login** in Settings. CloudAccess restarts once as you turn it on, so the copy macOS looks after is the one running. Only one copy ever runs.
 
 ### On your iPhone
 
@@ -67,7 +67,7 @@ To change a drive later, swipe it and choose Edit. To add several drives at once
 Both apps check what's wrong, step by step: this device's network, Tailscale, the server's name, the route, the server's port, and the server's answer. They say only what they found. For example, with Tailscale on and the server turned off, they say Tailscale is on and the server doesn't answer through it. They don't tell you to check Tailscale.
 
 - **A drive whose server fails shows it only on that drive,** in its row and its details. The menu bar icon and the status in the panel change only for a problem with the device itself, such as no network, or Tailscale turned off.
-- **Check Again** checks at once. Both apps also keep checking by themselves: the Mac every 30 seconds, and the iPhone while it's open. After a change of network, or waking up, they check every drive again.
+- **Check Again** checks at once. On the Mac it's the circular arrow beside a drive's QR and Eject buttons, shown while the drive can't connect. Both apps also keep checking by themselves: the Mac every 30 seconds, and the iPhone while it's open. After a change of network, or waking up, they check every drive again.
 - **When the fix is a setting,** the warning has a button for it. On the Mac, that's Open Tailscale, or the Local Network setting. On the iPhone, it's Open Settings, and a drive whose address or port is wrong offers Edit Drive.
 - **The checks only contact the drive's own server,** on its own port. Nothing is sent anywhere else.
 

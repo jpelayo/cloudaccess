@@ -17,8 +17,24 @@ enum LoginAgent {
     private static let plistName = "com.infinitecontext.CloudAccess.agent.plist"
     private static let environmentKey = "CLOUDACCESS_AGENT"
     private static let turningOffKey = "launchAgentTurningOff"
+    private static let showSettingsAtLaunchKey = "showSettingsAtLaunch"
     /// Sent by a copy that's leaving, so the one that stays shows its settings.
     static let showSettingsNotification = Notification.Name("com.infinitecontext.CloudAccess.showSettings")
+    /// Sent by the agent's copy as it starts, so a copy opened by hand gives way to it.
+    static let handOverNotification = Notification.Name("com.infinitecontext.CloudAccess.handOver")
+
+    /// Held by the copy that runs, for as long as it runs. Copies of the app share this folder.
+    private static var instanceURL: URL {
+        URL.applicationSupportDirectory.appendingPathComponent("instance.lock")
+    }
+
+    /// Held by an agent's copy while it waits to take over. Only one waits.
+    private static var standbyURL: URL {
+        URL.applicationSupportDirectory.appendingPathComponent("standby.lock")
+    }
+
+    /// This copy's hold on `instanceURL`. The system lets go of it however the copy ends.
+    private static var running: InstanceLock?
 
     private static var service: SMAppService {
         SMAppService.agent(plistName: plistName)
@@ -51,16 +67,16 @@ enum LoginAgent {
         }
     }
 
-    private static var otherCopy: pid_t? {
-        let me = ProcessInfo.processInfo.processIdentifier
-        return NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
-            .first { $0.processIdentifier != me && !$0.isTerminated }?
-            .processIdentifier
+    private static var me: Holder {
+        Holder(pid: ProcessInfo.processInfo.processIdentifier, isAgent: launchedByAgent)
     }
+
+    private typealias Holder = InstanceLock.Holder
 
     // MARK: At launch
 
-    /// Decides whether this copy should run. It returns only if it should.
+    /// Decides whether this copy should run. It returns only if it should. Only one copy ever
+    /// runs: the lock decides, and a copy that finds it taken leaves or waits its turn.
     static func resolveLaunch() {
         // It's off, and this copy only started because the agent hadn't gone yet.
         if launchedByAgent, isTurningOff {
@@ -71,7 +87,7 @@ enum LoginAgent {
         let role = LaunchRole.decide(
             launchedByAgent: launchedByAgent,
             agentEnabled: status == .on,
-            otherCopy: otherCopy)
+            otherCopy: claim() ? nil : InstanceLock.holder(instanceURL)?.pid ?? 0)
 
         switch role {
         case .run:
@@ -81,11 +97,8 @@ enum LoginAgent {
                 showSettingsNotification, object: nil, deliverImmediately: true)
             NSRunningApplication(processIdentifier: pid)?.activate()
             exit(0)
-        case .standBy(let pid):
-            waitForExit(of: pid)
-            if !ExitNote.shouldRun(afterExitOf: pid, note: readNote()) {
-                exit(0)
-            }
+        case .standBy:
+            standBy()
         case .handOver:
             if startAgentCopy() {
                 exit(0)
@@ -93,8 +106,46 @@ enum LoginAgent {
         }
     }
 
+    /// Takes the lock, and says whether this copy is the only one.
+    private static func claim() -> Bool {
+        for _ in 0..<3 {
+            if let lock = InstanceLock.take(instanceURL) {
+                lock.record(me)
+                running = lock
+                return true
+            }
+            if InstanceLock.isHeld(instanceURL) {
+                return false
+            }
+            // The holder ended between the two looks.
+        }
+        // The lock can't be used at all. Running is better than never running.
+        return true
+    }
+
+    /// The agent's copy, started while another copy runs. It asks that copy to give way, and
+    /// takes over once it has. Waiting on the lock needs no permission to look at the other
+    /// process, which a sandboxed app doesn't have.
+    private static func standBy() {
+        guard let waiting = InstanceLock.takeSoon(standbyURL) else {
+            // Another copy is already waiting to take over.
+            exit(0)
+        }
+        DistributedNotificationCenter.default().postNotificationName(
+            handOverNotification, object: nil, deliverImmediately: true)
+        guard let lock = InstanceLock.wait(for: instanceURL) else { exit(0) }
+        waiting.release()
+        // The copy that just ended left its record. If it was quit on purpose, nothing takes over.
+        if let ended = InstanceLock.holder(instanceURL), !ExitNote.shouldRun(afterExitOf: ended.pid, note: readNote()) {
+            exit(0)
+        }
+        lock.record(me)
+        running = lock
+    }
+
     /// Registering the agent starts its copy, because it runs at load. This app can't call
     /// `launchctl` from its sandbox, so re-registering is how it starts that copy after a Quit.
+    /// - Returns: Whether the agent's copy is waiting to take over, so this one can leave.
     private static func startAgentCopy() -> Bool {
         let agent = service
         do {
@@ -104,16 +155,51 @@ enum LoginAgent {
             return false
         }
         for _ in 0..<50 {
-            if otherCopy != nil { return true }
+            if InstanceLock.isHeld(standbyURL) { return true }
             Thread.sleep(forTimeInterval: 0.1)
         }
         return false
     }
 
-    private static func waitForExit(of pid: pid_t) {
-        while kill(pid, 0) == 0 {
-            Thread.sleep(forTimeInterval: 0.2)
+    // MARK: Handing over
+
+    /// A copy opened by hand gives way to the agent's copy as soon as that starts, such as when
+    /// launch at login is turned on or allowed. Then only one copy runs, and it's the one launchd
+    /// brings back after a crash.
+    /// - Parameter isBusy: Whether this copy is in the middle of something that mustn't stop, such
+    ///   as an uninstall.
+    static func watchForAgentCopy(isBusy: @escaping @MainActor () -> Bool) {
+        guard !launchedByAgent else { return }
+        DistributedNotificationCenter.default().addObserver(
+            forName: handOverNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { handOverIfAsked(isBusy: isBusy) }
         }
+        // Asked while this copy was still starting, before it listened.
+        handOverIfAsked(isBusy: isBusy)
+    }
+
+    private static func handOverIfAsked(isBusy: @MainActor () -> Bool) {
+        guard running != nil, InstanceLock.isHeld(standbyURL), !isBusy() else { return }
+        // The new copy opens Settings if this one had it open.
+        UserDefaults.standard.set(AppWindows.isShowingSettings, forKey: showSettingsAtLaunchKey)
+        UserDefaults.standard.synchronize()
+        for window in NSApp?.windows ?? [] {
+            if let sheet = window.attachedSheet {
+                window.endSheet(sheet)
+            }
+        }
+        // A successful exit with no Quit note, so the agent's copy takes over.
+        exit(0)
+    }
+
+    /// Whether the copy that handed over had Settings open. It's asked once, at launch.
+    static func takeSettingsRequest() -> Bool {
+        let wanted = UserDefaults.standard.bool(forKey: showSettingsAtLaunchKey)
+        if wanted {
+            UserDefaults.standard.removeObject(forKey: showSettingsAtLaunchKey)
+        }
+        return wanted
     }
 
     // MARK: The setting

@@ -173,6 +173,8 @@ final class StatusPanel: NSObject {
 
     private func open() {
         guard let button = item?.button, let bar = button.window else { return }
+        // A permission given since the last look shouldn't still be asked for.
+        Task { [drives] in await drives.refreshPermissions() }
         let controller = NSHostingController(
             rootView: StatusPanelView(panel: self, state: state, maxHeight: heightLimit)
                 .environment(drives)

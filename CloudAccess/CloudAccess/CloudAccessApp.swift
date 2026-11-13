@@ -51,6 +51,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let drives = Self.drives else { return }
         let panel = StatusPanel(drives: drives)
         self.panel = panel
+        // The copy that handed over to this one had Settings open, such as to turn on launch at
+        // login, so it opens again here.
+        if LoginAgent.takeSettingsRequest() {
+            AppWindows.showSettings(drives: drives)
+        }
         #if DEBUG
         StatusPanel.current = panel
         #endif
@@ -109,6 +114,11 @@ enum AppWindows {
 
     static func showSettings(drives: Drives) {
         show(&settings, title: String(localized: "Settings"), content: SettingsView().environment(drives))
+    }
+
+    /// Whether Settings is on screen, so a copy handing over can have the next one open it.
+    static var isShowingSettings: Bool {
+        settings?.isVisible == true
     }
 
     static func showAddDrive(drives: Drives) {

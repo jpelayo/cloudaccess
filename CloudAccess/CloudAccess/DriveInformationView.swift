@@ -121,7 +121,7 @@ struct DriveInformationView: View {
         return Card {
             IconRow(shown.symbol, shown.title, subtitle: shown.detail, tint: shown.tint) {
                 if drives.status(of: connection) == .offline {
-                    CheckAgainButton(isChecking: drives.isCheckingAgain || drives.checks.checking.contains(connection.id)) {
+                    CheckAgainButton(isChecking: drives.isChecking(connection)) {
                         Task { await drives.checkAgain([connection]) }
                     }
                     .buttonStyle(.pill)

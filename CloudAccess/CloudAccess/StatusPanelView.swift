@@ -127,6 +127,19 @@ struct DriveButtons: View {
     var perform: (() -> Void) -> Void = { $0() }
     let showCode: () -> Void
 
+    /// Only on a drive that can't connect. The panel stays open, so the row shows what the check
+    /// found, and polling keeps trying without it.
+    private var checkAgain: some View {
+        let isChecking = drives.isChecking(connection)
+        return Button("Check Again", systemImage: "arrow.clockwise") {
+            Task { await drives.checkAgain([connection]) }
+        }
+        .symbolEffect(.rotate, options: .repeat(.continuous), isActive: isChecking)
+        .buttonStyle(.icon)
+        .disabled(isChecking)
+        .help(isChecking ? LocalizedStringKey("Checking…") : LocalizedStringKey("Check Again"))
+    }
+
     var body: some View {
         HStack(spacing: 6) {
             Button("Show in Finder", systemImage: "magnifyingglass") {
@@ -135,6 +148,9 @@ struct DriveButtons: View {
             .buttonStyle(.icon)
             .disabled(!connection.isMounted)
             .help("Show in Finder")
+            if drives.offline.contains(connection.id) {
+                checkAgain
+            }
             Button("Show QR Code", systemImage: "qrcode") {
                 perform(showCode)
             }
@@ -235,8 +251,6 @@ struct StatusPanelView: View {
     /// Stands in for the real drives, to measure the panel with more than anyone has.
     var sample: [Connection]?
 
-    @State private var loginStatus = LoginAgent.status
-
     private static let width: CGFloat = 348
     private static let padding: CGFloat = 12
     private static let listPadding: CGFloat = 4
@@ -312,7 +326,7 @@ struct StatusPanelView: View {
                 }
             }
         }
-        if loginStatus == .needsApproval {
+        if drives.loginStatus == .needsApproval {
             Card {
                 IconRow("exclamationmark.triangle.fill", "Allow CloudAccess", subtitle: "In Login Items", tint: .red) {
                     Button("Open") {
@@ -536,10 +550,10 @@ struct DriveSidePanel: View {
             }
             CardSection("Actions") {
                 if drives.offline.contains(connection.id) {
-                    ActionRow(drives.isCheckingAgain ? LocalizedStringKey("Checking…") : LocalizedStringKey("Check Again"), symbol: "arrow.clockwise") {
+                    ActionRow(drives.isChecking(connection) ? LocalizedStringKey("Checking…") : LocalizedStringKey("Check Again"), symbol: "arrow.clockwise") {
                         Task { await drives.checkAgain([connection]) }
                     }
-                    .disabled(drives.isCheckingAgain)
+                    .disabled(drives.isChecking(connection))
                 }
                 if drives.hasTailscale, drives.drivesWithTailscaleOff.contains(connection) {
                     ActionRow("Open Tailscale", symbol: "network") {

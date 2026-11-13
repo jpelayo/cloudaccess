@@ -182,8 +182,12 @@ final class Drives {
     let checks = ConnectionChecks(device: .mac)
     /// Whether this Mac has a network at all, straight from the system.
     private(set) var isNetworkUp = true
-    /// Check Again is running.
-    private(set) var isCheckingAgain = false
+    /// Drives a person asked to check again, while that runs. Each drive's button turns on its own.
+    private(set) var checkingAgain: Set<UUID> = []
+    /// Launch at login, kept fresh, so its warning goes soon after a person allows it.
+    private(set) var loginStatus = LoginAgent.status
+    /// Reads both permissions again every few seconds while either still waits for a person.
+    @ObservationIgnored private var permissionWatch: Task<Void, Never>?
     /// A problem reading the saved drives, which must never look like having no drives.
     private(set) var storeProblem: String?
     /// Domains macOS has registered that no saved drive matches. They're kept, not removed.
@@ -357,16 +361,28 @@ final class Drives {
     /// Check Again: drops each drive's connection, checks why it can't connect, then polls. The
     /// poll every 30 seconds keeps checking without it.
     func checkAgain(_ chosen: [Connection]) async {
-        guard !isCheckingAgain else { return }
-        isCheckingAgain = true
-        defer { isCheckingAgain = false }
-        for connection in chosen {
+        let fresh = chosen.filter { !checkingAgain.contains($0.id) }
+        guard !fresh.isEmpty else { return }
+        let ids = Set(fresh.map(\.id))
+        checkingAgain.formUnion(ids)
+        defer { checkingAgain.subtract(ids) }
+        for connection in fresh {
             open[connection.id] = nil
         }
         await checks.check(
-            chosen.filter { offline.contains($0.id) }, byAPerson: true,
+            fresh.filter { offline.contains($0.id) }, byAPerson: true,
             otherServersOnline: { [weak self] in self?.connectsToAnotherServer(than: $0) ?? false })
         await pollOnce(force: true)
+    }
+
+    /// Check Again is running for some drive.
+    var isCheckingAgain: Bool {
+        !checkingAgain.isEmpty
+    }
+
+    /// Check Again is running for this drive, or a check of it is.
+    func isChecking(_ connection: Connection) -> Bool {
+        checkingAgain.contains(connection.id) || checks.checking.contains(connection.id)
     }
 
     /// The drives that can't connect now.
@@ -577,6 +593,7 @@ final class Drives {
         }
         watchForSecondCopies()
         watchConnectivity()
+        watchPermissions()
         transfersTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: Self.transfersInterval)
@@ -668,8 +685,12 @@ final class Drives {
         }
     }
 
-    /// A second copy opened by hand leaves straight away, and asks this one to show itself.
+    /// A second copy opened by hand leaves straight away, and asks this one to show itself. And
+    /// this copy, if opened by hand, gives way to the agent's copy when that starts.
     private func watchForSecondCopies() {
+        LoginAgent.watchForAgentCopy { [weak self] in
+            self?.uninstaller != nil
+        }
         DistributedNotificationCenter.default().addObserver(
             forName: LoginAgent.showSettingsNotification, object: nil, queue: .main
         ) { _ in
@@ -840,7 +861,7 @@ final class Drives {
         checks.noteFailures(
             mounted.compactMap { connection in lost[connection.id].map { (connection, $0) } },
             otherServersOnline: { [weak self] in self?.connectsToAnotherServer(than: $0) ?? false })
-        await updateEnabledState()
+        await refreshPermissions()
     }
 
     /// macOS imports what it holds in the background, and that can wait a long time, with unsent
@@ -1128,11 +1149,64 @@ final class Drives {
         isShowingMounts = false
     }
 
-    /// A new drive does nothing until the person turns it on in System Settings.
-    private func updateEnabledState() async {
-        guard let domains = try? await withinTime(Self.macOSLimit, { try await NSFileProviderManager.domains() })
-        else { return }
-        notEnabled = Set(domains.filter { !$0.userEnabled }.compactMap { UUID(uuidString: $0.identifier.rawValue) })
+    /// Reads what macOS is waiting for a person to allow: each new drive, which does nothing until
+    /// it's turned on in System Settings, and launch at login. While either waits, it's read again
+    /// every 2 seconds, so its warning goes soon after the person has done it.
+    func refreshPermissions() async {
+        loginStatus = LoginAgent.status
+        if let domains = try? await withinTime(Self.macOSLimit, { try await NSFileProviderManager.domains() }) {
+            notEnabled = Set(domains.filter { !$0.userEnabled }.compactMap { UUID(uuidString: $0.identifier.rawValue) })
+        }
+        watchPermissionsWhileNeeded()
+    }
+
+    /// Launch at login was just switched, in this app.
+    func noteLoginChanged() {
+        loginStatus = LoginAgent.status
+        watchPermissionsWhileNeeded()
+    }
+
+    private var isWaitingForPermission: Bool {
+        needsEnabling || loginStatus == .needsApproval
+    }
+
+    private func watchPermissionsWhileNeeded() {
+        guard isWaitingForPermission, permissionWatch == nil else { return }
+        permissionWatch = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                guard let self else { return }
+                self.loginStatus = LoginAgent.status
+                if let domains = try? await withinTime(Self.macOSLimit, { try await NSFileProviderManager.domains() }) {
+                    self.notEnabled = Set(
+                        domains.filter { !$0.userEnabled }.compactMap { UUID(uuidString: $0.identifier.rawValue) })
+                }
+                if !self.isWaitingForPermission {
+                    self.permissionWatch = nil
+                    return
+                }
+            }
+        }
+    }
+
+    /// macOS says when a drive is turned on or off. Coming back from System Settings to any app
+    /// reads both permissions again too, in case macOS said nothing.
+    private func watchPermissions() {
+        NotificationCenter.default.addObserver(
+            forName: .fileProviderDomainDidChange, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                Task { await self?.refreshPermissions() }
+            }
+        }
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.isWaitingForPermission else { return }
+                Task { await self.refreshPermissions() }
+            }
+        }
     }
 
     func openExtensionSettings() {

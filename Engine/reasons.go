@@ -93,9 +93,12 @@ func unreachableReason(err error) string {
 		// The server closed the connection before answering.
 		return "connectionReset"
 	}
-	// macOS's own certificate check can fail in ways Go only reports as text.
+	// macOS's own certificate check can fail in ways Go only reports as text, and Go's HTTP
+	// client swaps the TLS error for a sentence of its own when plain HTTP answers.
 	message := err.Error()
 	switch {
+	case strings.Contains(message, "server gave HTTP response to HTTPS client"):
+		return "notTLS"
 	case strings.Contains(message, "x509:"):
 		return "certificateUntrusted"
 	case strings.Contains(message, "ssh: handshake failed"):
