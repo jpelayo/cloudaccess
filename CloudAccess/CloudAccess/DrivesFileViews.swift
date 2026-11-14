@@ -328,7 +328,7 @@ struct ImportDrivesView: View {
                                 Text(step.title).tag(step)
                             }
                         }
-                        .frame(width: Pane.valueColumn)
+                        .inColumn(Pane.valueColumn)
                         .disabled(results[row.id] != nil || isWorking)
                     }
                     if row.needsInsecureConsent, chosenStep(for: row) != .skip {

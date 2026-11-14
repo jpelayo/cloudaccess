@@ -215,7 +215,7 @@ struct SettingsView: View {
                     RowSwitch(label: "Launch at login", isOn: launchAtLogin)
                 }
                 IconRow("stethoscope", "Diagnostics", subtitle: "A report with secrets removed") {
-                    Button("Export…", systemImage: "square.and.arrow.up") {
+                    Button("Export…") {
                         diagnostics = TextFile(text: drives.diagnosticsText())
                     }
                     .buttonStyle(.pill)
@@ -227,8 +227,7 @@ struct SettingsView: View {
                         }
                     }
                     .labelsHidden()
-                    // The same width as every popup, in its column on the right.
-                    .frame(width: Pane.valueColumn)
+                    .inColumn(Pane.valueColumn)
                 }
                 if languageChanged {
                     if LoginAgent.canRestart {
@@ -536,8 +535,8 @@ struct AddDriveView: View {
                             Text(kind.title)
                         }
                     }
-                    // As wide as the fields above and below it.
-                    .frame(width: Pane.fieldColumn)
+                    // Ends where the fields above and below it end.
+                    .inColumn(Pane.fieldColumn)
                 }
                 FieldRow(label: "Host", text: $form.host, prompt: "example.com")
                 FieldRow(label: "Port", text: $form.port, prompt: form.kind.defaultPort)

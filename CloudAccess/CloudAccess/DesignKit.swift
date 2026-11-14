@@ -253,8 +253,16 @@ struct SettingRow<Control: View>: View {
     }
 }
 
-/// A setting chosen from a popup. Every popup is the same width, so a card's popups share one
-/// right edge and one left edge.
+extension View {
+    /// Puts a popup in a column on the right of its row. On macOS 26 a popup keeps its own width
+    /// whatever frame it's given, and a frame centers it, so it would stop short of the buttons and
+    /// fields around it. Pinned to the trailing edge, it ends where they do.
+    func inColumn(_ width: CGFloat) -> some View {
+        frame(width: width, alignment: .trailing)
+    }
+}
+
+/// A setting chosen from a popup, ending at the same right edge as every other control.
 struct PickerRow<Value: Hashable, Options: View>: View {
     let label: Text
     let caption: Text?
@@ -280,7 +288,7 @@ struct PickerRow<Value: Hashable, Options: View>: View {
             } label: {
                 label
             }
-            .frame(width: Pane.valueColumn)
+            .inColumn(Pane.valueColumn)
         }
     }
 }

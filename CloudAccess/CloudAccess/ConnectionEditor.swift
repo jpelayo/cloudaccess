@@ -109,8 +109,8 @@ struct ConnectionEditor: View {
                         Text(kind.title)
                     }
                 }
-                // As wide as the fields above and below it.
-                .frame(width: Pane.fieldColumn)
+                // Ends where the fields above and below it end.
+                .inColumn(Pane.fieldColumn)
             }
             FieldRow(label: "Host", text: $form.host)
             FieldRow(label: "Port", text: $form.port, prompt: form.kind.defaultPort)

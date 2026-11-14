@@ -371,7 +371,7 @@ struct DriveDetailView: View {
                     dismiss()
                 }
                 SettingRow("Set up CloudWanderer") {
-                    Button("Show QR Code…", systemImage: "qrcode") { isShowingCode = true }
+                    Button("Show QR Code…") { isShowingCode = true }
                         .buttonStyle(.pill)
                 }
             }
