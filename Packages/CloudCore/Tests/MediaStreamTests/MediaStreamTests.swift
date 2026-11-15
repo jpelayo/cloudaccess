@@ -123,6 +123,14 @@ import Testing
         #expect(PlayButtons.shown(isPlayable: true, isDownloaded: true, isDownloading: false) == [.play])
         #expect(PlayButtons.shown(isPlayable: false, isDownloaded: true, isDownloading: false).isEmpty)
     }
+
+    /// Streaming and the copy on the phone must look different at a glance.
+    @Test func streamingAndTheCopyHaveDifferentSymbols() {
+        let symbols = [PlayButton.playNow, .downloadAndPlay, .play].map(\.systemImage)
+        #expect(Set(symbols).count == 3)
+        #expect(PlayButton.playNow.systemImage == "play.circle")
+        #expect(PlayButton.play.systemImage == "play.circle.fill")
+    }
 }
 
 /// A file of known bytes on a fake drive, read through a reader with small pieces.

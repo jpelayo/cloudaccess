@@ -79,7 +79,7 @@ struct PhoneSettingsView: View {
             } header: {
                 SectionLabel("Downloads")
             } footer: {
-                Text("How long a download stays on this iPhone after it was last used. Films and music get their own time, so they're still here when you want to watch them.")
+                Text("How long a download stays on this iPhone after it was last used. Video and audio get their own time, so they're still here when you want them.")
             }
             Section {
                 Picker("Language", selection: languageChoice) {

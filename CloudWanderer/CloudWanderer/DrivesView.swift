@@ -1006,6 +1006,43 @@ struct FileRow: View {
     @State private var playing: PlaySource?
     /// Download and Play opens the player only if the row is still on screen when it finishes.
     @State private var isShown = false
+    /// The keep-time chosen for this one download, or nil when it follows Settings.
+    @State private var ownKeep: TimeInterval?
+    /// When the download goes if it isn't used again.
+    @State private var removal: Date?
+
+    private func refreshKeep() {
+        ownKeep = library.ownKeepTime(of: item.path, drive: drive)
+        removal = library.removalDate(
+            of: item.path, drive: drive, mediaAfter: DownloadKeepTimes.media, otherAfter: DownloadKeepTimes.other)
+    }
+
+    private var keepChoice: Binding<TimeInterval?> {
+        Binding(
+            get: { ownKeep },
+            set: { time in
+                library.setOwnKeepTime(time, for: item.path, drive: drive)
+                refreshKeep()
+            })
+    }
+
+    private func keepFromToday() {
+        library.touch(item.path, drive: drive)
+        refreshKeep()
+    }
+
+    /// The copy playing stays, so a film never vanishes under the player.
+    private var canRemoveDownload: Bool {
+        guard let kept else { return false }
+        return PlayingNow.file?.standardizedFileURL != kept.standardizedFileURL
+    }
+
+    private func removeDownload() {
+        guard canRemoveDownload else { return }
+        library.removeDownload(of: item.path, drive: drive)
+        kept = nil
+        refreshKeep()
+    }
 
     /// The play buttons for this file: Play Now and Download and Play are always two different
     /// buttons, so it's clear which one starts at once.
@@ -1027,6 +1064,7 @@ struct FileRow: View {
 
     private func play(_ file: URL) {
         library.touch(item.path, drive: drive)
+        refreshKeep()
         PlayingNow.file = file
         playing = .local(file)
     }
@@ -1086,10 +1124,10 @@ struct FileRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 16) {
                 if canPlayNow {
-                    Button("Play Now", systemImage: "play.circle", action: playNow)
+                    Button("Play Now", systemImage: PlayButton.playNow.systemImage, action: playNow)
                 }
                 if playButtons.contains(.play), let kept {
-                    Button("Play", systemImage: "play.fill") { play(kept) }
+                    Button("Play", systemImage: PlayButton.play.systemImage) { play(kept) }
                 }
                 if let download {
                     Button("Cancel", systemImage: "xmark.circle") { download.cancel() }
@@ -1099,7 +1137,7 @@ struct FileRow: View {
                     // The share sheet includes Save to Files.
                     Button("Export", systemImage: "square.and.arrow.up") { share() }
                 } else if isAvailable, playButtons.contains(.downloadAndPlay) {
-                    Button("Download and Play", systemImage: "arrow.down.circle") { start(thenPlay: true) }
+                    Button("Download and Play", systemImage: PlayButton.downloadAndPlay.systemImage) { start(thenPlay: true) }
                 } else if isAvailable {
                     Button("Download", systemImage: "arrow.down.circle") { start() }
                 }
@@ -1111,27 +1149,25 @@ struct FileRow: View {
         // A long press names each button, with its words.
         .contextMenu {
             if canPlayNow {
-                Button("Play Now", systemImage: "play.circle", action: playNow)
+                Button("Play Now", systemImage: PlayButton.playNow.systemImage, action: playNow)
             }
             if playButtons.contains(.play), let kept {
-                Button("Play", systemImage: "play.fill") { play(kept) }
+                Button("Play", systemImage: PlayButton.play.systemImage) { play(kept) }
             }
             if download == nil, kept == nil, isAvailable, playButtons.contains(.downloadAndPlay) {
-                Button("Download and Play", systemImage: "arrow.down.circle") { start(thenPlay: true) }
+                Button("Download and Play", systemImage: PlayButton.downloadAndPlay.systemImage) { start(thenPlay: true) }
             }
             if kept != nil {
                 Button("Export", systemImage: "square.and.arrow.up") { share() }
+                keepSection
             }
         }
         .fullScreenCover(item: $playing) { source in
             PlayerView(source: source)
         }
         .swipeActions {
-            if kept != nil {
-                Button("Remove Download", role: .destructive) {
-                    library.removeDownload(of: item.path, drive: drive)
-                    kept = nil
-                }
+            if canRemoveDownload {
+                Button("Remove Download", role: .destructive, action: removeDownload)
             }
         }
         .sheet(isPresented: $isSharing) {
@@ -1142,14 +1178,43 @@ struct FileRow: View {
         .onAppear {
             isShown = true
             kept = library.download(of: item.path, drive: drive)
+            refreshKeep()
         }
         .onDisappear {
             isShown = false
         }
     }
 
+    /// How long this download stays, under the date it goes. A long press is the only place for
+    /// it, so the row itself stays as simple as before.
+    @ViewBuilder private var keepSection: some View {
+        let choices = Group {
+            Picker(selection: keepChoice) {
+                Text("As in Settings").tag(TimeInterval?.none)
+                ForEach(KeepTime.choices, id: \.self) { time in
+                    Text(verbatim: KeepTime.shown(time)).tag(TimeInterval?.some(time))
+                }
+            } label: {
+                Label("Keep on This iPhone", systemImage: "calendar")
+            }
+            .pickerStyle(.menu)
+            Button("Keep From Today", systemImage: "clock.arrow.circlepath", action: keepFromToday)
+            if canRemoveDownload {
+                Button("Remove Download", systemImage: "trash", role: .destructive, action: removeDownload)
+            }
+        }
+        if let removal {
+            Section("Removed from this iPhone on \(removal.formatted(.dateTime.day().month(.abbreviated)))") {
+                choices
+            }
+        } else {
+            Section { choices }
+        }
+    }
+
     private func share() {
         library.touch(item.path, drive: drive)
+        refreshKeep()
         isSharing = true
     }
 
@@ -1173,6 +1238,7 @@ struct FileRow: View {
                 OfflineLibrary.stamp(file, with: fetched)
                 let copy = try library.keep(file, as: item.path, drive: drive, version: fetched.versionID)
                 kept = copy
+                refreshKeep()
                 AppLog.download(on: connection, progress: watch.progress, started: started, error: nil)
                 if thenPlay, isShown {
                     play(copy)

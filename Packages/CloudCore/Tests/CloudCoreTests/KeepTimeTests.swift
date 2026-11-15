@@ -253,4 +253,62 @@ import Testing
         // Its clock starts from that first pass.
         #expect(sweep(library, at: later.addingTimeInterval(4 * day)) == 1)
     }
+
+    // MARK: A file's own keep-time
+
+    @Test func aFileKeptLongerThanItsKindOutlastsIt() throws {
+        let library = library()
+        let report = try keep("report.pdf", in: library, at: start)
+        library.setOwnKeepTime(30 * day, for: report, drive: drive)
+
+        #expect(sweep(library, at: start.addingTimeInterval(4 * day)) == 0)
+        #expect(sweep(library, at: start.addingTimeInterval(31 * day)) == 1)
+        #expect(library.download(of: report, drive: drive) == nil)
+    }
+
+    @Test func aFileKeptShorterGoesSooner() throws {
+        let library = library()
+        let film = try keep("Film.mkv", in: library, at: start)
+        library.setOwnKeepTime(day, for: film, drive: drive)
+
+        #expect(sweep(library, at: start.addingTimeInterval(2 * day)) == 1)
+    }
+
+    @Test func goingBackToSettingsUsesTheDefaultAgain() throws {
+        let library = library()
+        let film = try keep("Film.mkv", in: library, at: start)
+        library.setOwnKeepTime(day, for: film, drive: drive)
+        library.setOwnKeepTime(nil, for: film, drive: drive)
+
+        #expect(library.ownKeepTime(of: film, drive: drive) == nil)
+        #expect(sweep(library, at: start.addingTimeInterval(10 * day)) == 0)
+        #expect(sweep(library, at: start.addingTimeInterval(16 * day)) == 1)
+    }
+
+    @Test func aNewerVersionKeepsTheChosenTime() throws {
+        let library = library()
+        let film = try keep("Film.mkv", in: library, at: start)
+        library.setOwnKeepTime(90 * day, for: film, drive: drive)
+
+        _ = try keep("Film.mkv", in: library, at: start.addingTimeInterval(day))
+
+        #expect(library.ownKeepTime(of: film, drive: drive) == 90 * day)
+    }
+
+    @Test func theRemovalDateIsLastUsePlusTheTime() throws {
+        let library = library()
+        let film = try keep("Film.mkv", in: library, at: start)
+        func removal() -> Date? {
+            library.removalDate(of: film, drive: drive, mediaAfter: 15 * day, otherAfter: 3 * day)
+        }
+
+        #expect(removal() == start.addingTimeInterval(15 * day))
+        library.touch(film, drive: drive, now: start.addingTimeInterval(2 * day))
+        #expect(removal() == start.addingTimeInterval(17 * day))
+        library.setOwnKeepTime(30 * day, for: film, drive: drive)
+        #expect(removal() == start.addingTimeInterval(32 * day))
+
+        let missing = RemotePath("/Missing.mkv")!
+        #expect(library.removalDate(of: missing, drive: drive, mediaAfter: day, otherAfter: day) == nil)
+    }
 }

@@ -32,6 +32,16 @@ public enum PlayButton: Equatable, Sendable {
     case downloadAndPlay
     /// Plays the copy already on the phone, offline too.
     case play
+
+    /// An outline circle comes from the server, a solid one is on this phone, so streaming and
+    /// the copy are told apart at a glance.
+    public var systemImage: String {
+        switch self {
+        case .playNow: "play.circle"
+        case .downloadAndPlay: "arrow.down.circle"
+        case .play: "play.circle.fill"
+        }
+    }
 }
 
 public enum PlayButtons {

@@ -56,7 +56,7 @@ struct AboutView: View {
                 Text("Browse your own WebDAV and SFTP servers, and download and export files from them. Nothing is sent anywhere else.")
             }
             Section {
-                Text("Films in formats Apple's player can't open play with VLCKit, by VideoLAN, which is LGPL 2.1 licensed software.")
+                Text("Video and audio in formats Apple's player can't open play with VLCKit, by VideoLAN, which is LGPL 2.1 licensed software.")
                 if let source = URL(string: "https://code.videolan.org/videolan/VLCKit") {
                     Link("VLCKit Source Code", destination: source)
                 }

@@ -1,12 +1,12 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Its name says it is, but what's inside isn't a film or sound." : {
+    "Its name says it is, but what's inside isn't video or audio." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Su nombre lo indica, pero lo que contiene no es una película ni un sonido."
+            "value" : "Su nombre lo indica, pero lo que contiene no es vídeo ni audio."
           }
         }
       }
@@ -17,6 +17,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esto no es un archivo de vídeo ni de audio"
+          }
+        }
+      }
+    },
+    "As in Settings" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como en Ajustes"
           }
         }
       }
@@ -91,12 +101,12 @@
         }
       }
     },
-    "Films in formats Apple's player can't open play with VLCKit, by VideoLAN, which is LGPL 2.1 licensed software." : {
+    "Video and audio in formats Apple's player can't open play with VLCKit, by VideoLAN, which is LGPL 2.1 licensed software." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las películas en formatos que el reproductor de Apple no puede abrir se reproducen con VLCKit, de VideoLAN, que es software con licencia LGPL 2.1."
+            "value" : "El vídeo y el audio en formatos que el reproductor de Apple no puede abrir se reproducen con VLCKit, de VideoLAN, que es software con licencia LGPL 2.1."
           }
         }
       }
@@ -111,12 +121,12 @@
         }
       }
     },
-    "How long a download stays on this iPhone after it was last used. Films and music get their own time, so they're still here when you want to watch them." : {
+    "How long a download stays on this iPhone after it was last used. Video and audio get their own time, so they're still here when you want them." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cuánto tiempo se conserva una descarga en este iPhone desde la última vez que se usó. Las películas y la música tienen su propio tiempo, para que sigan aquí cuando quiera verlas."
+            "value" : "Cuánto tiempo se conserva una descarga en este iPhone desde la última vez que se usó. El vídeo y el audio tienen su propio tiempo, para que sigan aquí cuando los quiera."
           }
         }
       }
@@ -1225,6 +1235,26 @@
         }
       }
     },
+    "Keep From Today" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conservar desde hoy"
+          }
+        }
+      }
+    },
+    "Keep on This iPhone" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conservar en este iPhone"
+          }
+        }
+      }
+    },
     "Language" : {
       "localizations" : {
         "es" : {
@@ -1651,6 +1681,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "¿Quitar esta unidad?"
+          }
+        }
+      }
+    },
+    "Removed from this iPhone on %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se eliminará de este iPhone el %@"
           }
         }
       }

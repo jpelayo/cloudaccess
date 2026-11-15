@@ -83,7 +83,7 @@ struct PlayerView: View {
             case .notMedia:
                 PlaybackProblem(
                     title: "This isn't a video or audio file",
-                    reason: String(localized: "Its name says it is, but what's inside isn't a film or sound."),
+                    reason: String(localized: "Its name says it is, but what's inside isn't video or audio."),
                     tryAgain: nil, close: { dismiss() })
             }
         }
@@ -171,7 +171,7 @@ struct PlayerView: View {
         let shownName = container.shownName(for: item.path.name)
         let started = try await LoopbackServer.start(reader: reader, fileName: shownName) { error in
             Task { @MainActor in
-                AppLog.record("\(connection.displayName): a film stopped: \(Diagnostics.kind(of: error))")
+                AppLog.record("\(connection.displayName): playback stopped: \(Diagnostics.kind(of: error))")
                 phase = .failed(await ConnectionChecks.explain(error, for: connection, device: .iPhone))
             }
         }

@@ -118,6 +118,11 @@ public struct OfflineLibrary: Sendable {
                 try Data($0.utf8).write(to: fresh.appendingPathComponent(Self.versionRecord), options: .atomic)
             }
             try Self.recordUse(in: fresh, at: now)
+            // A keep-time chosen for this file is the person's, and a newer version keeps it.
+            let chosen = target.appendingPathComponent(Self.keepRecord)
+            if files.fileExists(atPath: chosen.path) {
+                try files.copyItem(at: chosen, to: fresh.appendingPathComponent(Self.keepRecord))
+            }
             if files.fileExists(atPath: target.path) {
                 _ = try files.replaceItemAt(target, withItemAt: fresh)
             } else {
@@ -170,14 +175,56 @@ public struct OfflineLibrary: Sendable {
         return Date(timeIntervalSince1970: seconds)
     }
 
-    /// Restarts a kept file's clock, when it's played, shared or exported.
+    /// Restarts a kept file's clock, when it's played, shared or exported, or a person asks.
     public func touch(_ path: RemotePath, drive: UUID, now: Date = Date()) {
         guard download(of: path, drive: drive) != nil else { return }
         try? Self.recordUse(in: fileFolder(of: path, drive: drive), at: now)
     }
 
+    /// A keep-time a person chose for one file, over its kind's.
+    private static let keepRecord = ".cm-keep"
+
+    private static func ownKeepTime(in folder: URL) -> TimeInterval? {
+        guard let data = try? Data(contentsOf: folder.appendingPathComponent(keepRecord)) else { return nil }
+        return TimeInterval(String(decoding: data, as: UTF8.self))
+    }
+
+    /// The one rule for how long a kept file stays, so the date shown and the sweep agree.
+    private static func keepTime(in folder: URL, name: String, mediaAfter: TimeInterval, otherAfter: TimeInterval)
+        -> TimeInterval {
+        ownKeepTime(in: folder) ?? (MediaFiles.isMedia(name) ? mediaAfter : otherAfter)
+    }
+
+    /// The keep-time chosen for this file, or nil when it follows its kind's.
+    public func ownKeepTime(of path: RemotePath, drive: UUID) -> TimeInterval? {
+        Self.ownKeepTime(in: fileFolder(of: path, drive: drive))
+    }
+
+    /// Chooses how long this one file stays. Nil goes back to its kind's keep-time.
+    public func setOwnKeepTime(_ time: TimeInterval?, for path: RemotePath, drive: UUID) {
+        guard download(of: path, drive: drive) != nil else { return }
+        let record = fileFolder(of: path, drive: drive).appendingPathComponent(Self.keepRecord)
+        if let time {
+            try? Data(String(time).utf8).write(to: record, options: .atomic)
+        } else {
+            try? FileManager.default.removeItem(at: record)
+        }
+    }
+
+    /// When a kept file goes if it isn't used again, or nil when nothing is kept. A file with no
+    /// record of use counts from now, as `removeExpired` starts it.
+    public func removalDate(
+        of path: RemotePath, drive: UUID, mediaAfter: TimeInterval, otherAfter: TimeInterval, now: Date = Date()
+    ) -> Date? {
+        guard download(of: path, drive: drive) != nil else { return nil }
+        let folder = fileFolder(of: path, drive: drive)
+        let used = Self.lastUse(in: folder) ?? now
+        return used.addingTimeInterval(
+            Self.keepTime(in: folder, name: path.name, mediaAfter: mediaAfter, otherAfter: otherAfter))
+    }
+
     /// Removes kept files unused for longer than their keep-time: `mediaAfter` for films and
-    /// music (`MediaFiles`), `otherAfter` for the rest. A file kept before keep-times existed has
+    /// music (`MediaFiles`), `otherAfter` for the rest, or the time chosen for that one file. A file kept before keep-times existed has
     /// no record, and gets one now, so nothing already on the phone vanishes on the first pass.
     /// - Parameter sparing: Files in use now, such as the one playing, which stay whatever their age.
     /// - Returns: How many files were removed.
@@ -202,7 +249,7 @@ public struct OfflineLibrary: Sendable {
                     try? Self.recordUse(in: folder, at: now)
                     continue
                 }
-                let limit = MediaFiles.isMedia(name) ? mediaAfter : otherAfter
+                let limit = Self.keepTime(in: folder, name: name, mediaAfter: mediaAfter, otherAfter: otherAfter)
                 if now.timeIntervalSince(used) >= limit, (try? files.removeItem(at: folder)) != nil {
                     removed += 1
                 }
