@@ -1197,46 +1197,6 @@
         }
       }
     },
-    "Clear cache after 1 day" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vaciar la caché tras 1 día"
-          }
-        }
-      }
-    },
-    "Clear cache after 1 hour" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vaciar la caché tras 1 hora"
-          }
-        }
-      }
-    },
-    "Clear cache after 1 week" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vaciar la caché tras 1 semana"
-          }
-        }
-      }
-    },
-    "Clear cache right away" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vaciar la caché enseguida"
-          }
-        }
-      }
-    },
     "CloudAccess" : {
       "shouldTranslate" : false
     },
@@ -1854,6 +1814,16 @@
         }
       }
     },
+    "Files can go sooner if the cache passes its size limit, or the disk runs short of space." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los archivos pueden eliminarse antes si la caché supera su límite de tamaño o si queda poco espacio en el disco."
+          }
+        }
+      }
+    },
     "Files kept from removed drives" : {
       "localizations" : {
         "es" : {
@@ -2256,16 +2226,6 @@
         }
       }
     },
-    "Keep in cache" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mantener en la caché"
-          }
-        }
-      }
-    },
     "Keeps your drives up to date" : {
       "localizations" : {
         "es" : {
@@ -2433,6 +2393,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mantenimiento"
+          }
+        }
+      }
+    },
+    "Media files" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivos multimedia"
           }
         }
       }
@@ -2865,6 +2835,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir"
+          }
+        }
+      }
+    },
+    "Other files" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otros archivos"
           }
         }
       }
@@ -5067,16 +5047,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Desinstalando CloudAccess"
-          }
-        }
-      }
-    },
-    "Unused files" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Archivos sin usar"
           }
         }
       }

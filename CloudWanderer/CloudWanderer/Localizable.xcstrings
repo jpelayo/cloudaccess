@@ -1,6 +1,226 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Its name says it is, but what's inside isn't a film or sound." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Su nombre lo indica, pero lo que contiene no es una película ni un sonido."
+          }
+        }
+      }
+    },
+    "This isn't a video or audio file" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esto no es un archivo de vídeo ni de audio"
+          }
+        }
+      }
+    },
+    "Audio" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio"
+          }
+        }
+      }
+    },
+    "Audio and Subtitles" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio y subtítulos"
+          }
+        }
+      }
+    },
+    "Back 10 seconds" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retroceder 10 segundos"
+          }
+        }
+      }
+    },
+    "Close" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrar"
+          }
+        }
+      }
+    },
+    "Couldn't play this file" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido reproducir este archivo"
+          }
+        }
+      }
+    },
+    "Download and Play" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargar y reproducir"
+          }
+        }
+      }
+    },
+    "Downloads" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargas"
+          }
+        }
+      }
+    },
+    "Films in formats Apple's player can't open play with VLCKit, by VideoLAN, which is LGPL 2.1 licensed software." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las películas en formatos que el reproductor de Apple no puede abrir se reproducen con VLCKit, de VideoLAN, que es software con licencia LGPL 2.1."
+          }
+        }
+      }
+    },
+    "Forward 10 seconds" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avanzar 10 segundos"
+          }
+        }
+      }
+    },
+    "How long a download stays on this iPhone after it was last used. Films and music get their own time, so they're still here when you want to watch them." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuánto tiempo se conserva una descarga en este iPhone desde la última vez que se usó. Las películas y la música tienen su propio tiempo, para que sigan aquí cuando quiera verlas."
+          }
+        }
+      }
+    },
+    "Media files" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivos multimedia"
+          }
+        }
+      }
+    },
+    "Off" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desactivados"
+          }
+        }
+      }
+    },
+    "Other files" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otros archivos"
+          }
+        }
+      }
+    },
+    "Pause" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausa"
+          }
+        }
+      }
+    },
+    "Play" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproducir"
+          }
+        }
+      }
+    },
+    "Play Now" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproducir ahora"
+          }
+        }
+      }
+    },
+    "Subtitles" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtítulos"
+          }
+        }
+      }
+    },
+    "Third-party software" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Software de terceros"
+          }
+        }
+      }
+    },
+    "This file couldn't be opened. It may be damaged, or in a format CloudWanderer can't play." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido abrir este archivo. Puede estar dañado o en un formato que CloudWanderer no puede reproducir."
+          }
+        }
+      }
+    },
+    "VLCKit Source Code" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código fuente de VLCKit"
+          }
+        }
+      }
+    },
     "%@ in %@" : {
       "localizations" : {
         "es" : {

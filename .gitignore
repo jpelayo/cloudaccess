@@ -48,3 +48,6 @@ research_notes/
 id_rsa*
 id_ed25519*
 rclone.conf
+
+# VideoLAN's MobileVLCKit, downloaded by Packages/Player/fetch-vlckit.sh
+Packages/Player/Binaries/

@@ -256,10 +256,31 @@ public actor FakeRemote: RemoteBackend {
         }
     }
 
+    /// The offset of every partial read asked for, in order.
+    public private(set) var readOffsets: [Int64] = []
+    /// Partial reads stopped by cancelling them before they finished.
+    public private(set) var cancelledReads = 0
+    private var readDelay: Duration?
+
+    /// Makes each partial read take this long, as a slow server does, so a test can stop one midway.
+    public func slowReads(by delay: Duration?) {
+        readDelay = delay
+    }
+
     public func read(_ path: RemotePath, offset: Int64, length: Int64, to destination: URL) async throws {
         try check()
+        readOffsets.append(offset)
+        if let readDelay {
+            do {
+                try await Task.sleep(for: readDelay)
+            } catch {
+                cancelledReads += 1
+                throw RemoteError.cancelled
+            }
+        }
         guard let entry = entries[path] else { throw RemoteError.notFound(path) }
-        let start = Int(offset)
+        // A range past the end reads nothing, as the engine's does.
+        let start = min(Int(offset), entry.content.count)
         let end = min(start + Int(length), entry.content.count)
         try entry.content.subdata(in: start..<end).write(to: destination)
     }

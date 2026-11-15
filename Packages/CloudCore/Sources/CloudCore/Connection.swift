@@ -162,8 +162,11 @@ extension Connection.Endpoint {
 /// What stays on this device. Files are always safe on the server, so these only decide how
 /// much space a drive takes here. Files with unsent changes are never removed.
 public struct DriveSettings: Hashable, Sendable, Codable {
-    /// Removes a local copy after this long with no download or local change. Nil keeps it.
-    public var removeLocalCopyAfter: TimeInterval? = 3600
+    /// Removes a local copy of anything but media after this long with no download, local change
+    /// or use. One of `KeepTime.choices`.
+    public var removeLocalCopyAfter: TimeInterval = KeepTime.otherDefault
+    /// The same for films and music (`MediaFiles`), which someone downloads to use later.
+    public var removeMediaCopyAfter: TimeInterval = KeepTime.mediaDefault
     /// Removes the oldest local copies above this many bytes. Nil means no limit.
     public var sizeLimit: Int64? = 10 * 1_000_000_000
     /// How the drive writes to the server. See `DriveMode`.
@@ -193,14 +196,19 @@ public struct DriveSettings: Hashable, Sendable, Codable {
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case removeLocalCopyAfter, sizeLimit, mode, isReadOnly, diskReserve, thumbnailLimit
+        case removeLocalCopyAfter, removeMediaCopyAfter, sizeLimit, mode, isReadOnly, diskReserve, thumbnailLimit
         case recentFolderInterval, otherFolderInterval, uploadsAtOnce
     }
 
     /// Missing values read as nil or off, so a setting added later can't fail to load.
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        removeLocalCopyAfter = try values.decodeIfPresent(TimeInterval.self, forKey: .removeLocalCopyAfter)
+        // Earlier builds offered other times, and wrote nothing for "keep", so a saved time is
+        // moved onto today's choices.
+        removeLocalCopyAfter = KeepTime.fromEarlierChoice(
+            try values.decodeIfPresent(TimeInterval.self, forKey: .removeLocalCopyAfter))
+        removeMediaCopyAfter = try values.decodeIfPresent(TimeInterval.self, forKey: .removeMediaCopyAfter)
+            .map { KeepTime.fromEarlierChoice($0) } ?? KeepTime.mediaDefault
         sizeLimit = try values.decodeIfPresent(Int64.self, forKey: .sizeLimit)
         if let saved = try values.decodeIfPresent(String.self, forKey: .mode) {
             // A mode from a newer build is read as the one that writes nothing.
@@ -220,7 +228,8 @@ public struct DriveSettings: Hashable, Sendable, Codable {
     /// read-only. It can't tell Unsafe from Safe, and treats both as Safe.
     public func encode(to encoder: Encoder) throws {
         var values = encoder.container(keyedBy: CodingKeys.self)
-        try values.encodeIfPresent(removeLocalCopyAfter, forKey: .removeLocalCopyAfter)
+        try values.encode(removeLocalCopyAfter, forKey: .removeLocalCopyAfter)
+        try values.encode(removeMediaCopyAfter, forKey: .removeMediaCopyAfter)
         try values.encodeIfPresent(sizeLimit, forKey: .sizeLimit)
         try values.encode(mode.rawValue, forKey: .mode)
         try values.encode(isReadOnly, forKey: .isReadOnly)

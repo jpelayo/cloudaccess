@@ -23,6 +23,8 @@ struct PhoneSettingsView: View {
     let showCloudAccess: () -> Void
     let showAbout: () -> Void
 
+    @AppStorage(DownloadKeepTimes.mediaKey) private var keepMedia = KeepTime.mediaDefault
+    @AppStorage(DownloadKeepTimes.otherKey) private var keepOther = KeepTime.otherDefault
     @State private var language = AppLanguage.chosen()
     /// iOS reads the language at launch, and an app can't restart itself.
     @State private var languageChanged = false
@@ -35,6 +37,13 @@ struct PhoneSettingsView: View {
             AppLanguage.choose(chosen)
             language = chosen
             languageChanged = true
+        }
+    }
+
+    /// The seven keep-times. Their words come from the package, already in the language shown.
+    private var keepTimes: some View {
+        ForEach(KeepTime.choices, id: \.self) { time in
+            Text(verbatim: KeepTime.shown(time)).tag(time)
         }
     }
 
@@ -59,6 +68,18 @@ struct PhoneSettingsView: View {
                 } else {
                     Text("Moves drives and their passwords to another iPhone or Mac, in one encrypted file.")
                 }
+            }
+            Section {
+                Picker("Media files", selection: $keepMedia) {
+                    keepTimes
+                }
+                Picker("Other files", selection: $keepOther) {
+                    keepTimes
+                }
+            } header: {
+                SectionLabel("Downloads")
+            } footer: {
+                Text("How long a download stays on this iPhone after it was last used. Films and music get their own time, so they're still here when you want to watch them.")
             }
             Section {
                 Picker("Language", selection: languageChoice) {

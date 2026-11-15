@@ -1536,11 +1536,13 @@ final class Drives {
         #if DEBUG
         if let seconds = ProcessInfo.processInfo.environment["CM_TEST_REMOVE_AFTER"].flatMap(TimeInterval.init) {
             settings.removeLocalCopyAfter = seconds
+            settings.removeMediaCopyAfter = seconds
         }
         #endif
         let planned = Date()
         let chosen = (try? state.copiesToRemove(
             idleFor: settings.removeLocalCopyAfter,
+            mediaIdleFor: settings.removeMediaCopyAfter,
             sizeLimit: limit(for: settings, state: state),
             now: planned)) ?? []
         for id in chosen {

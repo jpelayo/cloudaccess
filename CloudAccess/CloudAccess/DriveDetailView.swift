@@ -376,12 +376,14 @@ struct DriveDetailView: View {
                 }
             }
             SettingsSection("Locally stored file cache") {
-                PickerRow("Unused files", selection: setting(\.removeLocalCopyAfter)) {
-                    Text("Clear cache right away").tag(TimeInterval?.some(0))
-                    Text("Clear cache after 1 hour").tag(TimeInterval?.some(3600))
-                    Text("Clear cache after 1 day").tag(TimeInterval?.some(86_400))
-                    Text("Clear cache after 1 week").tag(TimeInterval?.some(604_800))
-                    Text("Keep in cache").tag(TimeInterval?.none)
+                PickerRow("Media files", selection: setting(\.removeMediaCopyAfter)) {
+                    keepTimes
+                }
+                PickerRow(
+                    "Other files", selection: setting(\.removeLocalCopyAfter),
+                    caption: Text("Files can go sooner if the cache passes its size limit, or the disk runs short of space.")
+                ) {
+                    keepTimes
                 }
                 PickerRow("Cache size limit", selection: setting(\.sizeLimit)) {
                     Text("1 GB").tag(Int64?.some(1_000_000_000))
@@ -393,6 +395,14 @@ struct DriveDetailView: View {
                     storageUse(cached)
                 }
             }
+        }
+    }
+
+    /// The keep-times both cache pickers offer. Their words come from the package, already in the
+    /// language shown.
+    private var keepTimes: some View {
+        ForEach(KeepTime.choices, id: \.self) { time in
+            Text(verbatim: KeepTime.shown(time)).tag(time)
         }
     }
 

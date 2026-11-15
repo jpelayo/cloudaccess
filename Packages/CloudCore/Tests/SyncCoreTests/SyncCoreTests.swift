@@ -637,6 +637,29 @@ private let root = SyncItem.rootID
         #expect(try store.copiesToRemove(idleFor: nil, sizeLimit: 100, now: now) == [oldest, older])
     }
 
+    @Test func aFilmKeepsLongerThanADocument() throws {
+        let store = try makeStore()
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        let day: TimeInterval = 86_400
+        let film = try localCopy("Film.mkv", size: 10, usedAt: now.addingTimeInterval(-10 * day), in: store)
+        let report = try localCopy("report.pdf", size: 10, usedAt: now.addingTimeInterval(-4 * day), in: store)
+
+        #expect(try store.copiesToRemove(
+            idleFor: 3 * day, mediaIdleFor: 15 * day, sizeLimit: nil, now: now) == [report])
+        #expect(try store.copiesToRemove(
+            idleFor: 3 * day, mediaIdleFor: 15 * day, sizeLimit: nil,
+            now: now.addingTimeInterval(6 * day)) == [film, report])
+    }
+
+    @Test func overTheSizeLimitDocumentsGoBeforeFilms() throws {
+        let store = try makeStore()
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        _ = try localCopy("Film.mp4", size: 60, usedAt: now.addingTimeInterval(-300), in: store)
+        let report = try localCopy("report.pdf", size: 60, usedAt: now.addingTimeInterval(-100), in: store)
+
+        #expect(try store.copiesToRemove(idleFor: nil, mediaIdleFor: nil, sizeLimit: 100, now: now) == [report])
+    }
+
     @Test func withBothRulesOffNothingIsRemoved() throws {
         let store = try makeStore()
         let now = Date(timeIntervalSince1970: 2_000_000_000)

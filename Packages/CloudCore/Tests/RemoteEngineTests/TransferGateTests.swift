@@ -51,3 +51,16 @@ import Testing
         #expect(await gate.queued == 0)
     }
 }
+
+@Suite struct TransferLaneTests {
+    @Test func aFilmHasItsOwnLane() {
+        // Even when a person asked for it, so two downloads in the user lane can't freeze it.
+        #expect(RemoteEngine.lane(isPlayback: true, isUserRequest: true) == .playback)
+        #expect(RemoteEngine.lane(isPlayback: true, isUserRequest: false) == .playback)
+    }
+
+    @Test func downloadsAndBackgroundWorkKeepTheirLanes() {
+        #expect(RemoteEngine.lane(isPlayback: false, isUserRequest: true) == .user)
+        #expect(RemoteEngine.lane(isPlayback: false, isUserRequest: false) == .background)
+    }
+}

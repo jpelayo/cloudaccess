@@ -17,14 +17,14 @@ You may already pay for storage, such as a storage box from a hosting company, a
 
 **CloudAccess makes that storage an ordinary drive on your Mac.** It appears in Finder's sidebar, like iCloud Drive or Dropbox. You open, save, rename and move files as usual, and they're kept on your storage.
 
-- **It doesn't fill your Mac.** Files stay on your storage and download when you open them. Copies you haven't used for a while are removed from the Mac and remain on the storage.
+- **It doesn't fill your Mac.** Files stay on your storage and download when you open them. Copies you haven't used for a while are removed from the Mac and remain on the storage. Films and music stay 15 days by default, and other files 3 days. Each drive's General tab sets both times, from half a day to 90 days.
 - **You choose what stays.** Mark a folder to keep it downloaded, and it's available even without internet.
 - **It can encrypt your files.** With encryption on, files are encrypted on your Mac before they leave it. Whoever runs the storage sees unreadable data, not your files or their names.
 - **It doesn't lose your work.** Once your Mac confirms a save, the save is kept. If two computers change the same file at the same time, both versions are kept. Deleted files stay in a trash on the storage for a week, unless you choose otherwise. You can restore them, or tick some and delete them for good right away, from the drive's Deleted Files page. This is Safe mode, the default. See [Drive modes](#drive-modes).
 - **Your drives move with you.** One encrypted file takes your drives and their passwords to another Mac or an iPhone, by AirDrop.
 - **Nothing locks you in.** Files are stored in standard formats, so other tools can always read them, even without this app.
 
-**CloudWanderer** is the iPhone companion. It lets you browse your drives, download files and share them to other apps. Plain drives also appear in the iPhone's Files app. To set it up, you scan a code on your Mac and type only the passwords.
+**CloudWanderer** is the iPhone companion. It lets you browse your drives, download files and share them to other apps. It plays films and music from any drive, encrypted ones included. Play Now streams a file as it plays, with no download first. Download and Play brings the whole file to the iPhone, then plays it, offline too. Plain drives also appear in the iPhone's Files app. To set it up, you scan a code on your Mac and type only the passwords.
 
 Both apps are in English and Spanish.
 
@@ -134,6 +134,8 @@ On the Mac, choose Export… in the Diagnostics row in Settings. On the iPhone, 
 - **Replaced versions are kept for a week,** and on WebDAV only up to 2 GB.
 - **Git repositories and databases,** such as SQLite files, are only safe when used from one computer at a time.
 - **The iPhone only reads.** CloudWanderer and the Files app never change anything on your storage. A download stops if you leave the app.
+- **Films and music on the iPhone.** Only video and audio files get play buttons. Pressing one first reads the start of the file, so a misnamed file still opens in the right player, and a file that isn't media never opens in one. Apple's player plays MP4, MOV, MP3, AAC, WAV, AIFF and FLAC, with AirPlay and picture in picture. Other formats, such as MKV, AVI and Ogg, play with VLCKit, with their sound and subtitle tracks. Playback keeps going with the screen locked.
+- **iPhone downloads are removed when unused.** Films and music stay 15 days by default, and other files 3 days. Settings, Downloads sets both times, for the whole iPhone.
 - **Encrypted drives don't appear in the iPhone's Files app,** only in CloudWanderer, because unlocking one needs more memory than iOS allows there.
 - **The Files app** picks up changes while you use it, and whenever you open CloudWanderer. Nothing checks in the background, because this kind of storage can't wake an iPhone.
 - **iPhone passwords stay on that iPhone** and aren't included in its backups, unless you export them in a drives file. A new or restored iPhone asks for them again.
@@ -254,9 +256,12 @@ You need Xcode 27 and Go 1.26 or later. rclone is optional. When it's installed,
 
 ```sh
 bash Engine/build.sh all     # builds the engine for macOS, iOS and the simulator
+bash Packages/Player/fetch-vlckit.sh   # VideoLAN's VLCKit, for the iPhone's player
 open CloudAccess/CloudAccess.xcodeproj
 open CloudWanderer/CloudWanderer.xcodeproj
 ```
+
+`fetch-vlckit.sh` downloads VideoLAN's own MobileVLCKit build, about 260 MB, and checks it against the checksum VideoLAN publishes. It's needed once, before building CloudWanderer.
 
 Run the tests:
 
@@ -279,9 +284,12 @@ CLOUDACCESS_TEST_LANGUAGE=en swift test --package-path Packages/CloudCore
 | `Packages/CloudCore/` | Swift package shared by both apps: drives and settings, the engine wrapper, sync state, every decision about what macOS is told, and the shared look |
 | `CloudAccess/` | The Mac app and its File Provider extension |
 | `CloudWanderer/` | The iPhone app and its read-only Files extension |
+| `Packages/Player/` | VLCKit for the iPhone's player, and a small SwiftUI wrapper around it |
 
 ## Licence
 
 Apache 2 licensed software. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+CloudWanderer includes VLCKit by VideoLAN, LGPL 2.1 licensed software, linked as a separate framework. Its source is at [code.videolan.org/videolan/VLCKit](https://code.videolan.org/videolan/VLCKit).
 
 Developed by InfiniteContext.com.

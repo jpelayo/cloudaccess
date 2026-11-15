@@ -1715,28 +1715,64 @@ public final class SyncStore: Sendable {
         }
     }
 
-    /// Local copies to remove, oldest first: those idle for long enough, then enough more to
-    /// fit the size limit. Idle means no download, no local change and no use that macOS has
-    /// reported. Nil means that rule is off. Pinned folders are never touched.
+    /// Local copies to remove, with media and other files idling for the same time.
     public func copiesToRemove(idleFor: TimeInterval?, sizeLimit: Int64?, now: Date = Date()) throws -> [String] {
+        try copiesToRemove(idleFor: idleFor, mediaIdleFor: idleFor, sizeLimit: sizeLimit, now: now)
+    }
+
+    /// Local copies to remove: those idle for long enough, oldest first, then enough more to fit
+    /// the size limit. Idle means no download, no local change and no use that macOS has
+    /// reported. Films and music (`MediaFiles`) have their own idle time, and over the size limit
+    /// they go only after every other file, because someone downloads a film to watch it later.
+    /// Nil means that rule is off. Pinned folders and flattened packages are never touched.
+    public func copiesToRemove(
+        idleFor: TimeInterval?, mediaIdleFor: TimeInterval?, sizeLimit: Int64?, now: Date = Date()
+    ) throws -> [String] {
         try database.execute("DELETE FROM local_copies WHERE id NOT IN (SELECT id FROM items)")
-        let copies = try database.execute("SELECT * FROM local_copies ORDER BY last_used, id")
+        let rows = try database.execute("SELECT * FROM local_copies ORDER BY last_used, id")
         // Sizes come from the server, so a forged one mustn't overflow and crash this.
         func sizeOf(_ row: Database.Row) -> Int64 { max(0, row.integer("size") ?? 0) }
-        var total = copies.reduce(Int64(0)) { sum, copy in
+        var total = rows.reduce(Int64(0)) { sum, copy in
             let (added, overflowed) = sum.addingReportingOverflow(sizeOf(copy))
             return overflowed ? .max : added
         }
-        var chosen: [String] = []
-        for copy in copies {
-            guard let id = copy.text("id"), let lastUsed = copy.real("last_used") else { continue }
+
+        struct Copy {
+            let id: String
+            let lastUsed: Double
+            let size: Int64
+            let isMedia: Bool
+        }
+        var copies: [Copy] = []
+        for row in rows {
+            guard let id = row.text("id"), let lastUsed = row.real("last_used") else { continue }
             if try isUnderPinnedFolder(id) { continue }
-            if try item(id: id)?.isFlattenedPackage == true { continue }
-            let isIdle = idleFor.map { now.timeIntervalSince1970 - lastUsed >= $0 } ?? false
-            let isOverLimit = sizeLimit.map { total > $0 } ?? false
-            if isIdle || isOverLimit {
-                chosen.append(id)
-                total -= min(total, sizeOf(copy))
+            let item = try item(id: id)
+            if item?.isFlattenedPackage == true { continue }
+            copies.append(Copy(
+                id: id, lastUsed: lastUsed, size: sizeOf(row),
+                isMedia: item.map { MediaFiles.isMedia($0.name) } ?? false))
+        }
+
+        var chosen: [String] = []
+        var taken = Set<String>()
+        func take(_ copy: Copy) {
+            chosen.append(copy.id)
+            taken.insert(copy.id)
+            total -= min(total, copy.size)
+        }
+        for copy in copies {
+            let limit = copy.isMedia ? mediaIdleFor : idleFor
+            if let limit, now.timeIntervalSince1970 - copy.lastUsed >= limit {
+                take(copy)
+            }
+        }
+        if let sizeLimit {
+            // Other files first, then media, each oldest first.
+            for copy in copies.filter({ !$0.isMedia }) + copies.filter(\.isMedia) where total > sizeLimit {
+                if !taken.contains(copy.id) {
+                    take(copy)
+                }
             }
         }
         return chosen

@@ -66,6 +66,19 @@ public final class RemoteEngine: RemoteBackend {
     /// busy queue of uploads can't stand between someone and the document they just opened.
     private let backgroundTransfers: TransferGate
     private static let userTransfers = TransferGate(limit: runsLean ? 1 : 2)
+    /// A playing film reads the piece being shown and the next one.
+    private static let playbackTransfers = TransferGate(limit: 2)
+
+    /// Which queue a transfer waits in. A film never waits behind downloads, and neither waits
+    /// behind the drive's background work.
+    enum Lane: Equatable {
+        case playback, user, background
+    }
+
+    static func lane(isPlayback: Bool, isUserRequest: Bool) -> Lane {
+        if isPlayback { return .playback }
+        return isUserRequest ? .user : .background
+    }
     /// Opening runs scrypt, which is memory-heavy, so drives open one at a time.
     private static let opens = TransferGate(limit: 1)
     /// iOS may serve several drives from one Files extension, and its memory limit is for the
@@ -91,7 +104,11 @@ public final class RemoteEngine: RemoteBackend {
     private func withTransfer<Result: Sendable>(
         _ body: () async throws -> Result
     ) async throws -> Result {
-        let gate = TransferContext.isUserRequest ? Self.userTransfers : backgroundTransfers
+        let gate = switch Self.lane(isPlayback: TransferContext.isPlayback, isUserRequest: TransferContext.isUserRequest) {
+        case .playback: Self.playbackTransfers
+        case .user: Self.userTransfers
+        case .background: backgroundTransfers
+        }
         try await gate.acquire()
         do {
             let result = try await body()
@@ -535,6 +552,9 @@ public final class RemoteEngine: RemoteBackend {
 public enum TransferContext {
     /// A person is waiting on this, so it skips the background queue.
     @TaskLocal public static var isUserRequest = false
+    /// A film is playing from this. It has a lane of its own, because a download holds a place in
+    /// the user lane for minutes, and two of them would freeze the picture.
+    @TaskLocal public static var isPlayback = false
     /// Hears the bytes moved so far.
     @TaskLocal public static var progress: (@Sendable (Int64) -> Void)?
 }

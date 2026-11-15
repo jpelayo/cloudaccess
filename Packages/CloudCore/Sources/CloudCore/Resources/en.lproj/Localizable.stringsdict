@@ -37,6 +37,39 @@
 			<string>The password needs at least %lld characters.</string>
 		</dict>
 	</dict>
+	<!-- MediaFiles.swift, KeepTime: how long an unused download stays. -->
+	<key>Keep for %lld hours</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@hours@</string>
+		<key>hours</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Keep for %lld hour</string>
+			<key>other</key>
+			<string>Keep for %lld hours</string>
+		</dict>
+	</dict>
+	<key>Keep for %lld days</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@days@</string>
+		<key>days</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Keep for %lld day</string>
+			<key>other</key>
+			<string>Keep for %lld days</string>
+		</dict>
+	</dict>
 	<!-- Uninstall.swift -->
 	<key>Found %lld drives.</key>
 	<dict>

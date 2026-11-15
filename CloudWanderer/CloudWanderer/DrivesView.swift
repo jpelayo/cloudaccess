@@ -3,6 +3,7 @@
 import CloudCore
 import CloudDesign
 import Foundation
+import MediaStream
 import RemoteEngine
 import SwiftUI
 import UIKit
@@ -45,9 +46,21 @@ final class OpenDrives {
 
     init() {
         library.clearAbandoned()
+        removeExpiredDownloads()
         checks.log = { AppLog.record($0) }
         watcher = NetworkWatcher { [weak self] isUp in
             Task { @MainActor [weak self] in self?.networkChanged(isUp: isUp) }
+        }
+    }
+
+    /// Removes downloads unused for longer than their keep-time in Settings. The film playing
+    /// stays whatever its age.
+    func removeExpiredDownloads() {
+        let removed = library.removeExpired(
+            mediaAfter: DownloadKeepTimes.media, otherAfter: DownloadKeepTimes.other,
+            sparing: PlayingNow.file.map { [$0] } ?? [])
+        if removed > 0 {
+            AppLog.record("\(removed) downloads past their keep-time removed")
         }
     }
 
@@ -704,6 +717,7 @@ struct DrivesView: View {
         .onChange(of: scenePhase) {
             if scenePhase == .active {
                 updatePlaces()
+                drives.removeExpiredDownloads()
                 // A switch in Settings, such as Local Network, may have changed while away.
                 drives.checks.checkAgainOnNextFailure()
                 drives.startRechecking(store: store)
@@ -989,6 +1003,33 @@ struct FileRow: View {
     @State private var watch: DownloadWatch?
     @State private var isSharing = false
     @State private var problem: String?
+    @State private var playing: PlaySource?
+    /// Download and Play opens the player only if the row is still on screen when it finishes.
+    @State private var isShown = false
+
+    /// The play buttons for this file: Play Now and Download and Play are always two different
+    /// buttons, so it's clear which one starts at once.
+    private var playButtons: [PlayButton] {
+        PlayButtons.shown(
+            isPlayable: PlayerChoice.isPlayable(item.path.name), isDownloaded: kept != nil,
+            isDownloading: download != nil)
+    }
+
+    /// Plays live from the drive, which needs it reachable.
+    private var canPlayNow: Bool {
+        playButtons.contains(.playNow) && !isOffline && engine != nil
+    }
+
+    private func playNow() {
+        guard let engine else { return }
+        playing = .live(item, engine: engine, connection: connection)
+    }
+
+    private func play(_ file: URL) {
+        library.touch(item.path, drive: drive)
+        PlayingNow.file = file
+        playing = .local(file)
+    }
 
     /// A file on this phone always works, and only the rest gray out with the connection.
     private var isAvailable: Bool {
@@ -1043,23 +1084,48 @@ struct FileRow: View {
             }
             // Fills the row, so the bar under the name has room.
             .frame(maxWidth: .infinity, alignment: .leading)
-            if let download {
-                Button("Cancel", systemImage: "xmark.circle") { download.cancel() }
-                    .labelStyle(.iconOnly)
-            } else if isOutdated && !isOffline {
-                Button("Download Newer Version", systemImage: "arrow.down.circle", action: start)
-                    .labelStyle(.iconOnly)
-            } else if kept != nil {
-                // The share sheet includes Save to Files.
-                Button("Export", systemImage: "square.and.arrow.up") { isSharing = true }
-                    .labelStyle(.iconOnly)
-            } else if isAvailable {
-                Button("Download", systemImage: "arrow.down.circle", action: start)
-                    .labelStyle(.iconOnly)
+            HStack(spacing: 16) {
+                if canPlayNow {
+                    Button("Play Now", systemImage: "play.circle", action: playNow)
+                }
+                if playButtons.contains(.play), let kept {
+                    Button("Play", systemImage: "play.fill") { play(kept) }
+                }
+                if let download {
+                    Button("Cancel", systemImage: "xmark.circle") { download.cancel() }
+                } else if isOutdated && !isOffline {
+                    Button("Download Newer Version", systemImage: "arrow.down.circle") { start() }
+                } else if kept != nil {
+                    // The share sheet includes Save to Files.
+                    Button("Export", systemImage: "square.and.arrow.up") { share() }
+                } else if isAvailable, playButtons.contains(.downloadAndPlay) {
+                    Button("Download and Play", systemImage: "arrow.down.circle") { start(thenPlay: true) }
+                } else if isAvailable {
+                    Button("Download", systemImage: "arrow.down.circle") { start() }
+                }
             }
+            .labelStyle(.iconOnly)
         }
         .opacity(isAvailable ? 1 : 0.4)
         .buttonStyle(.borderless)
+        // A long press names each button, with its words.
+        .contextMenu {
+            if canPlayNow {
+                Button("Play Now", systemImage: "play.circle", action: playNow)
+            }
+            if playButtons.contains(.play), let kept {
+                Button("Play", systemImage: "play.fill") { play(kept) }
+            }
+            if download == nil, kept == nil, isAvailable, playButtons.contains(.downloadAndPlay) {
+                Button("Download and Play", systemImage: "arrow.down.circle") { start(thenPlay: true) }
+            }
+            if kept != nil {
+                Button("Export", systemImage: "square.and.arrow.up") { share() }
+            }
+        }
+        .fullScreenCover(item: $playing) { source in
+            PlayerView(source: source)
+        }
         .swipeActions {
             if kept != nil {
                 Button("Remove Download", role: .destructive) {
@@ -1074,11 +1140,22 @@ struct FileRow: View {
             }
         }
         .onAppear {
+            isShown = true
             kept = library.download(of: item.path, drive: drive)
+        }
+        .onDisappear {
+            isShown = false
         }
     }
 
-    private func start() {
+    private func share() {
+        library.touch(item.path, drive: drive)
+        isSharing = true
+    }
+
+    /// Downloads the whole file. With `thenPlay`, the player opens on the copy once it's here,
+    /// if this row is still on screen; otherwise it just stays downloaded.
+    private func start(thenPlay: Bool = false) {
         guard let engine else { return }
         problem = nil
         let started = Date()
@@ -1094,8 +1171,12 @@ struct FileRow: View {
                 }
                 try Task.checkCancellation()
                 OfflineLibrary.stamp(file, with: fetched)
-                kept = try library.keep(file, as: item.path, drive: drive, version: fetched.versionID)
+                let copy = try library.keep(file, as: item.path, drive: drive, version: fetched.versionID)
+                kept = copy
                 AppLog.download(on: connection, progress: watch.progress, started: started, error: nil)
+                if thenPlay, isShown {
+                    play(copy)
+                }
             } catch {
                 AppLog.download(
                     on: connection, progress: watch.progress, started: started,

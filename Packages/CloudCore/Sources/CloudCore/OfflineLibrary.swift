@@ -86,11 +86,6 @@ public struct OfflineLibrary: Sendable {
         return incoming.appendingPathComponent(UUID().uuidString)
     }
 
-    /// Keeps a finished download, replacing any older one. The new copy is made complete beside
-    /// the old one and swapped in, because this may be the only copy within reach: if anything
-    /// fails, the old one is still there.
-    /// - Parameter version: The version of these bytes, so a newer one can be noticed later.
-    @discardableResult
     /// Gives a downloaded copy the file's own dates from its details, so a copy shared or saved to
     /// Files keeps them. Without details the copy keeps its own dates, which say when it arrived.
     public static func stamp(_ file: URL, with item: RemoteItem) {
@@ -105,7 +100,14 @@ public struct OfflineLibrary: Sendable {
         try? FileManager.default.setAttributes(attributes, ofItemAtPath: file.path)
     }
 
-    public func keep(_ finished: URL, as path: RemotePath, drive: UUID, version: String? = nil) throws -> URL {
+    /// Keeps a finished download, replacing any older one. The new copy is made complete beside
+    /// the old one and swapped in, because this may be the only copy within reach: if anything
+    /// fails, the old one is still there.
+    /// - Parameter version: The version of these bytes, so a newer one can be noticed later.
+    @discardableResult
+    public func keep(
+        _ finished: URL, as path: RemotePath, drive: UUID, version: String? = nil, now: Date = Date()
+    ) throws -> URL {
         let files = FileManager.default
         let target = fileFolder(of: path, drive: drive)
         let fresh = target.deletingLastPathComponent().appendingPathComponent(UUID().uuidString)
@@ -115,6 +117,7 @@ public struct OfflineLibrary: Sendable {
             try version.map {
                 try Data($0.utf8).write(to: fresh.appendingPathComponent(Self.versionRecord), options: .atomic)
             }
+            try Self.recordUse(in: fresh, at: now)
             if files.fileExists(atPath: target.path) {
                 _ = try files.replaceItemAt(target, withItemAt: fresh)
             } else {
@@ -148,6 +151,64 @@ public struct OfflineLibrary: Sendable {
         guard let serverVersion, download(of: path, drive: drive) != nil else { return false }
         guard let kept = try? Data(contentsOf: versionFile(of: path, drive: drive)) else { return true }
         return String(decoding: kept, as: UTF8.self) != serverVersion
+    }
+
+    // MARK: Keep-times
+
+    /// When a kept file was last used, beside it. `.cm-` names are reserved on every drive.
+    private static let usedRecord = ".cm-used"
+
+    private static func recordUse(in folder: URL, at date: Date) throws {
+        try Data(String(date.timeIntervalSince1970).utf8)
+            .write(to: folder.appendingPathComponent(usedRecord), options: .atomic)
+    }
+
+    private static func lastUse(in folder: URL) -> Date? {
+        guard let data = try? Data(contentsOf: folder.appendingPathComponent(usedRecord)),
+              let seconds = TimeInterval(String(decoding: data, as: UTF8.self))
+        else { return nil }
+        return Date(timeIntervalSince1970: seconds)
+    }
+
+    /// Restarts a kept file's clock, when it's played, shared or exported.
+    public func touch(_ path: RemotePath, drive: UUID, now: Date = Date()) {
+        guard download(of: path, drive: drive) != nil else { return }
+        try? Self.recordUse(in: fileFolder(of: path, drive: drive), at: now)
+    }
+
+    /// Removes kept files unused for longer than their keep-time: `mediaAfter` for films and
+    /// music (`MediaFiles`), `otherAfter` for the rest. A file kept before keep-times existed has
+    /// no record, and gets one now, so nothing already on the phone vanishes on the first pass.
+    /// - Parameter sparing: Files in use now, such as the one playing, which stay whatever their age.
+    /// - Returns: How many files were removed.
+    @discardableResult
+    public func removeExpired(
+        mediaAfter: TimeInterval, otherAfter: TimeInterval, sparing: Set<URL> = [], now: Date = Date()
+    ) -> Int {
+        let files = FileManager.default
+        let spared = Set(sparing.map(\.standardizedFileURL.path))
+        var removed = 0
+        let drives = (try? files.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
+        for drive in drives {
+            let kept = drive.appendingPathComponent("files")
+            // Kept files sit under a 64-letter hash. Anything else is cleared by `clearAbandoned`.
+            for folder in (try? files.contentsOfDirectory(at: kept, includingPropertiesForKeys: nil)) ?? []
+            where folder.lastPathComponent.count == 64 {
+                let names = ((try? files.contentsOfDirectory(atPath: folder.path)) ?? [])
+                    .filter { !$0.hasPrefix(".cm-") }
+                guard let name = names.first else { continue }
+                if spared.contains(folder.appendingPathComponent(name).standardizedFileURL.path) { continue }
+                guard let used = Self.lastUse(in: folder) else {
+                    try? Self.recordUse(in: folder, at: now)
+                    continue
+                }
+                let limit = MediaFiles.isMedia(name) ? mediaAfter : otherAfter
+                if now.timeIntervalSince(used) >= limit, (try? files.removeItem(at: folder)) != nil {
+                    removed += 1
+                }
+            }
+        }
+        return removed
     }
 
     public func removeDownload(of path: RemotePath, drive: UUID) {
