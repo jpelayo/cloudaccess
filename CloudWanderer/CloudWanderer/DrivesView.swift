@@ -1273,6 +1273,8 @@ struct FileRow: View {
         let watch = DownloadWatch(total: item.size)
         self.watch = watch
         download = Task {
+            let awake = ScreenAwake.hold()
+            defer { ScreenAwake.release(awake) }
             var incoming: URL?
             do {
                 let file = try library.temporaryFile(drive: drive)

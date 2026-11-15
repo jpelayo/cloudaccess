@@ -198,7 +198,11 @@ struct FileViewerScreen: View {
             let incoming = try library.temporaryFile(drive: connection.id)
             let watch = DownloadWatch(total: item.size)
             self.watch = watch
-            defer { self.watch = nil }
+            let awake = ScreenAwake.hold()
+            defer {
+                self.watch = nil
+                ScreenAwake.release(awake)
+            }
             do {
                 _ = try await TransferContext.$progress.withValue({ watch.hear(bytes: $0) }) {
                     try await engine.verifiedDownload(item.path, to: incoming) { watch.hear($0) }

@@ -268,14 +268,17 @@ private struct VLCPlayerScreen: View {
     @State private var showsControls = true
     @State private var scrubbing: Double?
     @State private var hiding: Task<Void, Never>?
+    /// Held while a picture plays. Apple's player does this by itself; VLCKit doesn't.
+    @State private var awake: UUID?
 
     var body: some View {
         ZStack {
             if let player {
+                // VLCKit draws in a UIKit view of its own, which takes the touch before SwiftUI
+                // sees it. So the picture takes no touches, and a clear layer above it does.
                 VLCVideoView(player: player)
                     .ignoresSafeArea()
-                    .contentShape(Rectangle())
-                    .onTapGesture { reveal() }
+                    .allowsHitTesting(false)
                 if !player.hasVideo, player.state == .playing || player.state == .paused {
                     VStack(spacing: 12) {
                         Image(systemName: "music.note")
@@ -288,6 +291,10 @@ private struct VLCPlayerScreen: View {
                     .padding(.horizontal, 40)
                     .accessibilityHidden(true)
                 }
+                Color.clear
+                    .contentShape(Rectangle())
+                    .ignoresSafeArea()
+                    .onTapGesture { reveal() }
                 if showsControls {
                     controls(player)
                         .transition(.opacity)
@@ -295,6 +302,7 @@ private struct VLCPlayerScreen: View {
                 if player.state == .opening || player.state == .buffering {
                     ProgressView()
                         .tint(.white)
+                        .allowsHitTesting(false)
                 }
             }
         }
@@ -308,9 +316,24 @@ private struct VLCPlayerScreen: View {
         .onDisappear {
             hiding?.cancel()
             player?.stop()
+            keepAwake(false)
         }
         .onChange(of: player?.state) { _, state in
             if state == .failed { failed() }
+        }
+        // Paused, ended or failed, the iPhone may lock as usual. Sound alone plays on with the
+        // screen locked, so it needs no hold.
+        .onChange(of: player.map { $0.isPlaying && $0.hasVideo } ?? false) { _, playing in
+            keepAwake(playing)
+        }
+    }
+
+    private func keepAwake(_ on: Bool) {
+        if on, awake == nil {
+            awake = ScreenAwake.hold()
+        } else if !on, let held = awake {
+            ScreenAwake.release(held)
+            awake = nil
         }
     }
 
