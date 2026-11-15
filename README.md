@@ -24,7 +24,7 @@ You may already pay for storage, such as a storage box from a hosting company, a
 - **Your drives move with you.** One encrypted file takes your drives and their passwords to another Mac or an iPhone, by AirDrop.
 - **Nothing locks you in.** Files are stored in standard formats, so other tools can always read them, even without this app.
 
-**CloudWanderer** is the iPhone companion. It lets you browse your drives, download files and share them to other apps. It plays video and audio from any drive, encrypted ones included. Play Now streams a file as it plays, with no download first. Download and Play brings the whole file to the iPhone, then plays it, offline too. An outline play symbol streams, and a solid one plays the copy on the iPhone. A long press on a download chooses how long it stays, restarts its clock, or removes it at once. Plain drives also appear in the iPhone's Files app. To set it up, you scan a code on your Mac and type only the passwords.
+**CloudWanderer** is the iPhone companion. It lets you browse your drives, look at files, download them and share them to other apps. It plays video and audio from any drive, encrypted ones included. Play Now streams a file as it plays, with no download first. Download and Play brings the whole file to the iPhone, then plays it, offline too. An outline play symbol streams, and a solid one plays the copy on the iPhone. A long press on a download chooses how long it stays, restarts its clock, or removes it at once. Plain drives also appear in the iPhone's Files app. To set it up, you scan a code on your Mac and type only the passwords.
 
 Both apps are in English and Spanish.
 
@@ -135,6 +135,8 @@ On the Mac, choose Export… in the Diagnostics row in Settings. On the iPhone, 
 - **Git repositories and databases,** such as SQLite files, are only safe when used from one computer at a time.
 - **The iPhone only reads.** CloudWanderer and the Files app never change anything on your storage. A download stops if you leave the app.
 - **Video and audio on the iPhone.** Only video and audio files get play buttons. Pressing one first reads the start of the file, so a misnamed file still opens in the right player, and a file that isn't media never opens in one. Apple's player plays MP4, MOV, MP3, AAC, WAV, AIFF and FLAC, with AirPlay and picture in picture. Other formats, such as MKV, AVI and Ogg, play with VLCKit, with their audio and subtitle tracks. Playback keeps going with the screen locked.
+- **Looking at files on the iPhone.** Text, Markdown, pictures, and Word, Excel and PowerPoint files get a magnifying glass. Text and Markdown open at once, because only the first 2 MB is read. Markdown is formatted, but its links can't be tapped and its pictures aren't loaded. Pictures and Office files open in Apple's Quick Look, and are removed from the iPhone when you close them unless you downloaded them. HTML files open in another app you choose, such as Chrome, because iOS lets no app hand a file to Safari. A long press offers View Source, which shows the HTML as text. CloudWanderer itself never shows a web page or loads anything from the internet.
+- **Third-party software.** About lists every piece of open-source software each app carries, with its full licence.
 - **iPhone downloads are removed when unused.** Video and audio stay 15 days by default, and other files 3 days. Settings, Downloads sets both times, for the whole iPhone. A long press on one download shows the day it goes, and offers Keep on This iPhone, to give that file its own time from half a day to 90 days, Keep From Today, to restart its clock, and Remove Download, to remove it at once. Playing or exporting a file also restarts its clock, and the copy that is playing is never removed.
 - **Encrypted drives don't appear in the iPhone's Files app,** only in CloudWanderer, because unlocking one needs more memory than iOS allows there.
 - **The Files app** picks up changes while you use it, and whenever you open CloudWanderer. Nothing checks in the background, because this kind of storage can't wake an iPhone.
@@ -257,11 +259,14 @@ You need Xcode 27 and Go 1.26 or later. rclone is optional. When it's installed,
 ```sh
 bash Engine/build.sh all     # builds the engine for macOS, iOS and the simulator
 bash Packages/Player/fetch-vlckit.sh   # VideoLAN's VLCKit, for the iPhone's player
+bash Tools/make-credits.sh   # the third-party software About lists, after a dependency changes
 open CloudAccess/CloudAccess.xcodeproj
 open CloudWanderer/CloudWanderer.xcodeproj
 ```
 
 `fetch-vlckit.sh` downloads VideoLAN's own MobileVLCKit build, about 260 MB, and checks it against the checksum VideoLAN publishes. It's needed once, before building CloudWanderer.
+
+`make-credits.sh` writes `Credits.json`, the list both apps show in About. It reads which Go modules the engine compiles in for each platform, with their licences from Go's module folder, and adds Go itself and VLCKit. A licence it doesn't recognise stops it, so a person reads that licence first. `Engine/build.sh all` runs it, and `Scripts/check.sh` fails when the list is out of date.
 
 Run the tests:
 
@@ -291,5 +296,7 @@ CLOUDACCESS_TEST_LANGUAGE=en swift test --package-path Packages/CloudCore
 Apache 2 licensed software. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 CloudWanderer includes VLCKit by VideoLAN, LGPL 2.1 licensed software, linked as a separate framework. Its source is at [code.videolan.org/videolan/VLCKit](https://code.videolan.org/videolan/VLCKit).
+
+Both apps include the engine's Go modules, such as rclone and `pkg/sftp`, and Go itself. Each app lists them in About, under Third-party software, with their licences.
 
 Developed by InfiniteContext.com.

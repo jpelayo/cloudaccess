@@ -1010,6 +1010,8 @@ struct FileRow: View {
     @State private var ownKeep: TimeInterval?
     /// When the download goes if it isn't used again.
     @State private var removal: Date?
+    /// The file open in the viewer.
+    @State private var viewing: ViewRequest?
 
     private func refreshKeep() {
         ownKeep = library.ownKeepTime(of: item.path, drive: drive)
@@ -1060,6 +1062,40 @@ struct FileRow: View {
     private func playNow() {
         guard let engine else { return }
         playing = .live(item, engine: engine, connection: connection)
+    }
+
+    /// How this file can be looked at, if it can.
+    private var viewer: ViewerKind? {
+        FileViewer.kind(of: item.path.name)
+    }
+
+    /// A copy here always opens; otherwise the drive has to be reachable.
+    private var canView: Bool {
+        viewer != nil && (kept != nil || (!isOffline && engine != nil))
+    }
+
+    /// Opens the viewer, on the copy here if there is one, so it works offline.
+    private func view(_ mode: ViewRequest.Mode? = nil) {
+        guard let viewer else { return }
+        let mode = mode ?? ViewRequest.mode(for: viewer)
+        if let kept {
+            library.touch(item.path, drive: drive)
+            refreshKeep()
+            viewing = ViewRequest(name: item.path.name, origin: .local(kept), mode: mode)
+        } else if let engine {
+            viewing = ViewRequest(name: item.path.name, origin: .drive(engine, item, connection), mode: mode)
+        }
+    }
+
+    /// The magnifying glass, named for what it does.
+    @ViewBuilder private var viewButton: some View {
+        if canView {
+            if viewer == .html {
+                Button("Open in Another App", systemImage: "magnifyingglass") { view() }
+            } else {
+                Button("View", systemImage: "magnifyingglass") { view() }
+            }
+        }
     }
 
     private func play(_ file: URL) {
@@ -1123,6 +1159,7 @@ struct FileRow: View {
             // Fills the row, so the bar under the name has room.
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 16) {
+                viewButton
                 if canPlayNow {
                     Button("Play Now", systemImage: PlayButton.playNow.systemImage, action: playNow)
                 }
@@ -1148,6 +1185,12 @@ struct FileRow: View {
         .buttonStyle(.borderless)
         // A long press names each button, with its words.
         .contextMenu {
+            viewButton
+            if canView, viewer == .html {
+                Button("View Source", systemImage: "chevron.left.forwardslash.chevron.right") {
+                    view(.text(markdown: false))
+                }
+            }
             if canPlayNow {
                 Button("Play Now", systemImage: PlayButton.playNow.systemImage, action: playNow)
             }
@@ -1164,6 +1207,9 @@ struct FileRow: View {
         }
         .fullScreenCover(item: $playing) { source in
             PlayerView(source: source)
+        }
+        .fullScreenCover(item: $viewing) { request in
+            FileViewerScreen(request: request, library: library)
         }
         .swipeActions {
             if canRemoveDownload {

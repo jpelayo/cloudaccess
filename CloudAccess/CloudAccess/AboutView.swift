@@ -5,17 +5,23 @@ import CloudCore
 import CloudDesign
 import SwiftUI
 
-/// About CloudAccess, and the uninstall that starts from it. Each page has a size of its own, set
-/// rather than measured, so the window opens at it and nothing that appears during an uninstall
-/// resizes it. A page taller than its window scrolls inside it.
+/// About CloudAccess, its third-party software, and the uninstall that starts from it. Each page
+/// has a size of its own, set rather than measured, so the window opens at it and nothing that
+/// appears during an uninstall resizes it. A page taller than its window scrolls inside it.
 struct AboutView: View {
     @Environment(Drives.self) private var drives
     /// Tells the window the size this page needs.
     let fit: (CGSize) -> Void
+    @State private var showsCredits = false
 
-    static let aboutSize = CGSize(width: 340, height: 380)
+    static let aboutSize = CGSize(width: 340, height: 450)
 
     @MainActor static var uninstallSize: CGSize {
+        CGSize(width: Pane.width, height: Pane.fitting(Pane.height))
+    }
+
+    /// The credits list on the left and a licence on the right, each scrolling inside itself.
+    @MainActor static var creditsSize: CGSize {
         CGSize(width: Pane.width, height: Pane.fitting(Pane.height))
     }
 
@@ -23,21 +29,36 @@ struct AboutView: View {
         isUninstalling ? uninstallSize : aboutSize
     }
 
+    private var isShowingCredits: Bool {
+        showsCredits && drives.uninstaller == nil
+    }
+
     private var size: CGSize {
-        Self.size(isUninstalling: drives.uninstaller != nil)
+        isShowingCredits ? Self.creditsSize : Self.size(isUninstalling: drives.uninstaller != nil)
     }
 
     var body: some View {
-        ScrollView {
-            page
-                .padding(.horizontal, 20)
-                .padding(.top, 28)
-                .padding(.bottom, 20)
-                .frame(maxWidth: .infinity, alignment: .top)
+        Group {
+            if isShowingCredits {
+                // Its two lists scroll by themselves; the window never does.
+                CreditsPage { showsCredits = false }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 28)
+                    .padding(.bottom, 20)
+            } else {
+                ScrollView {
+                    page
+                        .padding(.horizontal, 20)
+                        .padding(.top, 28)
+                        .padding(.bottom, 20)
+                        .frame(maxWidth: .infinity, alignment: .top)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+            }
         }
-        .scrollBounceBehavior(.basedOnSize)
         .frame(width: size.width, height: size.height)
         .onChange(of: drives.uninstaller == nil, initial: true) { fit(size) }
+        .onChange(of: showsCredits) { fit(size) }
         // The window is this size, title bar included, as Settings is. Left in the safe area, the
         // content sat 28 points lower and the bottom fell outside the window.
         .ignoresSafeArea(.container, edges: .top)
@@ -51,14 +72,15 @@ struct AboutView: View {
                 UninstallingPage(uninstaller: uninstaller)
             }
         } else {
-            AboutPage()
+            AboutPage { showsCredits = true }
         }
     }
 }
 
-/// The app's name, version and licence, and the way to remove it.
+/// The app's name, version and licence, the software it's built with, and the way to remove it.
 private struct AboutPage: View {
     @Environment(Drives.self) private var drives
+    let showCredits: () -> Void
 
     private var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
@@ -85,6 +107,15 @@ private struct AboutPage: View {
             .foregroundStyle(.secondary)
             Card {
                 IconRow(
+                    "doc.text", "Third-party software",
+                    subtitle: "CloudAccess is built with open-source software, listed with each licence."
+                ) {
+                    Button("Show…", action: showCredits)
+                        .buttonStyle(.pill)
+                }
+            }
+            Card {
+                IconRow(
                     "trash", "Uninstall CloudAccess",
                     subtitle: "Removes your drives and their passwords from this Mac. Files on your servers are not changed."
                 ) {
@@ -96,6 +127,77 @@ private struct AboutPage: View {
                 }
             }
         }
+    }
+}
+
+/// Everything CloudAccess carries that others wrote, each with its licence in its own words. The
+/// list comes from `Credits.json`, written from what the engine really compiles in.
+private struct CreditsPage: View {
+    let back: () -> Void
+    @State private var chosen = Credits.forThisApp.first?.id
+
+    private var credits: [Credit] { Credits.forThisApp }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Button("Back", systemImage: "chevron.left", action: back)
+                    .buttonStyle(.pill)
+                Spacer()
+            }
+            .overlay {
+                Text("Third-party software")
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            HStack(alignment: .top, spacing: 12) {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(credits) { credit in
+                            row(for: credit)
+                        }
+                    }
+                    .padding(6)
+                }
+                .frame(width: 230)
+                .frame(maxHeight: .infinity)
+                .cardSurface()
+                ScrollView {
+                    Text(verbatim: credits.first { $0.id == chosen }?.text ?? "")
+                        .font(.system(size: 11).monospaced())
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                }
+                .id(chosen)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .cardSurface()
+            }
+        }
+    }
+
+    private func row(for credit: Credit) -> some View {
+        Button {
+            chosen = credit.id
+        } label: {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(verbatim: credit.name)
+                    .font(.system(size: 12))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text(verbatim: "\(credit.version) · \(credit.licence)")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                chosen == credit.id ? Color.accentColor.opacity(0.18) : .clear,
+                in: RoundedRectangle(cornerRadius: 6))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 

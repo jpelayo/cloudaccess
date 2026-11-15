@@ -28,9 +28,13 @@ public struct ByteRange: Equatable, Sendable {
     /// one range at a time.
     public static func request(_ header: String?, size: Int64) -> Request {
         guard let header else { return .whole }
-        let text = header.trimmingCharacters(in: .whitespaces)
-        guard text.lowercased().hasPrefix("bytes="), !text.contains(",") else { return .whole }
-        let spec = text.dropFirst("bytes=".count).trimmingCharacters(in: .whitespaces)
+        // The unit's case doesn't matter, and spaces may sit around "=".
+        let halves = header.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+        guard halves.count == 2,
+              halves[0].trimmingCharacters(in: .whitespaces).lowercased() == "bytes",
+              !halves[1].contains(",")
+        else { return .whole }
+        let spec = halves[1].trimmingCharacters(in: .whitespaces)
         let parts = spec.split(separator: "-", maxSplits: 1, omittingEmptySubsequences: false)
         guard parts.count == 2 else { return .whole }
         let first = parts[0].trimmingCharacters(in: .whitespaces)

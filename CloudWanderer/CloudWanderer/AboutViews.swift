@@ -60,6 +60,7 @@ struct AboutView: View {
                 if let source = URL(string: "https://code.videolan.org/videolan/VLCKit") {
                     Link("VLCKit Source Code", destination: source)
                 }
+                NavigationLink("Licences") { CreditsList() }
             } header: {
                 SectionLabel("Third-party software")
             }
@@ -76,6 +77,37 @@ struct AboutView: View {
             }
         }
         .navigationTitle("About CloudWanderer")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Everything CloudWanderer carries that others wrote, each with its licence in its own words.
+/// The list comes from `Credits.json`, written from what the engine really compiles in.
+private struct CreditsList: View {
+    var body: some View {
+        List(Credits.forThisApp) { credit in
+            NavigationLink {
+                ScrollView {
+                    Text(verbatim: credit.text)
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                }
+                .navigationTitle(Text(verbatim: credit.name))
+                .navigationBarTitleDisplayMode(.inline)
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verbatim: credit.name)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Text(verbatim: "\(credit.version) · \(credit.licence)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .navigationTitle("Licences")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

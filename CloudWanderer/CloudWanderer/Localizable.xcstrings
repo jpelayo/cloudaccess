@@ -1,6 +1,86 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Licences" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licencias"
+          }
+        }
+      }
+    },
+    "View" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver"
+          }
+        }
+      }
+    },
+    "Open in Another App" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir en otra app"
+          }
+        }
+      }
+    },
+    "View Source" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver código fuente"
+          }
+        }
+      }
+    },
+    "Showing the first 2 MB of this file." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se muestran los primeros 2 MB de este archivo."
+          }
+        }
+      }
+    },
+    "Couldn't show this file" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido mostrar este archivo"
+          }
+        }
+      }
+    },
+    "This file couldn't be read as text." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este archivo no se ha podido leer como texto."
+          }
+        }
+      }
+    },
+    "No app on this iPhone opens HTML files." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguna app de este iPhone abre archivos HTML."
+          }
+        }
+      }
+    },
     "Its name says it is, but what's inside isn't video or audio." : {
       "localizations" : {
         "es" : {

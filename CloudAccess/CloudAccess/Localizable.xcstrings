@@ -1,6 +1,26 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Third-party software" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Software de terceros"
+          }
+        }
+      }
+    },
+    "CloudAccess is built with open-source software, listed with each licence." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CloudAccess está hecho con software de código abierto, que aparece aquí con su licencia."
+          }
+        }
+      }
+    },
     "**What to do:** %@" : {
       "localizations" : {
         "es" : {

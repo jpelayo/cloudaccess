@@ -69,3 +69,10 @@ mv "$FRESH" "$FRAMEWORK"
 rm -rf "$OUT/previous.xcframework"
 
 du -sh "$OUT"/*/libengine.a "$FRAMEWORK"
+
+# The credits list what the engine compiles in, so they follow it. VLCKit's part needs it fetched.
+if [ -f "$ENGINE_DIR/../Packages/Player/Binaries/MobileVLCKit.version" ]; then
+  bash "$ENGINE_DIR/../Tools/make-credits.sh"
+else
+  echo "Credits not refreshed: run Packages/Player/fetch-vlckit.sh, then Tools/make-credits.sh"
+fi
