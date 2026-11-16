@@ -258,6 +258,34 @@ public struct OfflineLibrary: Sendable {
         return removed
     }
 
+    /// Outside `files`, so a choice outlives the download: it's about the file, not the copy.
+    /// Removing the drive removes it with everything else.
+    private func playbackFile(of path: RemotePath, drive: UUID) -> URL {
+        folder(of: drive).appendingPathComponent("playback").appendingPathComponent(key(for: path) + ".json")
+    }
+
+    /// How a person chose to play this file, or the defaults.
+    public func playback(of path: RemotePath, drive: UUID) -> FilePlayback {
+        guard let data = try? Data(contentsOf: playbackFile(of: path, drive: drive)),
+              let chosen = try? JSONDecoder().decode(FilePlayback.self, from: data)
+        else { return FilePlayback() }
+        return chosen
+    }
+
+    /// Saves how this file plays. The defaults leave no record behind.
+    public func setPlayback(_ playback: FilePlayback, for path: RemotePath, drive: UUID) {
+        let record = playbackFile(of: path, drive: drive)
+        guard playback != FilePlayback() else {
+            try? FileManager.default.removeItem(at: record)
+            return
+        }
+        try? FileManager.default.createDirectory(
+            at: record.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if let data = try? JSONEncoder().encode(playback) {
+            try? data.write(to: record, options: .atomic)
+        }
+    }
+
     public func removeDownload(of path: RemotePath, drive: UUID) {
         try? FileManager.default.removeItem(at: fileFolder(of: path, drive: drive))
     }

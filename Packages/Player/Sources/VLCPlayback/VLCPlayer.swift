@@ -40,17 +40,34 @@ public final class VLCPlayer: NSObject {
     /// False for sound alone, which has no picture to show.
     public private(set) var hasVideo = false
 
+    /// The picture's shape as VLC writes it, such as "16:9", or nil for the file's own.
+    public private(set) var aspectRatio: String?
+
     public var isPlaying: Bool { state == .playing || state == .buffering }
 
     @ObservationIgnored private let player = VLCMediaPlayer()
+    /// Whether the picture has played yet, so a chosen shape is set again once it has.
+    @ObservationIgnored private var hasPlayed = false
 
-    public init(url: URL) {
+    public init(url: URL, aspectRatio: String? = nil) {
         super.init()
         let media = VLCMedia(url: url)
         // A little more than VLC's default, for a server across the internet.
         media.addOption(":network-caching=1500")
         player.media = media
         player.delegate = self
+        chooseAspectRatio(aspectRatio)
+    }
+
+    /// Forces the picture into a shape, for a video encoded with the wrong one. Nil gives back
+    /// the file's own. libvlc copies the string, so it needn't outlive the call.
+    public func chooseAspectRatio(_ ratio: String?) {
+        aspectRatio = ratio
+        if let ratio {
+            ratio.withCString { player.videoAspectRatio = UnsafeMutablePointer(mutating: $0) }
+        } else {
+            player.videoAspectRatio = nil
+        }
     }
 
     /// Where the picture is drawn.
@@ -111,6 +128,11 @@ public final class VLCPlayer: NSObject {
         case .ended, .stopped: state = state == .opening ? .failed : .ended
         case .error: state = .failed
         @unknown default: break
+        }
+        // A shape set before the picture existed may not have reached it.
+        if state == .playing, !hasPlayed {
+            hasPlayed = true
+            if let aspectRatio { chooseAspectRatio(aspectRatio) }
         }
         hasVideo = player.hasVideoOut
         readTracks()

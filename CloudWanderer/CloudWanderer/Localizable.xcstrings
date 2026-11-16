@@ -121,12 +121,32 @@
         }
       }
     },
-    "Audio and Subtitles" : {
+    "As in the File" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Audio y subtítulos"
+            "value" : "Como en el archivo"
+          }
+        }
+      }
+    },
+    "Aspect Ratio" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relación de aspecto"
+          }
+        }
+      }
+    },
+    "Automatic" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automático"
           }
         }
       }
@@ -267,6 +287,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reproducir ahora"
+          }
+        }
+      }
+    },
+    "Playback Options" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opciones de reproducción"
+          }
+        }
+      }
+    },
+    "Player" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproductor"
           }
         }
       }

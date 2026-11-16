@@ -93,6 +93,13 @@ public enum MediaContainer: Equatable, Sendable, CaseIterable {
         }
     }
 
+    /// Whether a name says the file is in a container Apple's player opens. Only a hint, like
+    /// every name: the first bytes still decide when it plays.
+    public static func mayBeAppleNative(_ name: String) -> Bool {
+        guard let ending = MediaFiles.fileExtension(of: name) else { return false }
+        return allCases.contains { $0.isAppleNative && $0.fileExtensions.contains(ending) }
+    }
+
     /// The usual extension, for a player that goes by the name.
     public var fileExtension: String {
         switch self {

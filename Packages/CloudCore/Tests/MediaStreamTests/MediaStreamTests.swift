@@ -117,6 +117,29 @@ import Testing
         #expect(PlayerChoice.player(for: .asf) == .vlc)
     }
 
+    /// A person who chose VLC for a file gets it, even where Apple's player could open it.
+    @Test func vlcChosenAlwaysPlaysInVLC() {
+        for container in [MediaContainer.isoMedia, .mp3, .matroska] {
+            #expect(PlayerChoice.player(for: container, preference: .vlc) == .vlc, "\(container)")
+        }
+    }
+
+    @Test func automaticFollowsTheContainer() {
+        for container in MediaContainer.allCases {
+            #expect(PlayerChoice.player(for: container, preference: .automatic) == PlayerChoice.player(for: container))
+        }
+    }
+
+    /// Only a file Apple's player could open has another player to choose.
+    @Test func onlyFilesApplesPlayerCouldOpenOfferAChoice() {
+        for name in ["a.mp4", "b.MOV", "c.m4v", "d.m4a", "song.MP3"] {
+            #expect(PlayerChoice.offersChoice(name), "\(name)")
+        }
+        for name in ["a.mkv", "b.AVI", "c.webm", "d.pdf", "README"] {
+            #expect(!PlayerChoice.offersChoice(name), "\(name)")
+        }
+    }
+
     @Test func eachRowStateHasItsButtons() {
         #expect(PlayButtons.shown(isPlayable: true, isDownloaded: false, isDownloading: false) == [.playNow, .downloadAndPlay])
         #expect(PlayButtons.shown(isPlayable: true, isDownloaded: false, isDownloading: true) == [.playNow])

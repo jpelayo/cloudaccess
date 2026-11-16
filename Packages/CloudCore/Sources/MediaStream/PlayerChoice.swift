@@ -21,6 +21,20 @@ public enum PlayerChoice {
     public static func player(for container: MediaContainer) -> PlayerKind {
         container.isAppleNative ? .apple : .vlc
     }
+
+    /// The player for this file, as a person chose it on its row.
+    public static func player(for container: MediaContainer, preference: PlayerPreference) -> PlayerKind {
+        switch preference {
+        case .automatic: player(for: container)
+        case .vlc: .vlc
+        }
+    }
+
+    /// Whether a file's row offers a choice of player: only where Apple's player could open it.
+    /// Everything else always plays in VLCKit.
+    public static func offersChoice(_ name: String) -> Bool {
+        MediaContainer.mayBeAppleNative(name)
+    }
 }
 
 /// The play buttons a file's row shows. Playing live and downloading first are two different

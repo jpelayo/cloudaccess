@@ -1012,6 +1012,8 @@ struct FileRow: View {
     @State private var removal: Date?
     /// The file open in the viewer.
     @State private var viewing: ViewRequest?
+    /// The player chosen for this file on its long press.
+    @State private var playerPreference = PlayerPreference.automatic
 
     private func refreshKeep() {
         ownKeep = library.ownKeepTime(of: item.path, drive: drive)
@@ -1061,7 +1063,31 @@ struct FileRow: View {
 
     private func playNow() {
         guard let engine else { return }
-        playing = .live(item, engine: engine, connection: connection)
+        playing = .live(
+            item, engine: engine, connection: connection, playback: chosenPlayback, remember: rememberPlayback)
+    }
+
+    /// Read afresh each time, so a shape chosen the last time it played is there.
+    private var chosenPlayback: FilePlayback {
+        library.playback(of: item.path, drive: drive)
+    }
+
+    /// Saves what's chosen while it plays, for this file on this drive.
+    private var rememberPlayback: (FilePlayback) -> Void {
+        let library = library, path = item.path, drive = drive
+        return { library.setPlayback($0, for: path, drive: drive) }
+    }
+
+    /// The long press's choice of player, for a file Apple's player could open.
+    private var playerChoice: Binding<PlayerPreference> {
+        Binding(
+            get: { playerPreference },
+            set: { preference in
+                var playback = chosenPlayback
+                playback.player = preference
+                library.setPlayback(playback, for: item.path, drive: drive)
+                playerPreference = preference
+            })
     }
 
     /// How this file can be looked at, if it can.
@@ -1102,7 +1128,7 @@ struct FileRow: View {
         library.touch(item.path, drive: drive)
         refreshKeep()
         PlayingNow.file = file
-        playing = .local(file)
+        playing = .local(file, playback: chosenPlayback, remember: rememberPlayback)
     }
 
     /// A file on this phone always works, and only the rest gray out with the connection.
@@ -1200,6 +1226,15 @@ struct FileRow: View {
             if download == nil, kept == nil, isAvailable, playButtons.contains(.downloadAndPlay) {
                 Button("Download and Play", systemImage: PlayButton.downloadAndPlay.systemImage) { start(thenPlay: true) }
             }
+            if PlayerChoice.isPlayable(item.path.name), PlayerChoice.offersChoice(item.path.name) {
+                Picker(selection: playerChoice) {
+                    Text("Automatic").tag(PlayerPreference.automatic)
+                    Text(verbatim: "VLC").tag(PlayerPreference.vlc)
+                } label: {
+                    Label("Player", systemImage: "play.rectangle.on.rectangle")
+                }
+                .pickerStyle(.menu)
+            }
             if kept != nil {
                 Button("Export", systemImage: "square.and.arrow.up") { share() }
                 keepSection
@@ -1225,6 +1260,7 @@ struct FileRow: View {
             isShown = true
             kept = library.download(of: item.path, drive: drive)
             refreshKeep()
+            playerPreference = chosenPlayback.player
         }
         .onDisappear {
             isShown = false

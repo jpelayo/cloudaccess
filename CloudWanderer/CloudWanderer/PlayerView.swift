@@ -21,13 +21,24 @@ struct PlaySource: Identifiable {
     let id = UUID()
     let name: String
     let origin: Origin
+    /// How a person chose to play this file, from its row.
+    let playback: FilePlayback
+    /// Saves a change made while it plays, such as its aspect ratio, for that file.
+    let remember: (FilePlayback) -> Void
 
-    static func live(_ item: RemoteItem, engine: RemoteEngine, connection: Connection) -> PlaySource {
-        PlaySource(name: item.path.name, origin: .live(engine: engine, item: item, connection: connection))
+    static func live(
+        _ item: RemoteItem, engine: RemoteEngine, connection: Connection,
+        playback: FilePlayback, remember: @escaping (FilePlayback) -> Void
+    ) -> PlaySource {
+        PlaySource(
+            name: item.path.name, origin: .live(engine: engine, item: item, connection: connection),
+            playback: playback, remember: remember)
     }
 
-    static func local(_ file: URL) -> PlaySource {
-        PlaySource(name: file.lastPathComponent, origin: .local(file))
+    static func local(
+        _ file: URL, playback: FilePlayback, remember: @escaping (FilePlayback) -> Void
+    ) -> PlaySource {
+        PlaySource(name: file.lastPathComponent, origin: .local(file), playback: playback, remember: remember)
     }
 }
 
@@ -76,7 +87,11 @@ struct PlayerView: View {
                 }
                 .ignoresSafeArea()
             case .vlc(let url):
-                VLCPlayerScreen(url: url, name: source.name, failed: failed)
+                VLCPlayerScreen(url: url, name: source.name, aspectRatio: source.playback.aspectRatio, failed: failed) { ratio in
+                    var changed = source.playback
+                    changed.aspectRatio = ratio
+                    source.remember(changed)
+                }
             case .failed(let reason):
                 PlaybackProblem(
                     title: "Couldn't play this file", reason: reason, tryAgain: { attempt += 1 }, close: { dismiss() })
@@ -128,7 +143,8 @@ struct PlayerView: View {
                 container = served.1
             }
             // What the file really is decides, not its name.
-            phase = PlayerChoice.player(for: container) == .apple ? .apple(url) : .vlc(url)
+            let chosen = PlayerChoice.player(for: container, preference: source.playback.player)
+            phase = chosen == .apple ? .apple(url) : .vlc(url)
         } catch is CancellationError {
             return
         } catch is NotMedia {
@@ -262,7 +278,11 @@ private struct AppleVideoPlayer: UIViewControllerRepresentable {
 private struct VLCPlayerScreen: View {
     let url: URL
     let name: String
+    /// The shape chosen for this file before, if any.
+    let aspectRatio: AspectRatio?
     let failed: () -> Void
+    /// Remembers a shape chosen here, for the next time this file plays.
+    let chooseRatio: (AspectRatio?) -> Void
 
     @State private var player: VLCPlayer?
     @State private var showsControls = true
@@ -308,7 +328,7 @@ private struct VLCPlayerScreen: View {
         }
         .animation(.easeInOut(duration: 0.2), value: showsControls)
         .onAppear {
-            let made = VLCPlayer(url: url)
+            let made = VLCPlayer(url: url, aspectRatio: aspectRatio?.rawValue)
             player = made
             made.play()
             reveal()
@@ -418,16 +438,18 @@ private struct VLCPlayerScreen: View {
         .tint(.white)
     }
 
+    /// The audio track, the subtitles and the picture's shape, each as a list of its own.
     @ViewBuilder
     private func tracksMenu(_ player: VLCPlayer) -> some View {
-        if player.audioTracks.count > 1 || !player.subtitleTracks.isEmpty {
+        if !player.audioTracks.isEmpty || !player.subtitleTracks.isEmpty || player.hasVideo {
             Menu {
-                if player.audioTracks.count > 1 {
+                if !player.audioTracks.isEmpty {
                     Picker("Audio", selection: Binding(get: { player.audioTrack }, set: { player.chooseAudio($0) })) {
                         ForEach(player.audioTracks) { track in
                             Text(verbatim: track.name).tag(track.id)
                         }
                     }
+                    .pickerStyle(.menu)
                 }
                 if !player.subtitleTracks.isEmpty {
                     Picker(
@@ -439,9 +461,27 @@ private struct VLCPlayerScreen: View {
                             Text(verbatim: track.name).tag(track.id)
                         }
                     }
+                    .pickerStyle(.menu)
+                }
+                if player.hasVideo {
+                    Picker(
+                        "Aspect Ratio",
+                        selection: Binding(
+                            get: { player.aspectRatio.flatMap(AspectRatio.init(rawValue:)) },
+                            set: { ratio in
+                                player.chooseAspectRatio(ratio?.rawValue)
+                                chooseRatio(ratio)
+                            })
+                    ) {
+                        Text("As in the File").tag(AspectRatio?.none)
+                        ForEach(AspectRatio.allCases, id: \.self) { ratio in
+                            Text(verbatim: ratio.shown).tag(AspectRatio?.some(ratio))
+                        }
+                    }
+                    .pickerStyle(.menu)
                 }
             } label: {
-                Label("Audio and Subtitles", systemImage: "captions.bubble")
+                Label("Playback Options", systemImage: "slider.horizontal.3")
                     .labelStyle(.iconOnly)
                     .font(.title3)
                     .foregroundStyle(.white)
