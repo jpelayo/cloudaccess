@@ -12,10 +12,29 @@ private func megabytes(_ bytes: UInt64) -> String {
     (Double(bytes) / 1_048_576).formatted(.number.precision(.fractionLength(1))) + " MB"
 }
 
+/// The cache size limit in Settings, and keeping to it.
+enum DownloadLimit {
+    static let key = "downloadSpaceLimit"
+
+    static var limit: Int64 {
+        DownloadSpace.chosen(UserDefaults.standard.object(forKey: key) as? Int)
+    }
+
+    /// Removes the downloads over the limit. The film playing stays, and so does anything spared,
+    /// such as the file just downloaded.
+    static func apply(to library: OfflineLibrary, sparing: Set<URL> = []) {
+        let removed = library.removeOverLimit(limit, sparing: sparing.union(PlayingNow.file.map { [$0] } ?? []))
+        if removed > 0 {
+            AppLog.record("\(removed) downloads removed to stay under the cache size limit")
+        }
+    }
+}
+
 /// Everything that isn't a drive: drives files, the language, the log, the Mac app and About. The
 /// sheets for drives files, the Mac app and About belong to the drives list, which also opens a
 /// drives file sent with AirDrop.
 struct PhoneSettingsView: View {
+    let library: OfflineLibrary
     let canExport: Bool
     @Binding var drivesFileProblem: String?
     let exportDrives: () -> Void
@@ -29,6 +48,41 @@ struct PhoneSettingsView: View {
     /// iOS reads the language at launch, and an app can't restart itself.
     @State private var languageChanged = false
     @State private var sharedLog: SharedFile?
+    @AppStorage(DownloadLimit.key) private var storedLimit = Int(DownloadSpace.defaultLimit)
+    /// Read again every few seconds while this screen shows, so a download can be seen growing.
+    @State private var usage: DownloadUsage?
+    @State private var isConfirmingRemoveAll = false
+
+    private var limit: Int64 { DownloadSpace.chosen(storedLimit) }
+
+    private var limitChoice: Binding<Int64> {
+        Binding {
+            limit
+        } set: { chosen in
+            let lowered = chosen < limit
+            storedLimit = Int(chosen)
+            Task {
+                if lowered { DownloadLimit.apply(to: library) }
+                await measure()
+            }
+        }
+    }
+
+    /// Walking the downloads touches the disk, so it's done off the main thread.
+    private func measure() async {
+        let library = library
+        usage = await Task.detached(priority: .utility) { library.usage() }.value
+    }
+
+    private func removeAll() {
+        let removed = library.removeAllDownloads(sparing: PlayingNow.file.map { [$0] } ?? [])
+        AppLog.record("\(removed) downloads removed from Settings")
+        Task { await measure() }
+    }
+
+    private static func bytes(_ count: Int64) -> String {
+        count.formatted(.byteCount(style: .file))
+    }
 
     private var languageChoice: Binding<AppLanguage> {
         Binding {
@@ -80,6 +134,33 @@ struct PhoneSettingsView: View {
                 SectionLabel("Downloads")
             } footer: {
                 Text("How long a download stays on this iPhone after it was last used. Video and audio get their own time, so they're still here when you want them.")
+            }
+            Section {
+                if let usage {
+                    UsageBar(
+                        share: usage.share(of: limit),
+                        used: String(localized: "On this iPhone \(Self.bytes(usage.bytes))"),
+                        limit: String(localized: "Limit \(Self.bytes(limit))"))
+                        .padding(.vertical, 4)
+                    KeyValueRow("Used", usage.share(of: limit).formatted(.percent.precision(.fractionLength(0))))
+                    KeyValueRow("Files", usage.files.formatted())
+                } else {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                }
+                Picker("Cache size limit", selection: limitChoice) {
+                    ForEach(DownloadSpace.choices, id: \.self) { choice in
+                        Text(verbatim: Self.bytes(choice)).tag(choice)
+                    }
+                }
+                Button("Remove All Downloads…", role: .destructive) {
+                    isConfirmingRemoveAll = true
+                }
+                .disabled((usage?.files ?? 0) == 0)
+            } header: {
+                SectionLabel("Cache")
+            } footer: {
+                Text("When downloads pass the limit, the ones unused longest go first, other files before video and audio.")
             }
             Section {
                 Picker("Language", selection: languageChoice) {
@@ -140,6 +221,20 @@ struct PhoneSettingsView: View {
         .navigationTitle("Settings")
         .sheet(item: $sharedLog) { shared in
             ShareSheet(file: shared.url)
+        }
+        .confirmationDialog(
+            "Remove All Downloads?", isPresented: $isConfirmingRemoveAll, titleVisibility: .visible
+        ) {
+            Button("Remove All Downloads", role: .destructive, action: removeAll)
+        } message: {
+            Text("They stay on your drives, and can be downloaded again.")
+        }
+        // Stops by itself when the screen goes.
+        .task {
+            while !Task.isCancelled {
+                await measure()
+                try? await Task.sleep(for: .seconds(3))
+            }
         }
     }
 

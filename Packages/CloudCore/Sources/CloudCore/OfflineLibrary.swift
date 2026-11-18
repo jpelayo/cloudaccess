@@ -286,6 +286,94 @@ public struct OfflineLibrary: Sendable {
         }
     }
 
+    // MARK: Space
+
+    /// One kept file, in its own folder under `files`.
+    private struct KeptFile {
+        let folder: URL
+        let file: URL
+        let bytes: Int64
+        let lastUse: Date?
+        let isMedia: Bool
+    }
+
+    private static func size(of file: URL) -> Int64 {
+        Int64((try? file.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0)
+    }
+
+    /// Every kept file on every drive. Kept files sit under a 64-letter hash; anything else there
+    /// is a swap that never finished, which `clearAbandoned` clears.
+    private func keptFiles() -> [KeptFile] {
+        let files = FileManager.default
+        var found: [KeptFile] = []
+        for drive in (try? files.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? [] {
+            let kept = drive.appendingPathComponent("files")
+            for folder in (try? files.contentsOfDirectory(at: kept, includingPropertiesForKeys: nil)) ?? []
+            where folder.lastPathComponent.count == 64 {
+                let names = ((try? files.contentsOfDirectory(atPath: folder.path)) ?? [])
+                    .filter { !$0.hasPrefix(".cm-") }
+                guard let name = names.first else { continue }
+                let file = folder.appendingPathComponent(name)
+                found.append(KeptFile(
+                    folder: folder, file: file, bytes: Self.size(of: file), lastUse: Self.lastUse(in: folder),
+                    isMedia: MediaFiles.isMedia(name)))
+            }
+        }
+        return found
+    }
+
+    /// The space downloads take: kept files, and the ones still arriving, which count too so a
+    /// download can be seen growing. Records beside each file don't count.
+    public func usage() -> DownloadUsage {
+        let files = FileManager.default
+        let kept = keptFiles()
+        var bytes = kept.reduce(0) { $0 + $1.bytes }
+        for drive in (try? files.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? [] {
+            let incoming = drive.appendingPathComponent("incoming")
+            for item in (try? files.contentsOfDirectory(at: incoming, includingPropertiesForKeys: nil)) ?? [] {
+                bytes += Self.size(of: item)
+            }
+        }
+        return DownloadUsage(bytes: bytes, files: kept.count)
+    }
+
+    /// Removes kept files until they fit in `limit`, as the Mac does: other files first, then
+    /// video and audio, each unused longest first. A file with no record of use counts as used
+    /// now, as `removeExpired` starts it.
+    /// - Parameter sparing: Files in use, such as the one playing or the one just downloaded.
+    /// - Returns: How many files were removed.
+    @discardableResult
+    public func removeOverLimit(_ limit: Int64, sparing: Set<URL>, now: Date = Date()) -> Int {
+        let spared = Set(sparing.map(\.standardizedFileURL.path))
+        let kept = keptFiles()
+        var total = kept.reduce(0) { $0 + $1.bytes }
+        guard total > limit else { return 0 }
+        let oldestFirst = kept.sorted { ($0.lastUse ?? now) < ($1.lastUse ?? now) }
+        var removed = 0
+        for each in oldestFirst.filter({ !$0.isMedia }) + oldestFirst.filter(\.isMedia) where total > limit {
+            if spared.contains(each.file.standardizedFileURL.path) { continue }
+            if (try? FileManager.default.removeItem(at: each.folder)) != nil {
+                total -= each.bytes
+                removed += 1
+            }
+        }
+        return removed
+    }
+
+    /// Removes every kept file but those spared. Downloads still arriving, folder listings and
+    /// how each file plays all stay.
+    @discardableResult
+    public func removeAllDownloads(sparing: Set<URL>) -> Int {
+        let spared = Set(sparing.map(\.standardizedFileURL.path))
+        var removed = 0
+        for each in keptFiles() where !spared.contains(each.file.standardizedFileURL.path) {
+            if (try? FileManager.default.removeItem(at: each.folder)) != nil {
+                removed += 1
+            }
+        }
+        return removed
+    }
+
     public func removeDownload(of path: RemotePath, drive: UUID) {
         try? FileManager.default.removeItem(at: fileFolder(of: path, drive: drive))
     }

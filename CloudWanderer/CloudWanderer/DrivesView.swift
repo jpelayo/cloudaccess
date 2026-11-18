@@ -47,6 +47,7 @@ final class OpenDrives {
     init() {
         library.clearAbandoned()
         removeExpiredDownloads()
+        DownloadLimit.apply(to: library)
         checks.log = { AppLog.record($0) }
         watcher = NetworkWatcher { [weak self] isUp in
             Task { @MainActor [weak self] in self?.networkChanged(isUp: isUp) }
@@ -604,6 +605,7 @@ struct DrivesView: View {
             }
             .navigationDestination(isPresented: $isShowingSettings) {
                 PhoneSettingsView(
+                    library: drives.library,
                     canExport: !connections.isEmpty, drivesFileProblem: $drivesFileProblem,
                     exportDrives: {
                         Task {
@@ -1104,6 +1106,7 @@ struct FileRow: View {
     private func view(_ mode: ViewRequest.Mode? = nil) {
         guard let viewer else { return }
         let mode = mode ?? ViewRequest.mode(for: viewer)
+        if kept != nil { _ = copyIsStillHere() }
         if let kept {
             library.touch(item.path, drive: drive)
             refreshKeep()
@@ -1124,7 +1127,16 @@ struct FileRow: View {
         }
     }
 
+    /// The cache limit or Remove All Downloads can take a copy while this row shows it. Then the
+    /// row offers to download again, instead of opening a file that's gone.
+    private func copyIsStillHere() -> Bool {
+        kept = library.download(of: item.path, drive: drive)
+        refreshKeep()
+        return kept != nil
+    }
+
     private func play(_ file: URL) {
+        guard copyIsStillHere() else { return }
         library.touch(item.path, drive: drive)
         refreshKeep()
         PlayingNow.file = file
@@ -1295,6 +1307,7 @@ struct FileRow: View {
     }
 
     private func share() {
+        guard copyIsStillHere() else { return }
         library.touch(item.path, drive: drive)
         refreshKeep()
         isSharing = true
@@ -1305,6 +1318,11 @@ struct FileRow: View {
     private func start(thenPlay: Bool = false) {
         guard let engine else { return }
         problem = nil
+        // Kept, it would push out every other download and still be over the limit.
+        if let size = item.size, size > DownloadLimit.limit {
+            problem = String(localized: "This file is bigger than the cache size limit in Settings.")
+            return
+        }
         let started = Date()
         let watch = DownloadWatch(total: item.size)
         self.watch = watch
@@ -1322,6 +1340,7 @@ struct FileRow: View {
                 OfflineLibrary.stamp(file, with: fetched)
                 let copy = try library.keep(file, as: item.path, drive: drive, version: fetched.versionID)
                 kept = copy
+                DownloadLimit.apply(to: library, sparing: [copy])
                 refreshKeep()
                 AppLog.download(on: connection, progress: watch.progress, started: started, error: nil)
                 if thenPlay, isShown {

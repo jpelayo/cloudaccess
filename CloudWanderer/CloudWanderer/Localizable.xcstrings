@@ -1139,6 +1139,116 @@
         }
       }
     },
+    "Cache" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caché"
+          }
+        }
+      }
+    },
+    "Cache size limit" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Límite de tamaño de la caché"
+          }
+        }
+      }
+    },
+    "Limit %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Límite %@"
+          }
+        }
+      }
+    },
+    "On this iPhone %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En este iPhone %@"
+          }
+        }
+      }
+    },
+    "Used" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usado"
+          }
+        }
+      }
+    },
+    "Remove All Downloads…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar todas las descargas…"
+          }
+        }
+      }
+    },
+    "Remove All Downloads" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar todas las descargas"
+          }
+        }
+      }
+    },
+    "Remove All Downloads?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Eliminar todas las descargas?"
+          }
+        }
+      }
+    },
+    "They stay on your drives, and can be downloaded again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siguen en sus unidades, y se pueden volver a descargar."
+          }
+        }
+      }
+    },
+    "When downloads pass the limit, the ones unused longest go first, other files before video and audio." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuando las descargas pasan del límite, se eliminan primero las que llevan más tiempo sin usarse, los demás archivos antes que el vídeo y el audio."
+          }
+        }
+      }
+    },
+    "This file is bigger than the cache size limit in Settings." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este archivo ocupa más que el límite de tamaño de la caché de Ajustes."
+          }
+        }
+      }
+    },
     "Files extension memory" : {
       "localizations" : {
         "es" : {
