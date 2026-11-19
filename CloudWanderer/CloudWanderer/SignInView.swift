@@ -87,8 +87,7 @@ struct SignInView: View {
                     Text("CloudWanderer checks it with the server first. Then the Files app uses it too.")
                 }
                 if let problem {
-                    Text(problem)
-                        .foregroundStyle(.red)
+                    FieldNote(problem)
                 }
             }
             .navigationTitle("Sign In")

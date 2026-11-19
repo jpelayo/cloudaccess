@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -352,6 +353,11 @@ func (item *remoteItem) applyDetails(known knownDetails, keep bool) {
 	}
 	item.SHA256 = known.SHA256
 	item.BundleType = known.BundleType
+	// A long name kept in short form on an encrypted drive is shown in full, when the details say
+	// it and it hashes back to the name on the server.
+	if full, ok := shownName(known.Item, path.Base(item.Path)); ok {
+		item.Path = path.Join(parentPath(item.Path), full)
+	}
 	if keep {
 		copied := known
 		item.details = &copied
@@ -399,7 +405,15 @@ func (d *drive) describeFile(
 		carried = previous.Item
 		limit = previous.Length
 	}
-	value, err := d.encodeDetails(kind, content, mergeItem(carried, input.Created), limit)
+	itemPart := mergeItem(carried, input.Created)
+	value, err := d.encodeDetails(kind, content, itemPart, limit)
+	// A long name kept in short form also keeps its full name, unless that wouldn't fit: then
+	// the file shows its short form, and keeps its dates and check.
+	if full, named := d.fullNameFor(ctx, p); named && err == nil {
+		if withName, nameErr := d.encodeDetails(kind, content, itemNamed(itemPart, full), limit); nameErr == nil {
+			value = withName
+		}
+	}
 	if err == nil {
 		err = keeper.setDetails(ctx, d.rawFile(p), false, value)
 	}
@@ -413,14 +427,74 @@ func (d *drive) describeFile(
 	return ""
 }
 
-// describeFolder records when a folder this device just made was created.
-func (d *drive) describeFolder(ctx context.Context, raw string, created time.Time) {
+// describeFolder records when a folder this device just made was created, and its full name when
+// the server keeps it in short form.
+func (d *drive) describeFolder(ctx context.Context, p, raw string, created time.Time) {
 	keeper, ok := d.server.(detailsKeeper)
-	if !ok || created.IsZero() {
+	if !ok {
 		return
 	}
-	if value, err := d.encodeDetails("folder", nil, mergeItem(nil, created), maxDetailsBytes); err == nil {
+	itemPart := mergeItem(nil, created)
+	if full, named := d.fullNameFor(ctx, p); named {
+		itemPart = itemNamed(itemPart, full)
+	}
+	if len(itemPart) == 0 {
+		return
+	}
+	if value, err := d.encodeDetails("folder", nil, itemPart, maxDetailsBytes); err == nil {
 		_ = keeper.setDetails(ctx, raw, true, value)
+	}
+}
+
+// openDetails checks a property read from the server, as readDetails does, and gives its parts
+// as they were written, so a change can carry them forward word for word.
+func (d *drive) openDetails(entry rawEntry) (string, detailsBody, bool) {
+	if _, ok := d.readDetails(entry); !ok {
+		return "", detailsBody{}, false
+	}
+	var outer fileDetails
+	if err := json.Unmarshal([]byte(entry.Details), &outer); err != nil {
+		return "", detailsBody{}, false
+	}
+	if d.cipher == nil {
+		return outer.Kind, detailsBody{Content: outer.Content, Item: outer.Item, WrittenBy: outer.WrittenBy}, true
+	}
+	body, err := d.unseal(outer.Sealed)
+	if err != nil {
+		return "", detailsBody{}, false
+	}
+	return outer.Kind, body, true
+}
+
+// nameMoved keeps the full name of an item just moved or renamed to a name the server keeps in
+// short form. Its other details stay as they were. It runs under the move's claim, and failing
+// only leaves the short form showing.
+func (d *drive) nameMoved(ctx context.Context, p, raw string, moved *remoteItem) {
+	full, named := d.fullNameFor(ctx, p)
+	keeper, ok := d.server.(detailsKeeper)
+	if !named || !ok || d.unsafe || !d.keepsDetails(ctx) {
+		return
+	}
+	entry, err := keeper.statWithDetails(ctx, raw)
+	if err != nil {
+		return
+	}
+	kind, body, found := d.openDetails(entry)
+	if !found {
+		kind = "file"
+		if entry.IsDirectory {
+			kind = "folder"
+		} else if strings.HasSuffix(p, flattenedSuffix) {
+			kind = "bundle"
+		}
+	}
+	value, err := d.encodeDetails(kind, body.Content, itemNamed(body.Item, full), maxDetailsBytes)
+	if err != nil || keeper.setDetails(ctx, raw, entry.IsDirectory, value) != nil {
+		return
+	}
+	entry.Details = value
+	if known, ok := d.readDetails(entry); ok {
+		moved.applyDetails(known, !d.readOnly)
 	}
 }
 

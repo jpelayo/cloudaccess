@@ -131,8 +131,7 @@ private struct FolderLevel: View {
                     }
                 }
                 if let problem = tree.problem {
-                    Text(verbatim: problem)
-                        .foregroundStyle(.red)
+                    FieldNote(problem)
                 } else if tree.folders.isEmpty {
                     Text("No folders here.")
                         .foregroundStyle(.secondary)

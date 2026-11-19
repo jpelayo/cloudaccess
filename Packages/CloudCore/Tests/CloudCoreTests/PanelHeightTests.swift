@@ -50,6 +50,31 @@ import Testing
         #expect(PaneHeight.fitting(600, screenHeight: 300) == PaneHeight.minimum)
         #expect(PaneHeight.fitting(600, screenHeight: 0) == PaneHeight.minimum)
     }
+
+    // A sheet hangs from its window, which can be anywhere on the screen.
+
+    @Test func aSheetTakesItsIdealHeightWhenThereIsRoom() {
+        #expect(PaneHeight.fitting(600, roomBelow: 800) == 600)
+    }
+
+    @Test func aSheetIsShortenedToTheRoomBelowItsWindow() {
+        #expect(PaneHeight.fitting(900, roomBelow: 500) == 500)
+    }
+
+    @Test func aSheetNeverGoesBelowTheMinimum() {
+        #expect(PaneHeight.fitting(900, roomBelow: 100) == PaneHeight.minimum)
+    }
+
+    @Test func aWindowMovesUpOnlyAsFarAsNeeded() {
+        // Its top at 500, a 600-point sheet and 40 of title bar: it needs its top at 640.
+        #expect(PaneHeight.raisedTop(windowTop: 500, sheetHeight: 600, chrome: 40, visibleBottom: 0, visibleTop: 1000) == 640)
+        // Already high enough, it stays where it is.
+        #expect(PaneHeight.raisedTop(windowTop: 900, sheetHeight: 600, chrome: 40, visibleBottom: 0, visibleTop: 1000) == 900)
+    }
+
+    @Test func aWindowNeverMovesAboveTheScreen() {
+        #expect(PaneHeight.raisedTop(windowTop: 500, sheetHeight: 2000, chrome: 40, visibleBottom: 0, visibleTop: 1000) == 1000)
+    }
 }
 
 @Suite struct DriveDetailsTests {

@@ -26,15 +26,19 @@ struct ConnectionEditor: View {
     @State private var privateKeyName: String?
     @State private var keyPassphrase = ""
     @State private var isChoosingKey = false
-    /// A new SFTP server's identity, shown once and trusted by the next press of the button.
+    /// A new SFTP server's identity, once a person has trusted it.
     @State private var hostKey: RemoteEngine.HostKey?
+    /// A new server's identity, waiting to be trusted.
+    @State private var askingTrust: PendingTrust?
     @State private var allowsInsecure = false
     @State private var pendingMove: Connection?
     @State private var isSaving = false
-    @State private var problem: String?
+    @State private var problem: FormNote?
     @State private var browsing: FolderBrowsing?
     @State private var isBrowsing = false
     @State private var hasSavedKey = false
+    /// Connecting at the new address found another server, so only a move can follow.
+    @State private var isDifferentServer = false
 
     init(
         connection: Connection, saveRequests: Int, hasUnsavedEdits: Binding<Bool>,
@@ -84,17 +88,31 @@ struct ConnectionEditor: View {
         return hasSavedKey ? String(localized: "Replace…") : String(localized: "Choose…")
     }
 
+    /// The problem, if it's about one of these fields, as one calm line under them.
+    @ViewBuilder
+    private func note(for fields: [ConnectionFinding.Field]) -> some View {
+        if let problem, fields.contains(problem.field) {
+            FieldNote(problem)
+        }
+    }
+
+    /// The same server at a new address, which connecting with its key or vault will prove. It
+    /// stays the same drive, so nothing is rebuilt and nothing is asked.
+    private func isNewAddress(_ edited: Connection) -> Bool {
+        !isDifferentServer && edited.isOnlyNewAddress(comparedTo: connection) && edited.canProveItsServer
+    }
+
     /// Only a mounted drive has anything to rebuild. An ejected one is just its saved details.
     private func rebuildsDrive(_ edited: Connection) -> Bool {
-        edited.requiresNewDrive(comparedTo: connection) && connection.isMounted
+        edited.requiresNewDrive(comparedTo: connection) && connection.isMounted && !isNewAddress(edited)
     }
 
     /// One whole message either way, so each reads right in every language.
     private var moveMessage: Text {
         guard let count = drives.waiting[connection.id], count > 0 else {
-            return Text("The drive leaves Finder and comes back with what's at the new address. Everything on the current server stays there.")
+            return Text("The server, folder or account is different, so the drive is set up again from what's there. Nothing is deleted on either server.")
         }
-        return Text("\(count) files haven't uploaded yet. They'll be kept on this Mac, and Settings shows where. The drive leaves Finder and comes back with what's at the new address. Everything on the current server stays there.")
+        return Text("\(count) files haven't uploaded yet. They're kept on this Mac, and Settings shows where. The drive is set up again from what's there, and nothing is deleted on either server.")
     }
 
     var body: some View {
@@ -113,13 +131,24 @@ struct ConnectionEditor: View {
                 .inColumn(Pane.fieldColumn)
             }
             FieldRow(label: "Host", text: $form.host)
+            if let moved = drives.movedAddress(of: connection), form.host == ConnectionForm(connection).host {
+                FieldNote(
+                    String(localized: "This server's Tailscale address changed to \(moved)."),
+                    actionTitle: "Use New Address"
+                ) {
+                    form.host = moved
+                    save()
+                }
+            }
             FieldRow(label: "Port", text: $form.port, prompt: form.kind.defaultPort)
+            note(for: [.address, .port])
             FieldRow(label: "Folder", text: $form.path)
             SettingRow("Choose it on the server") {
                 Button("Browse…") { browse() }
                     .buttonStyle(.pill)
                     .disabled(!canBrowse)
             }
+            note(for: [.folder])
             FieldRow(label: "User", text: $form.username)
             FieldRow(label: "Password", text: $password, prompt: "Unchanged", isSecure: true)
             if form.kind == .sftp {
@@ -133,6 +162,7 @@ struct ConnectionEditor: View {
                     FieldRow(label: "Key passphrase", text: $keyPassphrase, prompt: "If it has one", isSecure: true)
                 }
             }
+            note(for: [.signIn])
             SettingRow("Encryption") {
                 Text(connection.isEncrypted ? "On" : "Off")
                     .foregroundStyle(.secondary)
@@ -143,19 +173,7 @@ struct ConnectionEditor: View {
                     RowSwitch(label: "Send my password unencrypted over http", isOn: $allowsInsecure)
                 }
             }
-            if let hostKey {
-                Text(hostKey.fingerprint)
-                    .font(.caption.monospaced())
-                    .textSelection(.enabled)
-                Text("Check this matches your server, then press Save to trust it.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if let problem {
-                Text(problem)
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            note(for: [.server, .thisDevice])
             if hasChanges || isSaving {
                 Text(statusLabel)
                     .font(.caption)
@@ -174,7 +192,7 @@ struct ConnectionEditor: View {
             if canSave {
                 save()
             } else if !isSaving {
-                problem = String(localized: "Those details aren't valid, so nothing has been saved.")
+                problem = FormNote(String(localized: "Those details aren't valid, so nothing has been saved."))
             }
         }
         .fileImporter(isPresented: $isChoosingKey, allowedContentTypes: [.item], onCompletion: loadKey)
@@ -187,14 +205,17 @@ struct ConnectionEditor: View {
             .presentationSizing(.fitted)
         }
         .onChange(of: [form.kind.rawValue, form.host, form.port]) {
-            // A different address is a different server, so it can't inherit this trust.
+            // A key offered by one address isn't trusted for another. The drive's own key stays in
+            // its details, and connecting with it proves whether a new address is the same server.
             hostKey = nil
+            isDifferentServer = false
         }
+        .trustingServer($askingTrust) { hostKey = $0 }
         .confirmationDialog(
-            "Move \(connection.displayName) to this address?",
+            "Set up \(connection.displayName) again here?",
             isPresented: Binding { pendingMove != nil } set: { if !$0 { pendingMove = nil } }
         ) {
-            Button("Move Drive", role: .destructive) {
+            Button("Set Up Again", role: .destructive) {
                 if let pendingMove {
                     commit(pendingMove)
                 }
@@ -212,7 +233,7 @@ struct ConnectionEditor: View {
             problem = nil
         } catch {
             let reason = error.localizedDescription
-            problem = String(localized: "That key can't be read: \(reason)")
+            problem = FormNote(String(localized: "That key can't be read: \(reason)"), field: .signIn)
         }
     }
 
@@ -224,7 +245,7 @@ struct ConnectionEditor: View {
         // The server's saved identity still holds while host and port are unchanged.
         let knownKey = hostKey?.key ?? form.applied(to: connection)?.hostKey
         guard var probe = start.browsingConnection(hostKey: knownKey) else {
-            problem = String(localized: "Check the server's details.")
+            problem = FormNote(String(localized: "Check the server's details."), field: .address)
             return
         }
         probe.allowsInsecure = needsConsent ? allowsInsecure : connection.allowsInsecure
@@ -236,11 +257,15 @@ struct ConnectionEditor: View {
                 #if DEBUG
                 guard probe.isTestDrive else { throw Drives.DriveError.notATestFolder }
                 #endif
-                // A new server's identity is shown first, as Save does.
+                // A new server is trusted once, and Browse carries on after.
                 if case .sftp(let host, let port) = probe.endpoint, probe.hostKey == nil {
-                    hostKey = try await RemoteEngine.hostKey(host: host, port: port)
-                    problem = String(localized: "Check the server's identity below, then press Browse again.")
-                    return
+                    let offered = try await ServerTrust.offered(host: host, port: port, among: drives.connections)
+                    guard !offered.mustAsk else {
+                        askingTrust = PendingTrust(host: host, key: offered.key, resume: browse)
+                        return
+                    }
+                    hostKey = offered.key
+                    probe.hostKey = offered.key.key
                 }
                 let credentials = try drives.browsingSignIn(for: connection, editedBy: signIn)
                 let engine = try await RemoteEngine(connection: probe, credentials: credentials)
@@ -248,39 +273,52 @@ struct ConnectionEditor: View {
                     start: start, engine: engine, typed: form.typedFolder(inside: start),
                     canMake: !connection.isReadOnly)
             } catch {
-                problem = String(localized: "Couldn't connect. Checking why…")
-                let reason = await ConnectionChecks.explain(error, for: probe, device: .mac)
-                problem = String(localized: "Couldn't connect: \(reason)")
+                problem = FormNote(String(localized: "Couldn't connect. Checking why…"))
+                problem = await ConnectionChecks.note(for: error, connection: probe, device: .mac)
             }
         }
     }
 
     private func save() {
         guard var edited = form.applied(to: connection) else { return }
+        if isDifferentServer {
+            // Another server: the old one's key and vault don't belong to it.
+            if edited.endpoint != connection.endpoint {
+                edited.hostKey = nil
+            }
+            edited.vaultID = nil
+            edited.vaultRevision = nil
+        }
         problem = nil
         isSaving = true
         Task {
             defer { isSaving = false }
             do {
-                // The first press only reads a new server's identity, to show it.
                 if needsConsent {
                     edited.allowsInsecure = allowsInsecure
                 }
+                // A new server is trusted once, and Save carries on after.
                 if case .sftp(let host, let port) = edited.endpoint, edited.hostKey == nil {
-                    guard let hostKey else {
-                        self.hostKey = try await RemoteEngine.hostKey(host: host, port: port)
-                        return
+                    if hostKey == nil {
+                        let offered = try await ServerTrust.offered(host: host, port: port, among: drives.connections)
+                        guard !offered.mustAsk else {
+                            askingTrust = PendingTrust(host: host, key: offered.key, resume: save)
+                            return
+                        }
+                        hostKey = offered.key
                     }
-                    edited.hostKey = hostKey.key
+                    edited.hostKey = hostKey?.key
                 }
                 if rebuildsDrive(edited) {
                     pendingMove = edited
                 } else {
                     try await apply(edited)
                 }
+            } catch Drives.DriveError.differentServer {
+                isDifferentServer = true
+                problem = FormNote(Drives.DriveError.differentServer.localizedDescription, field: .address)
             } catch {
-                let reason = await ConnectionChecks.explain(error, for: edited, device: .mac)
-                problem = String(localized: "Not saved: \(reason)")
+                problem = await ConnectionChecks.note(for: error, connection: edited, device: .mac)
             }
         }
     }
@@ -293,14 +331,13 @@ struct ConnectionEditor: View {
             do {
                 try await apply(edited)
             } catch {
-                let reason = await ConnectionChecks.explain(error, for: edited, device: .mac)
-                problem = String(localized: "Not saved: \(reason)")
+                problem = await ConnectionChecks.note(for: error, connection: edited, device: .mac)
             }
         }
     }
 
     private func apply(_ edited: Connection) async throws {
-        try await drives.saveEdit(of: connection, as: edited, signIn: signIn)
+        try await drives.saveEdit(of: connection, as: edited, signIn: signIn, mayKeepAtNewAddress: !isDifferentServer)
         password = ""
         privateKey = nil
         privateKeyName = nil
@@ -320,7 +357,7 @@ private struct HostKeyReview: View {
 
     @State private var saved: RemoteEngine.HostKey?
     @State private var offered: RemoteEngine.HostKey?
-    @State private var problem: String?
+    @State private var problem: FormNote?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -333,8 +370,7 @@ private struct HostKeyReview: View {
             KeyValueRow(String(localized: "Saved"), saved?.fingerprint ?? "…")
             KeyValueRow(String(localized: "Now offered"), offered?.fingerprint ?? "…")
             if let problem {
-                Text(problem)
-                    .foregroundStyle(.red)
+                FieldNote(problem)
             }
             SettingRow("Check these with your server") {
                 Button("Trust New Key") {
@@ -343,7 +379,7 @@ private struct HostKeyReview: View {
                         do {
                             try await drives.trustHostKey(offered.key, of: connection)
                         } catch {
-                            problem = error.localizedDescription
+                            problem = FormNote.forError(error)
                         }
                     }
                 }
@@ -360,7 +396,7 @@ private struct HostKeyReview: View {
             do {
                 offered = try await RemoteEngine.hostKey(host: host, port: port)
             } catch {
-                problem = await ConnectionChecks.explain(error, for: connection, device: .mac)
+                problem = await ConnectionChecks.note(for: error, connection: connection, device: .mac)
             }
         }
     }

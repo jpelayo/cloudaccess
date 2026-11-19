@@ -104,6 +104,31 @@ public struct Connection: Identifiable, Hashable, Sendable, Codable {
             || username != other.username
     }
 
+    /// Whether only the server's address changed: its host or port, with the same kind of server,
+    /// account and folder. That can be the same server whose address moved, as a Tailscale or
+    /// DHCP address does.
+    public func isOnlyNewAddress(comparedTo other: Connection) -> Bool {
+        guard requiresNewDrive(comparedTo: other), username == other.username,
+              comparableFolder == other.comparableFolder
+        else { return false }
+        switch (endpoint, other.endpoint) {
+        case (.sftp, .sftp):
+            return true
+        case (.webDAV(let url), .webDAV(let otherURL)):
+            return url.scheme?.lowercased() == otherURL.scheme?.lowercased()
+                && (ServerFolder.webDAV(url.path) ?? url.path) == (ServerFolder.webDAV(otherURL.path) ?? otherURL.path)
+        default:
+            return false
+        }
+    }
+
+    /// Whether connecting can prove which server this is: an SFTP server's trusted key, or an
+    /// encrypted drive's vault. A plain WebDAV folder has nothing that tells two servers apart.
+    public var canProveItsServer: Bool {
+        if case .sftp = endpoint, hostKey != nil { return true }
+        return isEncrypted && vaultID != nil
+    }
+
     private var comparableFolder: String {
         ServerFolder.tidied(rootPath, for: endpoint) ?? rootPath
     }

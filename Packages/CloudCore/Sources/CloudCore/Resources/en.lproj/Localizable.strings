@@ -1,0 +1,43 @@
+/* CloudCore's plain English. Most English sentences are their own key and need no entry here.
+   These don't: the key is kept exactly as the engine or the drive's records word it, because
+   that's what's saved, logged and exported for support, and the value is what a person sees.
+   No entry takes a value (see PlainWordingTests), and each one has Spanish in es.lproj. */
+
+/* The app's own workings, which a person can't act on. */
+"The engine returned an unreadable response." = "Something went wrong inside the app, not on the server.";
+"The engine returned no result." = "Something went wrong inside the app, not on the server.";
+"could not encode the result" = "something went wrong inside the app, not on the server";
+"an encrypted drive without its vault can't describe a file" = "something went wrong inside the app, not on the server";
+"The list of changes has to be read again from the start." = "The drive is being read again from the start. This carries on by itself.";
+"Couldn't open the database." = "This drive's records on this device can't be opened. Nothing on the server is affected.";
+"This drive's records are damaged." = "This drive's records on this device are damaged. Nothing on the server is affected.";
+"The app's shared folder isn't available." = "This app can't open its own data folder, so it can't keep drives. Install it again.";
+
+/* Saving. */
+"this device's claim expired during the save" = "the save took too long, so it was stopped to keep other devices' saves safe";
+"the server's answer was lost, so this change may or may not have happened" = "the connection dropped before the server confirmed this change";
+"the server gave no timestamp" = "the server didn't say when this item last changed";
+"the server's reply didn't make sense" = "the server's answer couldn't be understood";
+"the server gave no usable details for this item" = "the server didn't say what this item is";
+"the server returned no details for this item" = "the server didn't say what this item is";
+"the server sent a different amount of this file than it lists" = "the server sent more or less of this file than it said it had";
+"this file didn't arrive as it was saved" = "the download didn't match the file that was saved, so it wasn't used";
+
+/* Deleted files. */
+"this item is no longer in the trash" = "this item is no longer among the deleted files";
+"the drive's retention policy can't be read" = "how long this drive keeps deleted files can't be read";
+"the drive's retention policy is missing, though this device read one earlier" = "how long this drive keeps deleted files is missing from the server, though this device read it before";
+
+/* Modes. */
+"only SFTP drives can work without the control folder" = "only SFTP drives can work without the hidden .cloudmount folder";
+"a drive in Safe mode needs its control folder" = "a drive in Safe mode needs its hidden .cloudmount folder";
+
+/* Encrypted drives. */
+"the encryption password is wrong, or the vault marker was changed" = "the encryption password is wrong, or the drive's encryption details on the server were changed";
+"this folder has files but no vault marker" = "this folder has files, but isn't an encrypted drive";
+"this folder has no vault yet" = "this folder has no encrypted drive yet";
+"this folder holds a different vault from the one this drive used" = "this folder holds a different encrypted drive from the one this drive used";
+"the vault marker is older than the one this device last saw" = "the server has older encryption details for this drive than this device last saw";
+"this vault was retired by a password change" = "this encrypted drive was retired by a password change";
+"this vault needs a newer version of the app" = "this encrypted drive needs a newer version of the app";
+"the vault marker can't be read" = "this drive's encryption details on the server can't be read";

@@ -26,16 +26,31 @@ import Testing
             createVault: encrypted)
     }
 
-    /// Through the real engine, because the other tests of this use a fake one.
-    @Test func aNameAnEncryptedDriveCantHoldIsRefused() async throws {
+    /// Through the real engine: a name too long for an encrypted drive is kept under its short
+    /// form instead of being refused. Without file details, as here, that's the name it's listed
+    /// under, and the full name still reaches it.
+    @Test func aNameTooLongForAnEncryptedDriveIsKeptInShortForm() async throws {
+        let server = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: server) }
+        let engine = try await engine(server: server)
+        let long = try #require(RemotePath("/" + String(repeating: "a", count: 200)))
+
+        try await engine.checkName(long)
+        try await engine.createDirectory(long)
+        let listed = try await engine.list(.root)
+        #expect(listed.count == 1)
+        #expect(listed.first.map { ShortName.isShortForm($0.path.name) } == true)
+        #expect(try await engine.item(at: long).kind == .directory)
+    }
+
+    /// A name that fits is kept exactly as it is.
+    @Test func aNameThatFitsIsKeptAsItIs() async throws {
         let server = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: server) }
         let engine = try await engine(server: server)
 
-        try await engine.checkName(RemotePath("/short.txt")!)
-        await #expect(throws: RemoteError.self) {
-            try await engine.checkName(RemotePath("/" + String(repeating: "a", count: 200))!)
-        }
+        try await engine.createDirectory(try #require(RemotePath("/Notes")))
+        #expect(try await engine.list(.root).map(\.path.name) == ["Notes"])
     }
 
     /// Through the real engine, so both sides agree on the unit: a day read as seconds would purge.

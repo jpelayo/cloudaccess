@@ -35,6 +35,9 @@ public final class ConnectionChecks {
     private let probe: Probe
     /// Where each finding is recorded, in English, with no host or address.
     public var log: (String) -> Void = { _ in }
+    /// Whether this device has reached a drive through Tailscale, whatever its address looks like.
+    /// Only the Mac keeps that record so far.
+    public var usesTailnet: @MainActor (Connection) -> Bool = { _ in false }
 
     /// How often a server's service is asked by itself, and when a person presses Check Again.
     /// An SSH server can ban an address that opens connections it never signs in on.
@@ -179,8 +182,10 @@ public final class ConnectionChecks {
                 facts.certificateExpiry = kept.expiry
             }
             for connection in byServer[target] ?? [] {
+                var driveFacts = facts
+                driveFacts.reachedThroughTailnet = usesTailnet(connection)
                 let finding = ConnectionFinding.decide(
-                    facts, engine: reasons[connection.id] ?? .unknown, host: target.host, port: target.port,
+                    driveFacts, engine: reasons[connection.id] ?? .unknown, host: target.host, port: target.port,
                     isSFTP: target.isSFTP, usesTLS: target.usesTLS, device: device,
                     otherServersOnline: otherServersOnline(connection),
                     checked: now())
@@ -200,14 +205,18 @@ public final class ConnectionChecks {
     /// A failure in a person's words, for a form that just tried to connect. An unreachable server
     /// is checked first, so the words say which part failed. Anything else keeps its own words.
     public static func explain(_ error: Error, for connection: Connection, device: DeviceKind) async -> String {
+        await finding(for: error, connection: connection, device: device)?.sentence ?? error.localizedDescription
+    }
+
+    /// What checking finds for a failure to reach the server, or nil for one that reached it.
+    static func finding(for error: Error, connection: Connection, device: DeviceKind) async -> ConnectionFinding? {
         guard let reason = ConnectionFinding.reason(of: error), let target = ConnectionCheck.Target(connection) else {
-            return error.localizedDescription
+            return nil
         }
         let network = await ConnectionCheck.currentNetwork()
         let facts = await ConnectionCheck.run(target, network: network, asksTheService: true)
         return ConnectionFinding.decide(
             facts, engine: reason, host: target.host, port: target.port, isSFTP: target.isSFTP,
-            usesTLS: target.usesTLS, device: device, otherServersOnline: false
-        ).sentence
+            usesTLS: target.usesTLS, device: device, otherServersOnline: false)
     }
 }

@@ -34,4 +34,21 @@ public enum PaneHeight {
     public static func fitting(_ ideal: Double, screenHeight: Double) -> Double {
         max(minimum, min(ideal, screenHeight - reserved))
     }
+
+    /// How tall a sheet is, given the room between the top of the window it hangs from and the
+    /// bottom of the screen. A window can be anywhere, so the whole screen's height says nothing.
+    public static func fitting(_ ideal: Double, roomBelow: Double) -> Double {
+        max(minimum, min(ideal, roomBelow))
+    }
+
+    /// Where a window's top has to be for a sheet of this height to fit below it, with its
+    /// buttons on screen. The window moves up only as far as that needs, never down, and never
+    /// past the top of the screen: a sheet taller than the screen then scrolls.
+    /// - Parameter chrome: The window's title bar and a margin, above the sheet.
+    public static func raisedTop(
+        windowTop: Double, sheetHeight: Double, chrome: Double, visibleBottom: Double, visibleTop: Double
+    ) -> Double {
+        let needed = visibleBottom + sheetHeight + chrome
+        return min(max(windowTop, needed), max(windowTop, visibleTop))
+    }
 }

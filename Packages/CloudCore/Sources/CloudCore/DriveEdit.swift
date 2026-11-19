@@ -13,6 +13,10 @@ public enum DriveEdit {
         case inPlace(Connection, needsCheck: Bool)
         /// A new drive with a new ID and the same name. It's always connected first.
         case move(Connection)
+        /// The same drive, under the same ID, at its server's new address. It keeps its trusted key
+        /// or vault, so connecting there with them proves it's the same server before anything is
+        /// saved. If that fails on identity, it's a different server, and only a move can follow.
+        case newAddress(Connection)
         case refused(String)
     }
 
@@ -74,6 +78,17 @@ public enum DriveEdit {
         return nil
     }
 
+    /// Whether connecting at a new address failed because the server there isn't this drive's:
+    /// another key than the trusted one, or another vault, or none. Anything else, such as no
+    /// answer, says nothing about which server it is.
+    public static func isAnotherServer(_ error: Error) -> Bool {
+        switch error as? RemoteError {
+        case .hostKeyChanged?, .hostKeyUnknown?: true
+        case .vault(let problem)?: [.mismatch, .missing, .notCreated, .encrypted].contains(problem)
+        default: false
+        }
+    }
+
     /// What saving these fields would do to a saved drive.
     /// - Parameter others: Every drive on this device, which may include the saved one.
     public static func change(
@@ -93,8 +108,15 @@ public enum DriveEdit {
         if let refusal = modeRefusal(for: edited) {
             return .refused(refusal)
         }
+        if edited.isOnlyNewAddress(comparedTo: saved), edited.canProveItsServer {
+            return .newAddress(edited)
+        }
         if edited.requiresNewDrive(comparedTo: saved) {
             var moved = edited
+            // Only a new address keeps them, and this isn't one.
+            moved.hostKey = edited.endpoint == saved.endpoint ? edited.hostKey : nil
+            moved.vaultID = nil
+            moved.vaultRevision = nil
             moved.id = UUID()
             return .move(moved)
         }

@@ -85,14 +85,28 @@ enum AppWindows {
     private static var settings: NSWindow?
     private static var cloudWanderer: NSWindow?
 
+    /// Lets a page close the window it's shown in.
+    private final class WindowCloser {
+        weak var window: NSWindow?
+
+        func close() {
+            window?.close()
+        }
+    }
+
     /// - Parameter nearTop: Opens the window near the top of the screen rather than in the middle,
     ///   so a tall sheet hanging from its title bar has the room below it.
     private static func show(_ window: inout NSWindow?, title: String, nearTop: Bool = false, content: some View) {
+        watchScreens()
         if window == nil {
+            let closer = WindowCloser()
             let controller = NSHostingController(
-                rootView: content.background(WindowBackdrop().ignoresSafeArea()))
+                rootView: content
+                    .environment(\.closeWindow, { closer.close() })
+                    .background(WindowBackdrop().ignoresSafeArea()))
             controller.sizingOptions = .preferredContentSize
             let made = NSWindow(contentViewController: controller)
+            closer.window = made
             made.title = title
             made.styleMask = [.titled, .closable, .fullSizeContentView]
             // The window is its own surface, so it shows the blur instead of a title bar.
@@ -103,6 +117,8 @@ enum AppWindows {
             made.standardWindowButton(.miniaturizeButton)?.isHidden = true
             made.standardWindowButton(.zoomButton)?.isHidden = true
             made.isReleasedWhenClosed = false
+            // The title bar is hidden under the page, so anywhere that isn't a control moves it.
+            made.isMovableByWindowBackground = true
             // SwiftUI sizes a window lazily, so it's asked now, before centering, or the window
             // shows at one size and then jumps to another.
             made.updateConstraintsIfNeeded()
@@ -111,10 +127,77 @@ enum AppWindows {
             if nearTop, let visible = (made.screen ?? NSScreen.main)?.visibleFrame {
                 made.setFrameTopLeftPoint(NSPoint(x: made.frame.minX, y: visible.maxY - 24))
             }
+            keepOnScreen(made)
             window = made
         }
         if let window {
             bringForward(window)
+        }
+    }
+
+    private static var isWatchingScreens = false
+
+    /// A screen taken away, or made smaller, can leave a window hanging off the edge with its
+    /// buttons out of reach, so each of this app's windows is brought back inside.
+    private static func watchScreens() {
+        guard !isWatchingScreens else { return }
+        isWatchingScreens = true
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated {
+                for window in NSApp.windows where window.isVisible && window.sheetParent == nil {
+                    keepOnScreen(window)
+                }
+            }
+        }
+    }
+
+    /// The frame moved, and made shorter if it must be, to fit inside its screen's visible area.
+    private static func onScreen(_ frame: NSRect, of window: NSWindow) -> NSRect {
+        guard let visible = (window.screen ?? NSScreen.main)?.visibleFrame else { return frame }
+        var fitted = frame
+        fitted.size.height = min(fitted.height, visible.height)
+        fitted.origin.y = max(min(fitted.origin.y, visible.maxY - fitted.height), visible.minY)
+        fitted.origin.x = max(min(fitted.origin.x, visible.maxX - fitted.width), visible.minX)
+        return fitted
+    }
+
+    /// Brings a window that reaches past its screen back inside it.
+    static func keepOnScreen(_ window: NSWindow) {
+        let fitted = onScreen(window.frame, of: window)
+        if fitted.integral != window.frame.integral {
+            window.setFrame(fitted, display: true)
+        }
+    }
+
+    /// Moves a window up, only as far as it must and never off the top of its screen, so a sheet
+    /// this tall hanging from it fits with its buttons on the screen.
+    /// - Returns: The room below the window for the sheet, once it's moved.
+    @discardableResult
+    static func makeRoom(for sheetHeight: CGFloat, in window: NSWindow) -> CGFloat {
+        guard let visible = (window.screen ?? NSScreen.main)?.visibleFrame else { return sheetHeight }
+        let top = CGFloat(PaneHeight.raisedTop(
+            windowTop: Double(window.frame.maxY), sheetHeight: Double(sheetHeight), chrome: Double(Pane.sheetChrome),
+            visibleBottom: Double(visible.minY), visibleTop: Double(visible.maxY)))
+        if top > window.frame.maxY {
+            var frame = window.frame
+            frame.origin.y += top - frame.maxY
+            move(window, to: frame)
+        }
+        return top - Pane.sheetChrome - visible.minY
+    }
+
+    /// With Reduce Motion on, or for a window not on screen yet, it doesn't animate.
+    private static func move(_ window: NSWindow, to frame: NSRect) {
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || !window.isVisible {
+            window.setFrame(frame, display: true)
+        } else {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.25
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                window.animator().setFrame(frame, display: true)
+            }
         }
     }
 
@@ -135,14 +218,50 @@ enum AppWindows {
         settings?.isVisible == true
     }
 
+    // MARK: Pages that take a while
+
+    // Adding a drive and a drive's own pages are windows of their own, not sheets on Settings:
+    // a window can be moved anywhere, and a sheet on a sheet couldn't be reached at all.
+
+    private static var addDrive: NSWindow?
+    private static var driveWindows: [UUID: NSWindow] = [:]
+    private static var recoveryKitOffer: NSWindow?
+
     static func showAddDrive(drives: Drives) {
-        drives.wantsAddForm = true
-        showSettings(drives: drives)
+        guard !drives.isUninstalling else { return }
+        // A closed form starts again empty.
+        if addDrive?.isVisible != true {
+            addDrive = nil
+        }
+        show(
+            &addDrive, title: String(localized: "Add Drive"), nearTop: true,
+            content: AddDriveView { saved in showRecoveryKitOffer(for: saved, drives: drives) }.environment(drives))
     }
 
+    /// A drive's window, at the page asked for. One already open goes to that page and comes forward,
+    /// keeping anything typed in it.
     static func showDrive(_ connection: Connection, _ sheet: DriveRequest.Sheet, drives: Drives) {
-        drives.request = DriveRequest(driveID: connection.id, sheet: sheet)
-        showSettings(drives: drives)
+        var window = driveWindows[connection.id]
+        if window?.isVisible == true {
+            drives.request = DriveRequest(driveID: connection.id, sheet: sheet)
+        } else {
+            window = nil
+            drives.request = nil
+        }
+        show(
+            &window, title: connection.displayName, nearTop: true,
+            content: DriveWindowView(request: DriveRequest(driveID: connection.id, sheet: sheet)).environment(drives))
+        driveWindows[connection.id] = window
+    }
+
+    /// Offered once, straight after a new encrypted drive is made, because a lost password can't
+    /// be recovered.
+    static func showRecoveryKitOffer(for connection: Connection, drives: Drives) {
+        recoveryKitOffer?.close()
+        recoveryKitOffer = nil
+        show(
+            &recoveryKitOffer, title: String(localized: "Save a recovery kit"),
+            content: RecoveryKitOffer(connection: connection).environment(drives))
     }
 
     static func showCloudWanderer() {
@@ -193,21 +312,9 @@ enum AppWindows {
         var frame = NSRect(origin: .zero, size: size)
         frame.origin.x = current.midX - frame.width / 2
         frame.origin.y = current.maxY - frame.height
-        if let visible = (window.screen ?? NSScreen.main)?.visibleFrame {
-            frame.size.height = min(frame.height, visible.height)
-            frame.origin.y = max(min(frame.origin.y, visible.maxY - frame.height), visible.minY)
-            frame.origin.x = max(min(frame.origin.x, visible.maxX - frame.width), visible.minX)
-        }
+        frame = onScreen(frame, of: window)
         guard frame.integral != current.integral else { return }
-        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || !window.isVisible {
-            window.setFrame(frame, display: true)
-        } else {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.25
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                window.animator().setFrame(frame, display: true)
-            }
-        }
+        move(window, to: frame)
     }
 }
 

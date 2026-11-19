@@ -5,7 +5,9 @@ import Foundation
 /// Words a person sees that come from this package, in English or Spanish.
 ///
 /// The English sentence is its own key, in `Resources/<language>.lproj/Localizable.strings`, with
-/// plurals in `Localizable.stringsdict`. Two rules keep diagnostics and saved text right:
+/// plurals in `Localizable.stringsdict`. The English table only holds plain words for keys kept as
+/// the engine or the records word them, such as "the vault marker can't be read", which support
+/// needs exact and a person can't follow. Two rules keep diagnostics and saved text right:
 /// - Text that's saved, logged or exported for support stays English. It's translated only when
 ///   it's shown, with `shown(_:)`, so a failure saved in one language still reads in another.
 /// - Values never go into a key: `format` takes them as arguments, so one key covers every name.

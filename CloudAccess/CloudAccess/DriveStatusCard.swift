@@ -43,6 +43,8 @@ struct DriveStatus {
             case openGeneral
             case openTailscale
             case openLocalNetworkSettings
+            /// Corrects the drive to its server's new Tailscale address, proved like an edit.
+            case useNewAddress
         }
 
         var symbol: String
@@ -88,7 +90,9 @@ extension Drives {
             return DriveStatus(
                 symbol: Self.symbol(for: finding), tone: finding.waitsForTheServer ? .waiting : .needsYou,
                 title: finding.title, host: host, cause: finding.cause, files: waits, button: .checkAgain,
-                fix: fix(for: finding), steps: finding.steps, stepsLabel: String(localized: "Checked at \(time)"),
+                fix: movedAddressFix(for: connection) ?? tailscaleFix(for: connection) ?? fix(for: finding),
+                steps: finding.steps,
+                stepsLabel: String(localized: "Checked at \(time)"),
                 stepsNote: String(localized: "CloudAccess tries again every 30 seconds."))
         }
         if checks.checking.contains(connection.id) {
@@ -122,6 +126,26 @@ extension Drives {
         case .certificateExpired, .certificateUntrusted: return "lock.trianglebadge.exclamationmark"
         default: return "exclamationmark.triangle.fill"
         }
+    }
+
+    /// The server's Tailscale name now gives another Tailscale address than the one saved, so the
+    /// address is the likeliest thing wrong. Using it proves the server, as an edit does.
+    private func movedAddressFix(for connection: Connection) -> DriveStatus.Fix? {
+        guard let moved = movedAddress(of: connection) else { return nil }
+        return DriveStatus.Fix(
+            symbol: "point.3.connected.trianglepath.dotted", title: String(localized: "Address"),
+            detail: String(localized: "This server's Tailscale address changed to \(moved)."),
+            button: String(localized: "Use New Address"), action: .useNewAddress)
+    }
+
+    /// Tailscale is off, and this drive's failure is one a missing tunnel can cause. Nothing proved
+    /// it, so it's offered as something to try, beside the drive's own finding.
+    private func tailscaleFix(for connection: Connection) -> DriveStatus.Fix? {
+        guard hasTailscale, tailscaleMayHelp(connection) else { return nil }
+        return DriveStatus.Fix(
+            symbol: "point.3.connected.trianglepath.dotted", title: "Tailscale",
+            detail: String(localized: "Tailscale is off on this Mac, and this drive may need it."),
+            button: String(localized: "Open Tailscale"), action: .openTailscale)
     }
 
     private func fix(for finding: ConnectionFinding) -> DriveStatus.Fix? {
@@ -210,17 +234,27 @@ extension Drives {
                 steps: [reached, failed(String(localized: "Server's identity"), String(localized: "Different"))],
                 stepsLabel: last)
         case .unsupportedServer:
+            // The cause names what the server lacks, so the step only has to say it's not enough.
             return DriveStatus(
-                symbol: "server.rack", tone: .needsYou, title: String(localized: "Server not supported"), host: host,
-                cause: problem.localizedDescription, files: held,
-                steps: [reached, signedIn, failed(String(localized: "Server features"), String(localized: "One is missing"))],
+                symbol: "server.rack", tone: .needsYou, title: String(localized: "This server can't be used"), host: host,
+                cause: Self.sentence(problem.localizedDescription), files: held,
+                steps: [
+                    reached, signedIn,
+                    failed(String(localized: "Server features"), String(localized: "Missing what CloudAccess needs")),
+                ],
                 stepsLabel: last)
         default:
+            // Every other problem here is with the encrypted drive, and the cause says which.
             return DriveStatus(
-                symbol: "exclamationmark.triangle.fill", tone: .needsYou, title: String(localized: "Attention"),
-                host: host, cause: problem.localizedDescription, files: held,
-                steps: [reached, failed(encryption, String(localized: "Failed"))], stepsLabel: last)
+                symbol: "key.fill", tone: .needsYou, title: String(localized: "The encrypted drive can't be opened"),
+                host: host, cause: Self.sentence(problem.localizedDescription), files: held,
+                steps: [reached, signedIn, failed(encryption, String(localized: "Can't be opened"))], stepsLabel: last)
         }
+    }
+
+    /// The engine words its reasons to follow a colon, so one shown by itself starts with a capital.
+    private static func sentence(_ text: String) -> String {
+        text.prefix(1).uppercased() + text.dropFirst()
     }
 }
 

@@ -68,7 +68,11 @@ struct OverallPill: View {
         if drives.isSyncing { return (String(localized: "Syncing"), .blue) }
         // A drive whose own server fails isn't a warning for the whole app, but the app can't
         // say it's connected either.
-        if drives.isPartlyConnected { return (String(localized: "Partly connected"), .gray) }
+        if drives.isPartlyConnected {
+            let mounted = drives.connections.filter(\.isMounted)
+            let connected = mounted.count { !drives.offline.contains($0.id) }
+            return (String(localized: "Connected: \(connected) of \(mounted.count)"), .gray)
+        }
         return (String(localized: "Connected"), .green)
     }
 
@@ -380,8 +384,14 @@ struct StatusPanelView: View {
                     }
                     .buttonStyle(.pill)
                 }
-                if drives.appWideWarning.finding?.kind == .tailscaleOff, drives.hasTailscale {
-                    IconRow("network", "Tailscale", subtitle: String(localized: "Turn it on, and these drives connect by themselves.")) {
+                if drives.appWideWarning.opensTailscale, drives.hasTailscale {
+                    // A hint only says Tailscale may help, so it doesn't promise the drives come back.
+                    let subtitle = if case .tailscaleMayHelp = drives.appWideWarning {
+                        String(localized: "If these drives need it, they connect by themselves once it's on.")
+                    } else {
+                        String(localized: "Turn it on, and these drives connect by themselves.")
+                    }
+                    IconRow("network", "Tailscale", subtitle: subtitle) {
                         Button("Open") {
                             panel.leave { drives.openTailscale() }
                         }

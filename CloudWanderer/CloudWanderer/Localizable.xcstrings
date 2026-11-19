@@ -685,26 +685,6 @@
         }
       }
     },
-    "Check the server's identity below, then press Browse again." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compruebe abajo la identidad del servidor y pulse Explorar de nuevo."
-          }
-        }
-      }
-    },
-    "Check this matches your server before trusting it." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compruebe que coincide con su servidor antes de confiar en él."
-          }
-        }
-      }
-    },
     "Checked at %@. CloudWanderer also checks while it's open." : {
       "localizations" : {
         "es" : {
@@ -1279,16 +1259,6 @@
         }
       }
     },
-    "Files.app needs sign-in" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La app Archivos necesita iniciar sesión"
-          }
-        }
-      }
-    },
     "Folder" : {
       "localizations" : {
         "es" : {
@@ -1435,16 +1405,6 @@
         }
       }
     },
-    "Incompatible with Files.app" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Incompatible con la app Archivos"
-          }
-        }
-      }
-    },
     "Joins an encrypted drive made with CloudAccess. Encrypted drives stay out of the Files app." : {
       "localizations" : {
         "es" : {
@@ -1531,26 +1491,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Registro"
-          }
-        }
-      }
-    },
-    "Move %@ to this address?" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "¿Trasladar %@ a esta dirección?"
-          }
-        }
-      }
-    },
-    "Move Drive" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trasladar la unidad"
           }
         }
       }
@@ -2005,16 +1945,6 @@
         }
       }
     },
-    "Server identity" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Identidad del servidor"
-          }
-        }
-      }
-    },
     "Server password" : {
       "localizations" : {
         "es" : {
@@ -2296,16 +2226,6 @@
         }
       }
     },
-    "This folder has no encrypted drive. CloudWanderer only joins one made with CloudAccess, so turn off Encrypted drive or choose its folder." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esta carpeta no tiene ninguna unidad cifrada. CloudWanderer solo se une a una creada con CloudAccess, así que desactive Unidad cifrada o elija su carpeta."
-          }
-        }
-      }
-    },
     "This points the drive at a different server, folder or account. It's set up again there: what's downloaded on this iPhone from the old one is removed, and so is its place in the Files app. Nothing on either server changes." : {
       "localizations" : {
         "es" : {
@@ -2362,16 +2282,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confiar"
-          }
-        }
-      }
-    },
-    "Trust and Connect" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Confiar y conectar"
           }
         }
       }
@@ -2542,6 +2452,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sí"
+          }
+        }
+      }
+    },
+    "Not in the Files app" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No está en la app Archivos"
+          }
+        }
+      }
+    },
+    "Sign in for the Files app" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicie sesión para la app Archivos"
+          }
+        }
+      }
+    },
+    "Set up %@ again here?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Volver a configurar %@ aquí?"
+          }
+        }
+      }
+    },
+    "Set Up Again" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver a configurar"
+          }
+        }
+      }
+    },
+    "This address has a different server. Save again to use it instead." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En esta dirección hay otro servidor. Guarde de nuevo para usarlo en su lugar."
+          }
+        }
+      }
+    },
+    "Details" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detalles"
+          }
+        }
+      }
+    },
+    "Trust this server?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Confiar en este servidor?"
+          }
+        }
+      }
+    },
+    "This is the first time CloudWanderer connects to %@. Its identity is %@. Check it matches the one your server shows, then trust it." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es la primera vez que CloudWanderer se conecta a %1$@. Su identidad es %2$@. Compruebe que coincide con la que muestra su servidor y confíe en él."
           }
         }
       }

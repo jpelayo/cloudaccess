@@ -172,8 +172,7 @@ struct ExportDrivesView: View {
                         .disabled(chosen.isEmpty)
                 } footer: {
                     if let problem {
-                        Text(problem)
-                            .foregroundStyle(.red)
+                        FieldNote(problem)
                     }
                 }
             }
@@ -324,8 +323,7 @@ struct ImportDrivesView: View {
                 }
                 if let problem {
                     Section {
-                        Text(problem)
-                            .foregroundStyle(.red)
+                        FieldNote(problem)
                     }
                 }
             }

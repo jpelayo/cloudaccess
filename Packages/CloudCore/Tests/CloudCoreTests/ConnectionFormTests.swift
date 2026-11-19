@@ -105,7 +105,9 @@ import Testing
         #expect(!edited.requiresNewDrive(comparedTo: connection))
     }
 
-    @Test func aNewHostIsANewLocationAndDropsWhatWasPinned() throws {
+    /// A server's new address alone keeps its key and vault: connecting there with them is what
+    /// proves it's the same server, and a different one is refused by them.
+    @Test func aNewAddressAloneKeepsWhatProvesItsTheSameServer() throws {
         var connection = sftp()
         connection.vaultID = "vault"
         connection.vaultRevision = 3
@@ -113,7 +115,22 @@ import Testing
         form.host = "other.example.com"
         let edited = try #require(form.applied(to: connection))
         #expect(edited.requiresNewDrive(comparedTo: connection))
+        #expect(edited.isOnlyNewAddress(comparedTo: connection))
         #expect(edited.endpoint == .sftp(host: "other.example.com", port: 23))
+        #expect(edited.hostKey == connection.hostKey)
+        #expect(edited.vaultID == "vault")
+        #expect(edited.vaultRevision == 3)
+    }
+
+    @Test func aNewAccountDropsTheVault() throws {
+        var connection = sftp()
+        connection.vaultID = "vault"
+        connection.vaultRevision = 3
+        var form = ConnectionForm(connection)
+        form.host = "other.example.com"
+        form.username = "someone-else"
+        let edited = try #require(form.applied(to: connection))
+        #expect(!edited.isOnlyNewAddress(comparedTo: connection))
         #expect(edited.hostKey == nil)
         #expect(edited.vaultID == nil)
         #expect(edited.vaultRevision == nil)

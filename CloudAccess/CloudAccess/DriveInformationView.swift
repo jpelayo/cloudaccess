@@ -93,14 +93,20 @@ struct DriveInformationView: View {
                 cause: String(localized: "These files are on this Mac and haven't reached the server. CloudAccess won't send them until you press Try Again, or rename them."),
                 button: .tryAgain)
         case .notMoving:
+            // Nothing paused them: either they keep failing, or nothing has moved for a while.
+            if (drives.retrying[connection.id] ?? 0) > 0 {
+                return DriveStatus(
+                    symbol: "exclamationmark.arrow.circlepath", tone: .needsYou,
+                    title: String(localized: "Uploads keep failing"), cause: stuckReason, button: .tryAgain)
+            }
             return DriveStatus(
-                symbol: "pause.circle.fill", tone: .needsYou, title: String(localized: "Uploads paused"),
+                symbol: "hourglass", tone: .needsYou, title: String(localized: "Uploads not moving"),
                 cause: stuckReason, button: .tryAgain)
         case .connected:
             if report.isBeingChecked {
                 return DriveStatus(
                     symbol: "hourglass", tone: .quiet, title: String(localized: "macOS is checking this drive"),
-                    cause: String(localized: "New files can wait until it finishes."), note: note, button: retry)
+                    cause: String(localized: "New files upload once it finishes."), note: note, button: retry)
             }
             return DriveStatus(
                 symbol: "checkmark.circle.fill", tone: .good, title: String(localized: "Up to date"),
@@ -120,7 +126,7 @@ struct DriveInformationView: View {
     private var speed: String {
         let rate = report.transfers.compactMap(\.bytesPerSecond).reduce(0, +)
         let running = report.transfers.count
-        guard running > 0 else { return String(localized: "Waiting for the next file to start.") }
+        guard running > 0 else { return String(localized: "Waiting for macOS to start the next one.") }
         guard rate > 0 else { return String(localized: "\(running) moving now") }
         let perSecond = TransferRow.perSecond(rate)
         return String(localized: "\(running) moving now, at \(perSecond)")
@@ -154,6 +160,15 @@ struct DriveInformationView: View {
         case .openGeneral: openGeneral()
         case .openTailscale: drives.openTailscale()
         case .openLocalNetworkSettings: drives.openLocalNetworkSettings()
+        case .useNewAddress:
+            Task {
+                do {
+                    try await drives.useNewAddress(of: connection)
+                } catch {
+                    // Another server, or none, is there: the General page says which, and how to go on.
+                    openGeneral()
+                }
+            }
         }
     }
 
@@ -240,9 +255,10 @@ struct DriveInformationView: View {
         return String(localized: "Tried \(attempt.count) times, last at \(last). macOS tries again by itself.")
     }
 
+    /// Only a file inside a folder gets a place line. One at the top needs none, and naming the
+    /// top only puzzles people.
     private func place(_ folder: RemotePath?) -> String? {
-        guard let folder else { return nil }
-        guard !folder.components.isEmpty else { return String(localized: "At the top of the drive") }
+        guard let folder, !folder.components.isEmpty else { return nil }
         let path = folder.description
         return String(localized: "In \(path)")
     }

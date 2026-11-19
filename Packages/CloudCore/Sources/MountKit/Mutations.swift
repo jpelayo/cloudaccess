@@ -585,6 +585,14 @@ public struct Mutations: Sendable {
             }
 
             guard let remote else { throw RemoteError.failed(path, "Nothing to change") }
+            // A name too long for an encrypted drive lands under its short form when its full
+            // name can't be kept beside it. The item takes the name the server has, so macOS shows
+            // that, rather than a name no listing would ever find.
+            let landed = remote.path.name
+            if ShortName.isShortForm(landed), let current = try store.item(id: id), current.name != landed,
+               let parentID = current.parentID {
+                try store.recordMoved(id: id, to: parentID, name: landed)
+            }
             let saved = try store.recordModified(id: id, entry: remote)
             if contents != nil {
                 try? store.markLocal(id: id, size: remote.size ?? 0)

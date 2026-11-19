@@ -996,7 +996,8 @@ func (d *drive) placeConflictCopy(
 ) (string, error) {
 	dir, name := path.Dir(p), path.Base(p)
 	for attempt := 1; attempt <= 50; attempt++ {
-		candidate := path.Join(dir, conflictName(name, d.deviceName, time.Now(), attempt))
+		// A copy's longer name may not fit an encrypted drive, so it gets a short form too.
+		candidate := path.Join(dir, d.shortForm(conflictName(name, d.deviceName, time.Now(), attempt)))
 		if strings.HasPrefix(candidate, "./") {
 			candidate = strings.TrimPrefix(candidate, "./")
 		}
@@ -1191,6 +1192,10 @@ func (d *drive) moveItem(ctx context.Context, source, destination, baseVersion s
 		checking, cancel := settled(ctx)
 		defer cancel()
 		moved, err = d.serverStat(checking, destination)
+		if err == nil {
+			// Still under the claim: a long name kept in short form keeps its full name too.
+			d.nameMoved(checking, destination, rawDestination, &moved)
+		}
 		return err
 	}
 	if item.IsDirectory {

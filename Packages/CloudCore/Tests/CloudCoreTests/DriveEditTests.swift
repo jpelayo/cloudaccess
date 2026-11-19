@@ -92,14 +92,68 @@ import Testing
         #expect(edited.vaultID == saved.vaultID)
     }
 
-    /// A new SFTP server has to be trusted again: the old one's identity doesn't carry over.
-    @Test func anotherSFTPServerIsTrustedAgain() {
+    /// An SFTP server's new address is the same drive, if the server there has the key already
+    /// trusted. The key is kept so connecting proves it, and a different server is refused by it.
+    @Test(arguments: ["host", "port"])
+    func aNewAddressAloneIsTheSameDrive(_ field: String) {
         let saved = sftp()
         var form = ConnectionForm(saved)
-        form.host = "new-box.example.com"
+        if field == "host" { form.host = "100.64.1.9" } else { form.port = "2222" }
+        guard case .newAddress(let edited) = DriveEdit.change(
+            from: saved, form: form, signIn: SignInEdit(), among: [saved])
+        else { Issue.record("a new \(field) wasn't the same drive at a new address"); return }
+        #expect(edited.id == saved.id)
+        #expect(edited.hostKey == saved.hostKey)
+    }
+
+    @Test func anEncryptedDrivesNewAddressIsTheSameDrive() {
+        let saved = drive(encrypted: true)
+        var form = ConnectionForm(saved)
+        form.host = "other.example.com"
+        guard case .newAddress(let edited) = DriveEdit.change(
+            from: saved, form: form, signIn: SignInEdit(), among: [saved])
+        else { Issue.record("an encrypted drive's new host wasn't a new address"); return }
+        #expect(edited.vaultID == saved.vaultID)
+    }
+
+    @Test func aNewFolderOrUserIsANewDrive() {
+        let saved = sftp()
+        var form = ConnectionForm(saved)
+        form.host = "100.64.1.9"
+        form.username = "someone-else"
         guard case .move(let moved) = DriveEdit.change(from: saved, form: form, signIn: SignInEdit(), among: [saved])
-        else { Issue.record("a new SFTP host wasn't a new drive"); return }
+        else { Issue.record("a new account wasn't a new drive"); return }
         #expect(moved.hostKey == nil)
+    }
+
+    @Test func anotherKeyOrVaultIsAnotherServer() {
+        #expect(DriveEdit.isAnotherServer(RemoteError.hostKeyChanged))
+        #expect(DriveEdit.isAnotherServer(RemoteError.vault(.mismatch)))
+        #expect(DriveEdit.isAnotherServer(RemoteError.vault(.notCreated)))
+    }
+
+    /// No answer, or a wrong password, says nothing about which server is there.
+    @Test func aFailureToConnectIsntAnotherServer() {
+        #expect(!DriveEdit.isAnotherServer(RemoteError.unreachable("timed out", reason: .timedOut)))
+        #expect(!DriveEdit.isAnotherServer(RemoteError.unauthorized))
+        #expect(!DriveEdit.isAnotherServer(RemoteError.vault(.wrongPassword)))
+    }
+
+    /// A plain WebDAV folder has nothing to tell two servers apart, so its new address is a move.
+    @Test func aPlainWebDAVDrivesNewAddressIsAMove() {
+        let saved = drive()
+        var form = ConnectionForm(saved)
+        form.host = "other.example.com"
+        guard case .move = DriveEdit.change(from: saved, form: form, signIn: SignInEdit(), among: [saved])
+        else { Issue.record("a plain WebDAV drive's new host wasn't a move"); return }
+    }
+
+    @Test func aNewProtocolIsANewDrive() {
+        let saved = drive(encrypted: true)
+        var form = ConnectionForm(saved)
+        form.kind = .http
+        guard case .move = DriveEdit.change(from: saved, form: form, signIn: SignInEdit(), among: [saved])
+        else { Issue.record("a new protocol wasn't a new drive"); return }
     }
 
     @Test func anotherDrivesNameIsRefused() {

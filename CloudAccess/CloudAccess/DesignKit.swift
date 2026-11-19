@@ -13,10 +13,10 @@ enum Pane {
     static let height: CGFloat = 640
     static let padding: CGFloat = 16
 
-    /// The Settings window, which sheets hang from.
+    /// The Settings window.
     static let windowWidth: CGFloat = 680
     static let windowHeight: CGFloat = 760
-    /// A drive's sheet: tall enough for its longest page, Advanced, with nothing to scroll on a
+    /// A drive's window: tall enough for its longest page, Advanced, with nothing to scroll on a
     /// screen that has the room.
     static let driveHeight: CGFloat = 920
     /// Adding a drive.
@@ -29,10 +29,73 @@ enum Pane {
     /// A text field's column, wider so an address fits.
     static let fieldColumn: CGFloat = 300
 
+    /// The title bar a sheet hangs below, and a margin under it, so its buttons clear the Dock.
+    static let sheetChrome: CGFloat = 48
+
     /// The height, made shorter on a screen that can't hold it.
     @MainActor static func fitting(_ height: CGFloat) -> CGFloat {
         let screen = NSScreen.main?.visibleFrame.height ?? 900
         return CGFloat(PaneHeight.fitting(Double(height), screenHeight: Double(screen)))
+    }
+}
+
+extension EnvironmentValues {
+    /// Closes the window a page is shown in, when it's a window of its own rather than a sheet.
+    /// Nil in a sheet, where dismissing closes it. A sheet shown from such a window sets it back
+    /// to nil, or its Done would close the window under it.
+    @Entry var closeWindow: (() -> Void)? = nil
+}
+
+/// Finds the window a view is in. A sheet is attached to the window it hangs from a moment after
+/// its view arrives, so this waits briefly for that.
+struct WindowReader: NSViewRepresentable {
+    let found: (NSWindow) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        Probe(found: found)
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    final class Probe: NSView {
+        let found: (NSWindow) -> Void
+
+        init(found: @escaping (NSWindow) -> Void) {
+            self.found = found
+            super.init(frame: .zero)
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) {
+            fatalError("Made in code only")
+        }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard window != nil else { return }
+            Task { @MainActor [weak self] in
+                for _ in 0..<10 {
+                    guard let window = self?.window else { return }
+                    if window.sheetParent != nil || window.isVisible {
+                        break
+                    }
+                    try? await Task.sleep(for: .milliseconds(30))
+                }
+                guard let self, let window = self.window else { return }
+                found(window)
+            }
+        }
+    }
+}
+
+extension View {
+    /// In a sheet, moves the window it hangs from up, if it must, so a sheet this tall fits on the
+    /// screen with its buttons, and says how much room there is below that window.
+    func makesRoomInItsWindow(for height: CGFloat, room: @escaping (CGFloat) -> Void = { _ in }) -> some View {
+        background(WindowReader { window in
+            guard let parent = window.sheetParent else { return }
+            room(AppWindows.makeRoom(for: height, in: parent))
+        })
     }
 }
 
@@ -47,6 +110,16 @@ struct SheetPage<Header: View, Content: View, Footer: View>: View {
     @ViewBuilder let header: Header
     @ViewBuilder let content: Content
     @ViewBuilder let footer: Footer
+
+    /// The room below the window a sheet hangs from, once it's known.
+    @State var roomBelow: CGFloat? = nil
+
+    /// The height, fitted to the room below the window it hangs from when it's a sheet, and to the
+    /// screen otherwise, so its footer, with Done or Save, is always on the screen.
+    private var fittedHeight: CGFloat {
+        guard let roomBelow else { return Pane.fitting(height) }
+        return CGFloat(PaneHeight.fitting(Double(height), roomBelow: Double(roomBelow)))
+    }
 
     /// Each part gets exactly the page's width. Left to size themselves, one part wider than the
     /// page, such as a row of tabs in Spanish, made the whole column wider, and the column, centered
@@ -80,7 +153,8 @@ struct SheetPage<Header: View, Content: View, Footer: View>: View {
                     .padding(.bottom, Pane.padding)
             }
         }
-        .frame(width: width, height: Pane.fitting(height), alignment: .top)
+        .frame(width: width, height: fittedHeight, alignment: .top)
+        .makesRoomInItsWindow(for: height) { roomBelow = $0 }
     }
 }
 

@@ -137,6 +137,22 @@
 		</dict>
 	</dict>
 	<!-- AppWideWarning.swift -->
+	<key>Tailscale is off on this Mac. %lld drives can&apos;t connect, and may need it.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@drives@</string>
+		<key>drives</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Tailscale está desactivado en este Mac. %lld unidad no puede conectarse, y puede que lo necesite.</string>
+			<key>other</key>
+			<string>Tailscale está desactivado en este Mac. %lld unidades no pueden conectarse, y puede que lo necesiten.</string>
+		</dict>
+	</dict>
 	<key>Tailscale is off on this Mac. %lld drives need it.</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>

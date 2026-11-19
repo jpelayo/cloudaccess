@@ -15,6 +15,9 @@ struct DriveFormFields: View {
     let serverNote: String?
     let canBrowse: Bool
     let browse: () -> Void
+    /// The form's problem. One about the address, the port or the folder is shown here, under
+    /// its field, as one calm line.
+    var problem: FormNote?
 
     var body: some View {
         Section {
@@ -38,6 +41,9 @@ struct DriveFormFields: View {
                 .onSubmit { form.tidyHost() }
             TextField("Port", text: $form.port, prompt: Text("Usual (\(form.kind.defaultPort))"))
                 .keyboardType(.numberPad)
+            if let problem, [ConnectionFinding.Field.address, .port].contains(problem.field) {
+                FieldNote(problem)
+            }
             TextField("Username", text: $form.username)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -58,13 +64,15 @@ struct DriveFormFields: View {
                 .autocorrectionDisabled()
             Button("Browse…", systemImage: "folder") { browse() }
                 .disabled(!canBrowse)
+            if let problem, problem.field == .folder {
+                FieldNote(problem)
+            }
         } header: {
             SectionLabel("Folder")
         } footer: {
             // On SFTP, Documents and /Documents are two places, so it says which this is.
-            if let problem = form.tidied.folderProblem {
-                Text(verbatim: problem)
-                    .foregroundStyle(.red)
+            if let folderProblem = form.tidied.folderProblem {
+                FieldNote(folderProblem)
             } else if let place = form.tidied.shownPlace {
                 Text(verbatim: place)
             }

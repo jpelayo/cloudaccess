@@ -419,12 +419,13 @@ struct DrivesView: View {
     /// What keeps the Files app from using a drive, shown in place of the line under its name.
     private func pills(for connection: Connection) -> [DrivePills.Pill] {
         if connection.isEncrypted {
-            // Without the App Group nothing is in Files, so there's nothing to be incompatible with.
-            let files = PhoneDrives.reachFiles ? [DrivePills.Pill(text: "Incompatible with Files.app", color: .gray)] : []
+            // Encrypted drives stay out of Files on purpose. Without the App Group nothing is in Files,
+            // so there's nothing to say.
+            let files = PhoneDrives.reachFiles ? [DrivePills.Pill(text: "Not in the Files app", color: .gray)] : []
             return files + [DrivePills.Pill(text: "Encrypted", color: .blue)]
         }
         if places.notes[connection.id]?.problem != nil {
-            return [DrivePills.Pill(text: "Files.app needs sign-in", color: .orange)]
+            return [DrivePills.Pill(text: "Sign in for the Files app", color: .orange)]
         }
         return []
     }
@@ -485,7 +486,7 @@ struct DrivesView: View {
                         Text("Not connected")
                     }
                 }
-                .foregroundStyle(.red)
+                .foregroundStyle(.orange)
             } else if !pills.isEmpty {
                 DrivePills(pills: pills)
             } else {
@@ -494,7 +495,7 @@ struct DrivesView: View {
         } icon: {
             if isOffline {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(.orange)
             } else {
                 Image(systemName: connection.isEncrypted ? "lock" : "cloud")
             }
@@ -1161,9 +1162,7 @@ struct FileRow: View {
                 if download != nil, let watch {
                     DownloadLine(progress: watch.progress)
                 } else if let problem {
-                    Text(problem)
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                    FieldNote(problem)
                 } else if !isAvailable {
                     Text("Not on this iPhone")
                         .font(.caption)

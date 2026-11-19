@@ -24,13 +24,32 @@ struct AddDriveView: View {
     @State private var keyPassphrase = ""
     @State private var isChoosingKey = false
     @State private var allowsInsecure = false
-    /// An SFTP server's identity, shown once and trusted by the next press of the button.
+    /// An SFTP server's identity, once a person has trusted it.
     @State private var hostKey: RemoteEngine.HostKey?
-    @State private var problem: String?
+    /// A new server's identity, waiting to be trusted.
+    @State private var askingTrust: PendingTrust?
+    @State private var problem: FormNote?
     @State private var isConnecting = false
     @State private var browsing: FolderBrowsing?
     /// The other reading of an SFTP folder that isn't there, when that one is.
     @State private var otherFolder: String?
+    /// What the folder holds, and the server, account and folder it was read for, so a reading
+    /// never outlives the fields it was made from.
+    @State private var folderCheck: (key: String, contents: FolderContents)?
+
+    /// The server, account and folder a reading of the folder belongs to.
+    private var folderKey: String {
+        "\(form.kind.rawValue) \(form.host) \(form.port) \(form.username) \(form.path)"
+    }
+
+    private var folderContents: FolderContents? {
+        folderCheck.flatMap { $0.key == folderKey ? $0.contents : nil }
+    }
+
+    /// The same rule as the Mac's add form.
+    private var encryptionChoice: EncryptionChoice {
+        EncryptionChoice.for(folderContents, device: .iPhone)
+    }
 
     private var needsEncryptionPassword: Bool {
         setup?.isEncrypted ?? isEncrypted
@@ -90,22 +109,10 @@ struct AddDriveView: View {
                 } else {
                     typed
                 }
-                if let hostKey {
+                if problem.map({ [ConnectionFinding.Field.server, .thisDevice].contains($0.field) }) == true || otherFolder != nil {
                     Section {
-                        Text(hostKey.fingerprint)
-                            .font(.caption.monospaced())
-                            .textSelection(.enabled)
-                        Text("Check this matches your server before trusting it.")
-                            .foregroundStyle(.secondary)
-                    } header: {
-                        SectionLabel("Server identity")
-                    }
-                }
-                if problem != nil || otherFolder != nil {
-                    Section {
-                        if let problem {
-                            Text(verbatim: problem)
-                                .foregroundStyle(.red)
+                        if let problem, [ConnectionFinding.Field.server, .thisDevice].contains(problem.field) {
+                            FieldNote(problem)
                         }
                         if let otherFolder {
                             Button {
@@ -132,6 +139,18 @@ struct AddDriveView: View {
             .onChange(of: form.path) {
                 otherFolder = nil
             }
+            .onChange(of: encryptionChoice) {
+                if let only = encryptionChoice.lockedValue {
+                    isEncrypted = only
+                }
+            }
+            // The folder is read once typing stops, and again once the server is trusted or a sign-in
+        // is typed, so the switch shows what's possible before Connect.
+            .task(id: "\(folderKey) \(hostKey?.key ?? "") \(password.isEmpty) \(privateKey != nil)") {
+                try? await Task.sleep(for: .seconds(1.5))
+                guard !Task.isCancelled else { return }
+                await checkFolder()
+            }
             .sheet(isPresented: $isScanning) {
                 ScanSheet { scanned in
                     setup = scanned
@@ -141,6 +160,7 @@ struct AddDriveView: View {
             .sheet(item: $browsing) { session in
                 ServerFolderPicker(session: session) { folder in
                     form.path = session.start.folderField(for: folder)
+                    Task { await checkFolder() }
                 }
             }
             .fileImporter(isPresented: $isChoosingKey, allowedContentTypes: [.item], onCompletion: loadKey)
@@ -152,17 +172,12 @@ struct AddDriveView: View {
                     if isConnecting {
                         ProgressView()
                     } else {
-                        Button(action: connect) {
-                            if hostKey == nil {
-                                Text("Connect")
-                            } else {
-                                Text("Trust and Connect")
-                            }
-                        }
-                        .disabled(!canConnect)
+                        Button("Connect", action: connect)
+                            .disabled(!canConnect)
                     }
                 }
             }
+            .trustingServer($askingTrust) { hostKey = $0 }
         }
     }
 
@@ -228,7 +243,8 @@ struct AddDriveView: View {
             SectionLabel("Drive")
         }
         DriveFormFields(
-            form: $form, insecureConsent: $allowsInsecure, serverNote: nil, canBrowse: canBrowse, browse: browse)
+            form: $form, insecureConsent: $allowsInsecure, serverNote: nil, canBrowse: canBrowse, browse: browse,
+            problem: problem)
         Section {
             SecretField("Password", text: $password)
             if isSFTP {
@@ -239,18 +255,31 @@ struct AddDriveView: View {
                     SecretField("Key passphrase", text: $keyPassphrase, prompt: "If it has one")
                 }
             }
+            if let problem, problem.field == .signIn {
+                FieldNote(problem)
+            }
         } header: {
             SectionLabel("Sign in")
         }
         Section {
-            Toggle("Encrypted drive", isOn: $isEncrypted)
-            if isEncrypted {
-                SecretField("Encryption password", text: $vaultPassword)
+            // A folder that can't be encrypted greys the whole section out, with the reason under it.
+            Group {
+                Toggle("Encrypted drive", isOn: $isEncrypted)
+                    .disabled(encryptionChoice.lockedValue != nil)
+                if isEncrypted {
+                    SecretField("Encryption password", text: $vaultPassword)
+                }
             }
+            .disabled(encryptionChoice.lockedValue == false)
+            .opacity(encryptionChoice.lockedValue == false ? 0.4 : 1)
         } header: {
             SectionLabel("Encryption")
         } footer: {
-            Text("Joins an encrypted drive made with CloudAccess. Encrypted drives stay out of the Files app.")
+            if let reason = encryptionChoice.reason {
+                Text(reason)
+            } else {
+                Text("Joins an encrypted drive made with CloudAccess. Encrypted drives stay out of the Files app.")
+            }
         }
     }
 
@@ -274,7 +303,7 @@ struct AddDriveView: View {
             privateKeyName = key.name
             problem = nil
         } catch {
-            problem = String(localized: "That key can't be read: \(error.localizedDescription)")
+            problem = FormNote(String(localized: "That key can't be read: \(error.localizedDescription)"), field: .signIn)
         }
     }
 
@@ -287,7 +316,8 @@ struct AddDriveView: View {
         } else {
             form = form.tidied
             guard let typed = form.newConnection(isEncrypted: isEncrypted, hostKey: hostKey?.key) else {
-                problem = form.folderProblem ?? String(localized: "Check the name and the server's details.")
+                problem = form.folderProblem.map { FormNote($0, field: .folder) }
+                    ?? FormNote(String(localized: "Check the name and the server's details."), field: .address)
                 return nil
             }
             connection = typed
@@ -296,10 +326,33 @@ struct AddDriveView: View {
         // One folder as two drives would be two sets of copies of the same files, and a code
         // scanned twice would otherwise add its drive again.
         if let refusal = DriveEdit.addRefusal(connection, among: (try? store.connections()) ?? []) {
-            problem = refusal
+            problem = FormNote(refusal)
             return nil
         }
         return connection
+    }
+
+    /// Reads what the folder holds, so the encryption switch shows only what's possible there. It
+    /// needs a trusted server and a sign-in, and writes nothing. A failure leaves the switch free,
+    /// and Connect says what's wrong. A scanned code already says whether the drive is encrypted.
+    private func checkFolder() async {
+        let key = folderKey
+        guard setup == nil, folderCheck?.key != key, !password.isEmpty || privateKey != nil,
+              !isInsecure || allowsInsecure,
+              var probe = form.tidied.browsingConnection(hostKey: hostKey?.key)
+        else { return }
+        // An SFTP server is only signed in to once its identity is trusted.
+        if case .sftp = probe.endpoint, probe.hostKey == nil { return }
+        #if DEBUG
+        guard probe.isTestDrive else { return }
+        #endif
+        probe.allowsInsecure = allowsInsecure
+        var signIn = credentials
+        signIn.vaultPassword = nil
+        guard let contents = try? await RemoteEngine.folderContents(of: probe, credentials: signIn),
+              key == folderKey
+        else { return }
+        folderCheck = (key, contents)
     }
 
     /// Connects to the server alone, with nothing saved, to look through its folders.
@@ -307,7 +360,7 @@ struct AddDriveView: View {
         form = form.tidied
         let start = form.browseStart
         guard var connection = start.browsingConnection(hostKey: hostKey?.key) else {
-            problem = String(localized: "Check the server's details.")
+            problem = FormNote(String(localized: "Check the server's details."), field: .address)
             return
         }
         connection.allowsInsecure = allowsInsecure
@@ -319,24 +372,28 @@ struct AddDriveView: View {
                 #if DEBUG
                 guard connection.isTestDrive else {
                     // A test guard, so it stays English.
-                    problem = "This test build only connects to a folder named \(Connection.testFolderName)."
+                    problem = FormNote("This test build only connects to a folder named \(Connection.testFolderName).")
                     return
                 }
                 #endif
-                // The first press only reads the server's identity, to show it.
+                // A new server is trusted once, and Browse carries on after.
                 if case .sftp(let host, let port) = connection.endpoint, hostKey == nil {
-                    hostKey = try await RemoteEngine.hostKey(host: host, port: port)
-                    problem = String(localized: "Check the server's identity below, then press Browse again.")
-                    return
+                    let offered = try await ServerTrust.offered(
+                        host: host, port: port, among: (try? store.connections()) ?? [])
+                    guard !offered.mustAsk else {
+                        askingTrust = PendingTrust(host: host, key: offered.key, resume: browse)
+                        return
+                    }
+                    hostKey = offered.key
+                    connection.hostKey = offered.key.key
                 }
                 var signIn = credentials
                 signIn.vaultPassword = nil
                 let engine = try await RemoteEngine(connection: connection, credentials: signIn)
                 browsing = FolderBrowsing(start: start, engine: engine, typed: form.typedFolder(inside: start))
             } catch {
-                problem = String(localized: "Couldn't connect. Checking why…")
-                let reason = await ConnectionChecks.explain(error, for: connection, device: .iPhone)
-                problem = String(localized: "Couldn't connect: \(reason)")
+                problem = FormNote(String(localized: "Couldn't connect. Checking why…"))
+                problem = await ConnectionChecks.note(for: error, connection: connection, device: .iPhone)
             }
         }
     }
@@ -349,11 +406,17 @@ struct AddDriveView: View {
         Task {
             defer { isConnecting = false }
             do {
-                // The first press only reads the server's identity, to show it. A scanned code
+                // A new server is trusted once, and Connect carries on after. A scanned code
                 // already carries the Mac's.
                 if case .sftp(let host, let port) = connection.endpoint, connection.hostKey == nil {
-                    hostKey = try await RemoteEngine.hostKey(host: host, port: port)
-                    return
+                    let offered = try await ServerTrust.offered(
+                        host: host, port: port, among: (try? store.connections()) ?? [])
+                    guard !offered.mustAsk else {
+                        askingTrust = PendingTrust(host: host, key: offered.key, resume: connect)
+                        return
+                    }
+                    hostKey = offered.key
+                    connection.hostKey = offered.key.key
                 }
                 let signIn = credentials
                 // Verifies the password against the vault marker, and that the folder can be
@@ -367,22 +430,23 @@ struct AddDriveView: View {
                 dismiss()
             } catch RemoteError.vault(.encrypted) {
                 // The folder already holds an encrypted drive, so only its password is needed.
-                isEncrypted = true
-                problem = RemoteError.vault(.encrypted).localizedDescription
-            } catch RemoteError.vault(.missing), RemoteError.vault(.notCreated) {
-                problem = String(localized: "This folder has no encrypted drive. CloudWanderer only joins one made with CloudAccess, so turn off Encrypted drive or choose its folder.")
+                // The switch turns on, with the reason under it.
+                folderCheck = (folderKey, .encryptedDrive)
+            } catch RemoteError.vault(.missing) {
+                folderCheck = (folderKey, .plainFiles)
+            } catch RemoteError.vault(.notCreated) {
+                folderCheck = (folderKey, .empty)
             } catch RemoteError.notFound(let path) where path.isRoot {
                 // On SFTP, Documents and /Documents are two places: the other may be the one meant.
                 if let other = await RemoteEngine.otherReading(of: connection, credentials: credentials) {
                     otherFolder = other
-                    problem = ServerFolder.missingFolder(connection.rootPath, other: other)
+                    problem = FormNote(ServerFolder.missingFolder(connection.rootPath, other: other), field: .folder)
                 } else {
-                    problem = String(localized: "Couldn't connect: that folder isn't on the server.")
+                    problem = FormNote(String(localized: "Couldn't connect: that folder isn't on the server."), field: .folder)
                 }
             } catch {
-                problem = String(localized: "Couldn't connect. Checking why…")
-                let reason = await ConnectionChecks.explain(error, for: connection, device: .iPhone)
-                problem = String(localized: "Couldn't connect: \(reason)")
+                problem = FormNote(String(localized: "Couldn't connect. Checking why…"))
+                problem = await ConnectionChecks.note(for: error, connection: connection, device: .iPhone)
             }
         }
     }

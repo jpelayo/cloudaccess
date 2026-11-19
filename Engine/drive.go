@@ -701,7 +701,8 @@ func (d *drive) mkdirWith(ctx context.Context, p string, created time.Time) erro
 	if err := d.checkVault(ctx, false); err != nil {
 		return err
 	}
-	if _, ok := d.server.(detailsKeeper); !ok || created.IsZero() || p == "" || !d.keepsDetails(ctx) {
+	_, named := d.fullNameFor(ctx, p)
+	if _, ok := d.server.(detailsKeeper); !ok || (created.IsZero() && !named) || p == "" || !d.keepsDetails(ctx) {
 		return d.f.Mkdir(ctx, p)
 	}
 	raw := d.rawFolder(p)
@@ -710,7 +711,7 @@ func (d *drive) mkdirWith(ctx context.Context, p string, created time.Time) erro
 		return err
 	}
 	if made {
-		d.describeFolder(ctx, raw, created)
+		d.describeFolder(ctx, p, raw, created)
 	}
 	return nil
 }
@@ -812,26 +813,40 @@ var changesTheDrive = map[string]bool{
 	"delete": true, "trash": true, "cleanControlFolder": true,
 }
 
+// callArgs are what a drive's method is given.
+type callArgs struct {
+	Drive       string `json:"drive"`
+	Path        string `json:"path"`
+	Source      string `json:"source"`
+	Destination string `json:"destination"`
+	Staged      string `json:"staged"`
+	Offset      int64  `json:"offset"`
+	Length      int64  `json:"length"`
+	BaseVersion string `json:"baseVersion"`
+	// FailOnConflict reports a peer's version as an error instead of keeping both.
+	FailOnConflict bool `json:"failOnConflict"`
+	// What the saving device knows about the file, for its details.
+	ModifiedNS int64  `json:"modifiedNs"`
+	CreatedNS  int64  `json:"createdNs"`
+	BundleType string `json:"bundleType"`
+	// SHA256 is what a download must match, from the file's details, or empty.
+	SHA256 string `json:"sha256"`
+}
+
+// takesAPath lists the methods whose Path is a path on the drive. Others use it for a trash
+// entry's ID, and Source and Destination are files on this device, except in a move.
+var takesAPath = map[string]bool{
+	"list": true, "stat": true, "download": true, "read": true, "upload": true, "save": true,
+	"checkName": true, "commit": true, "mkdir": true, "delete": true, "trash": true,
+}
+
+// readsOnly lists the methods that only read, which may find an item another tool stored under a
+// name longer than this engine would write.
+var readsOnly = map[string]bool{"list": true, "stat": true, "download": true, "read": true}
+
 // dispatch runs one engine method. Arguments and results are JSON.
 func dispatch(ctx context.Context, method string, arguments []byte, bytes *atomic.Int64) (any, error) {
-	var a struct {
-		Drive       string `json:"drive"`
-		Path        string `json:"path"`
-		Source      string `json:"source"`
-		Destination string `json:"destination"`
-		Staged      string `json:"staged"`
-		Offset      int64  `json:"offset"`
-		Length      int64  `json:"length"`
-		BaseVersion string `json:"baseVersion"`
-		// FailOnConflict reports a peer's version as an error instead of keeping both.
-		FailOnConflict bool `json:"failOnConflict"`
-		// What the saving device knows about the file, for its details.
-		ModifiedNS int64  `json:"modifiedNs"`
-		CreatedNS  int64  `json:"createdNs"`
-		BundleType string `json:"bundleType"`
-		// SHA256 is what a download must match, from the file's details, or empty.
-		SHA256 string `json:"sha256"`
-	}
+	var a callArgs
 	if method == "open" {
 		var c driveConfig
 		if err := json.Unmarshal(arguments, &c); err != nil {
@@ -883,6 +898,80 @@ func dispatch(ctx context.Context, method string, arguments []byte, bytes *atomi
 	if d.unsafe && needsTrash[method] {
 		return nil, errUnsafeKeepsNoTrash
 	}
+
+	// Every name goes to the server in the form it keeps there. Only a name too long for an
+	// encrypted drive changes (see longnames.go). Every other name, and every plain drive, is
+	// exactly as before, so every file already on a server is reached as it always was.
+	// A plain drive skips all of it, and is given its arguments exactly as they came.
+	if d.cipher == nil {
+		return d.runMethod(ctx, method, a, bytes)
+	}
+	asked := a
+	var serverDir, fullDir string
+	switch {
+	case takesAPath[method]:
+		full := cleanPath(a.Path)
+		a.Path = d.serverPath(full)
+		ctx = withFullName(ctx, path.Base(full), path.Base(a.Path))
+		serverDir, fullDir = parentPath(a.Path), parentPath(full)
+		if method == "list" {
+			serverDir, fullDir = a.Path, full
+		}
+	case method == "move":
+		a.Source = d.serverPath(cleanPath(a.Source))
+		full := cleanPath(a.Destination)
+		a.Destination = d.serverPath(full)
+		ctx = withFullName(ctx, path.Base(full), path.Base(a.Destination))
+		serverDir, fullDir = parentPath(a.Destination), parentPath(full)
+	}
+	value, err := d.runMethod(ctx, method, a, bytes)
+	// An item another tool stored under its long name, on a server that allows one, is still read
+	// where it is.
+	if err != nil && readsOnly[method] && a.Path != cleanPath(asked.Path) && classify(err).Kind == "notFound" {
+		retry := a
+		retry.Path = cleanPath(asked.Path)
+		if found, retryErr := d.runMethod(ctx, method, retry, bytes); retryErr == nil {
+			return found, nil
+		}
+	}
+	return withShownPaths(value, serverDir, fullDir), err
+}
+
+// parentPath is the folder a path is in, with "" for the top.
+func parentPath(p string) string {
+	parent := path.Dir(p)
+	if parent == "." || parent == "/" {
+		return ""
+	}
+	return parent
+}
+
+// withShownPaths puts a request's own folder names back into what it returns.
+func withShownPaths(value any, serverDir, fullDir string) any {
+	if serverDir == fullDir {
+		return value
+	}
+	switch result := value.(type) {
+	case remoteItem:
+		result.Path = shownPath(result.Path, serverDir, fullDir)
+		return result
+	case []remoteItem:
+		for i := range result {
+			result[i].Path = shownPath(result[i].Path, serverDir, fullDir)
+		}
+		return result
+	case saveResult:
+		result.Item.Path = shownPath(result.Item.Path, serverDir, fullDir)
+		if result.ConflictPath != "" {
+			result.ConflictPath = shownPath(result.ConflictPath, serverDir, fullDir)
+		}
+		return result
+	}
+	return value
+}
+
+// runMethod runs a drive's method with its paths as the server keeps them.
+func (d *drive) runMethod(ctx context.Context, method string, a callArgs, bytes *atomic.Int64) (any, error) {
 	switch method {
 	case "list":
 		return d.list(ctx, a.Path)

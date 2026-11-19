@@ -161,9 +161,7 @@ struct ExportDrivesView: View {
                         .foregroundStyle(.secondary)
                 }
                 if let problem {
-                    Text(problem)
-                        .foregroundStyle(.red)
-                        .fixedSize(horizontal: false, vertical: true)
+                    FieldNote(problem)
                 }
                 HStack {
                     Spacer()
@@ -293,9 +291,7 @@ struct ImportDrivesView: View {
         } footer: {
             VStack(alignment: .leading, spacing: 8) {
                 if let problem {
-                    Text(problem)
-                        .foregroundStyle(.red)
-                        .fixedSize(horizontal: false, vertical: true)
+                    FieldNote(problem)
                 }
                 HStack {
                     Spacer()

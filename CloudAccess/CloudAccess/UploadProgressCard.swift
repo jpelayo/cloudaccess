@@ -35,7 +35,7 @@ struct UploadProgressCard: View {
     }
 
     private var subtitle: String {
-        guard !moving.isEmpty else { return String(localized: "Waiting for the next file to start.") }
+        guard !moving.isEmpty else { return String(localized: "Waiting for macOS to start the next one.") }
         let speed = Self.perSecond(rate)
         guard left > 0 else {
             return String(localized: "\(moving.count) moving now, at \(speed)")

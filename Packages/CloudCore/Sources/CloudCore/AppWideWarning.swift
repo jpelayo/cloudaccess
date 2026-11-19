@@ -14,6 +14,39 @@ public enum AppWideWarning: Equatable, Sendable {
     case deviceProblem(ConnectionFinding, drives: Int)
     /// This device can't connect to anything, such as with no network at all.
     case cannotConnect(ConnectionFinding)
+    /// Tailscale is off, some drive here uses it, and drives fail in a way a missing tunnel could
+    /// cause, with nothing proving otherwise. It names Tailscale as a possibility, never as the
+    /// cause, and how many drives it may help.
+    case tailscaleMayHelp(drives: Int)
+
+    /// What a missing Tailscale tunnel can look like from here: a name nobody answers for, no
+    /// route, or nothing answering. A certificate, a refused port or a server's own answer proves
+    /// the server was reached some other way, so those never get the hint.
+    public static let tailscaleCanCause: Set<ConnectionFinding.Kind> = [
+        .nameNotFound, .nameNotAnswered, .localNameSilent, .privateAddressElsewhere, .noRoute,
+        .nothingAnswersHere, .noAnswer, .couldntTell,
+    ]
+
+    /// The hint for drives that may need Tailscale, when nothing proved it.
+    /// - Parameter someDriveUsesTailnet: A drive's address is Tailscale's, or this device has
+    ///   reached one through Tailscale, so Tailscale being off matters here at all.
+    public static func tailscaleHint(
+        findings: [ConnectionFinding], isTailscaleInstalled: Bool, hasTailnetAddress: Bool,
+        someDriveUsesTailnet: Bool
+    ) -> AppWideWarning? {
+        guard isTailscaleInstalled, !hasTailnetAddress, someDriveUsesTailnet else { return nil }
+        let failing = findings.count { tailscaleCanCause.contains($0.kind) }
+        return failing > 0 ? .tailscaleMayHelp(drives: failing) : nil
+    }
+
+    /// Whether opening Tailscale is what helps.
+    public var opensTailscale: Bool {
+        switch self {
+        case .tailscaleMayHelp: true
+        case .deviceProblem(let finding, _): finding.kind == .tailscaleOff
+        case .none, .cannotConnect: false
+        }
+    }
 
     /// From the findings of the drives that are offline now.
     public static func from(_ findings: [ConnectionFinding]) -> AppWideWarning {
@@ -40,7 +73,7 @@ public enum AppWideWarning: Equatable, Sendable {
 
     public var finding: ConnectionFinding? {
         switch self {
-        case .none: nil
+        case .none, .tailscaleMayHelp: nil
         case .deviceProblem(let finding, _), .cannotConnect(let finding): finding
         }
     }
@@ -53,6 +86,10 @@ public enum AppWideWarning: Equatable, Sendable {
     /// The app-wide row's words, in the language shown. It speaks of every drive it touches, so
     /// it names no server.
     public var title: String? {
+        // Only the Mac keeps the record that makes this hint.
+        if case .tailscaleMayHelp(let drives) = self {
+            return Words.format("Tailscale is off on this Mac. %lld drives can't connect, and may need it.", drives)
+        }
         guard let finding else { return nil }
         let mac = finding.device == .mac
         switch self {

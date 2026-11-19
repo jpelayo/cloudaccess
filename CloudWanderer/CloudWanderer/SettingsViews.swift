@@ -117,8 +117,7 @@ struct PhoneSettingsView: View {
                 SectionLabel("Drives file")
             } footer: {
                 if let drivesFileProblem {
-                    Text(drivesFileProblem)
-                        .foregroundStyle(.red)
+                    FieldNote(drivesFileProblem)
                 } else {
                     Text("Moves drives and their passwords to another iPhone or Mac, in one encrypted file.")
                 }
@@ -189,6 +188,9 @@ struct PhoneSettingsView: View {
             } footer: {
                 Text("What happened to your drives, without file names or passwords. It stays on this iPhone unless you share it.")
             }
+            #if DEBUG
+            // A measurement for whoever tests the Files extension, which means nothing to anyone
+            // else. Every build still puts it in the shared log.
             if let report = PhoneDrives.memoryReport {
                 Section {
                     // The event is the extension's own word, kept as it recorded it, and the
@@ -207,6 +209,7 @@ struct PhoneSettingsView: View {
                     SectionLabel("Files extension memory")
                 }
             }
+            #endif
             Section {
                 Button(action: showCloudAccess) {
                     Label("CloudAccess for Mac", systemImage: "laptopcomputer")

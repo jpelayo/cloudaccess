@@ -81,6 +81,12 @@ struct DriveDetailView: View {
 
     @Environment(Drives.self) private var drives
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.closeWindow) private var closeWindow
+
+    /// It's a window of its own, or a sheet.
+    private func close() {
+        if let closeWindow { closeWindow() } else { dismiss() }
+    }
 
     let connection: Connection
 
@@ -259,19 +265,32 @@ struct DriveDetailView: View {
         // Removed from somewhere else, such as an uninstall. Its own removal closes it at the end.
         .onChange(of: drives.connections.contains { $0.id == connection.id }) { _, isSaved in
             if !isSaved, !isWorking {
-                dismiss()
+                close()
             }
         }
         .sheet(isPresented: $isShowingCode) {
             ConnectionCodeView(connection: current, signsInWithKey: drives.signsInWithKey(current))
+                // Its Done closes this sheet, not the drive's window under it.
+                .environment(\.closeWindow, nil)
                 .presentationSizing(.fitted)
+        }
+        // Asked for another page while this window is open, such as Information from the panel.
+        .onChange(of: drives.request) { _, request in
+            guard let request, request.driveID == connection.id else { return }
+            drives.request = nil
+            switch request.sheet {
+            case .settings: page = .general
+            case .deletedFiles: page = .deleted
+            case .information: page = .information
+            case .code: isShowingCode = true
+            }
         }
         .savesText($recoveryKit, named: "\(connection.displayName) Recovery Kit.txt")
         .confirmationDialog(
             "Remove \(connection.displayName)?", isPresented: $isConfirmingRemove
         ) {
             Button("Remove", role: .destructive) {
-                perform("Removing the drive…") { try await drives.remove(current); dismiss() }
+                perform("Removing the drive…") { try await drives.remove(current); close() }
             }
         } message: {
             removeMessage
@@ -280,7 +299,7 @@ struct DriveDetailView: View {
             "Reset \(connection.displayName)?", isPresented: $isConfirmingReset
         ) {
             Button("Reset", role: .destructive) {
-                perform("Resetting the drive…") { try await drives.reset(current); dismiss() }
+                perform("Resetting the drive…") { try await drives.reset(current); close() }
             }
         } message: {
             Text("The drive is removed and added again. Files that haven't uploaded are kept, and Settings shows where.")
@@ -328,9 +347,7 @@ struct DriveDetailView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let problem {
-                Text(problem)
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
+                FieldNote(problem)
             }
             HStack {
                 if isWorking {
@@ -343,12 +360,12 @@ struct DriveDetailView: View {
                 }
                 Spacer()
                 if hasUnsavedEdits {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") { close() }
                         .keyboardShortcut(.cancelAction)
                     Button("Save") { saveRequests += 1 }
                         .keyboardShortcut(.defaultAction)
                 } else {
-                    Button("Done") { dismiss() }
+                    Button("Done") { close() }
                         .keyboardShortcut(.defaultAction)
                 }
             }
@@ -368,7 +385,7 @@ struct DriveDetailView: View {
                 ConnectionEditor(
                     connection: current, saveRequests: saveRequests, hasUnsavedEdits: $hasUnsavedEdits
                 ) {
-                    dismiss()
+                    close()
                 }
                 SettingRow("Set up CloudWanderer") {
                     Button("Show QR Code…") { isShowingCode = true }
@@ -592,6 +609,12 @@ struct DriveDetailView: View {
 /// The code CloudWanderer scans. It holds no passwords, so a photo of it can't open the drive.
 struct ConnectionCodeView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.closeWindow) private var closeWindow
+
+    /// It's a window of its own, or a sheet.
+    private func close() {
+        if let closeWindow { closeWindow() } else { dismiss() }
+    }
 
     let connection: Connection
     let signsInWithKey: Bool
@@ -617,15 +640,17 @@ struct ConnectionCodeView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 280, height: 280)
-            } else {
-                Text("This drive's code can't be made.")
+                Text("Scan this in CloudWanderer on your iPhone. It holds no passwords, so you'll enter those there.")
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("The QR code couldn't be drawn. In CloudWanderer, add the drive with Enter Details by Hand instead.")
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Text("Scan this in CloudWanderer on your iPhone. It holds no passwords, so you'll enter those there.")
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-            Button("Done") { dismiss() }
+            Button("Done") { close() }
                 .keyboardShortcut(.defaultAction)
         }
         .padding(24)
@@ -743,8 +768,7 @@ struct TrashView: View {
                 }
             }
             if let problem {
-                Text(problem)
-                    .foregroundStyle(.red)
+                FieldNote(problem)
             }
         }
         .task {
@@ -907,7 +931,7 @@ struct TrashView: View {
     }
 
     private func entryTitle(_ entry: RemoteEngine.TrashEntry) -> String {
-        if entry.isDamaged { return String(localized: "Damaged entry") }
+        if entry.isDamaged { return String(localized: "A deleted item whose details can't be read, so it can't be restored") }
         let path = FlattenedPackage.shownName(entry.originalPath)
         return entry.isVersion ? String(localized: "Earlier version of \(path)") : path
     }

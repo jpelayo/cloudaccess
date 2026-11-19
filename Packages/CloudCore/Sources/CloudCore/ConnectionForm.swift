@@ -134,7 +134,12 @@ public struct ConnectionForm: Equatable, Sendable {
         edited.endpoint = server.endpoint
         edited.rootPath = server.rootPath
         edited.username = username
-        // Trust belongs to a server and a vault to a folder, so neither carries over.
+        // A new address alone keeps both: connecting with them there proves it's the same server
+        // and the same drive, and a different one is refused by them.
+        if edited.isOnlyNewAddress(comparedTo: connection) {
+            return edited
+        }
+        // Otherwise trust belongs to a server and a vault to a folder, so neither carries over.
         if edited.endpoint != connection.endpoint {
             edited.hostKey = nil
         }

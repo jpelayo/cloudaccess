@@ -80,9 +80,7 @@ struct ServerFolderPicker: View {
                         }
                     }
                     if let problem = tree.problem {
-                        Text(verbatim: problem)
-                            .foregroundStyle(.red)
-                            .lineLimit(2)
+                        FieldNote(problem)
                             .frame(minHeight: RowHeight.single)
                     } else if tree.folders.isEmpty {
                         Text("No folders here.")
@@ -103,6 +101,9 @@ struct ServerFolderPicker: View {
         // Narrower than the sheet it opens from, so it reads as a sheet of its own.
         .frame(width: Pane.innerWidth)
         .fixedSize(horizontal: false, vertical: true)
+        // Ten rows, the header and path, and its buttons: the window it hangs from moves up if it
+        // must, so Use This Folder is on the screen.
+        .makesRoomInItsWindow(for: 580)
         .task { await tree.load() }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

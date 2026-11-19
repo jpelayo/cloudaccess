@@ -62,7 +62,7 @@
 /* DriveStore.swift */
 "This drive's password isn't in the Keychain." = "La contraseña de esta unidad no está en el llavero.";
 "The Keychain couldn't be used (error %lld)." = "No se ha podido usar el llavero (error %lld).";
-"The app's shared folder isn't available." = "La carpeta compartida de la app no está disponible.";
+"The app's shared folder isn't available." = "Esta app no puede abrir su propia carpeta de datos, así que no puede guardar unidades. Instálela de nuevo.";
 "The list of drives didn't move whole, so it was kept where it was." = "La lista de unidades no se ha movido completa, así que se ha mantenido donde estaba.";
 
 /* FilesNotes.swift */
@@ -188,8 +188,8 @@
 "Nothing to change" = "Nada que cambiar";
 
 /* RemoteEngine.swift and RemoteBackend.swift */
-"The engine returned an unreadable response." = "El motor ha devuelto una respuesta ilegible.";
-"The engine returned no result." = "El motor no ha devuelto ningún resultado.";
+"The engine returned an unreadable response." = "Algo ha fallado dentro de la app, no en el servidor.";
+"The engine returned no result." = "Algo ha fallado dentro de la app, no en el servidor.";
 "The server didn't send all of this file." = "El servidor no ha enviado todo el archivo.";
 
 /* FileProviderShell, Connector.swift. It stays English where it's made, because Diagnostics
@@ -197,7 +197,7 @@
 "The drive is offline." = "La unidad está sin conexión.";
 
 /* SyncCore, SyncStore.swift */
-"The list of changes has to be read again from the start." = "Hay que volver a leer la lista de cambios desde el principio.";
+"The list of changes has to be read again from the start." = "La unidad se está leyendo de nuevo desde el principio. Esto continúa solo.";
 "This item is no longer on this drive." = "Este ítem ya no está en esta unidad.";
 "This drive's records were made by a newer version of the app, so they were left alone." = "Los registros de esta unidad los creó una versión más reciente de la app, así que no se han tocado.";
 "This drive's records couldn't be repaired safely, so nothing was changed." = "Los registros de esta unidad no se han podido reparar de forma segura, así que no se ha cambiado nada.";
@@ -205,62 +205,62 @@
 "This file kept failing, so it waits until you press Try Again." = "Este archivo ha fallado varias veces, así que espera hasta que pulse Reintentar.";
 
 /* SyncCore, Database.swift */
-"Couldn't open the database." = "No se ha podido abrir la base de datos.";
-"This drive's records are damaged." = "Los registros de esta unidad están dañados.";
+"Couldn't open the database." = "Los registros de esta unidad en este dispositivo no se pueden abrir. No afecta a nada del servidor.";
+"This drive's records are damaged." = "Los registros de esta unidad en este dispositivo están dañados. No afecta a nada del servidor.";
 
 /* The Go engine's own messages, exactly as its errors.New calls write them. They reach the screen through
    RemoteError.failed and .unsupportedServer. Anything else it says, such as rclone's own text,
    stays English. */
 "this file is too big to copy in the time a save can wait" = "este archivo es demasiado grande para copiarlo en el tiempo que puede esperar un guardado";
 "another device is saving this item" = "otro dispositivo está guardando este ítem";
-"this device's claim expired during the save" = "la reserva de este dispositivo ha caducado durante el guardado";
-"the server's answer was lost, so this change may or may not have happened" = "se ha perdido la respuesta del servidor, así que puede que este cambio se haya hecho o no";
+"this device's claim expired during the save" = "el guardado tardó demasiado, así que se detuvo para proteger los guardados de otros dispositivos";
+"the server's answer was lost, so this change may or may not have happened" = "la conexión se cortó antes de que el servidor confirmara este cambio";
 "another item on the server already has this name" = "otro ítem del servidor ya tiene este nombre";
 "the server kept only part of this file, so it wasn't saved" = "el servidor solo ha guardado parte de este archivo, así que no se ha guardado";
-"the server gave no timestamp" = "el servidor no ha dado ninguna marca de tiempo";
+"the server gave no timestamp" = "el servidor no ha indicado cuándo cambió este elemento por última vez";
 "couldn't find a free name for the conflict copy" = "no se ha encontrado un nombre libre para la copia en conflicto";
 "this item changed on the server" = "este ítem ha cambiado en el servidor";
 "the server didn't keep this file's details" = "el servidor no ha conservado los detalles de este archivo";
 "this file's details are too big to keep on the server" = "los detalles de este archivo son demasiado grandes para conservarlos en el servidor";
-"this file didn't arrive as it was saved" = "este archivo no ha llegado tal como se guardó";
-"an encrypted drive without its vault can't describe a file" = "una unidad cifrada sin su bóveda no puede describir un archivo";
-"the server's reply didn't make sense" = "la respuesta del servidor no tenía sentido";
-"the server gave no usable details for this item" = "el servidor no ha dado detalles utilizables de este ítem";
-"the server returned no details for this item" = "el servidor no ha devuelto detalles de este ítem";
+"this file didn't arrive as it was saved" = "lo descargado no coincide con el archivo que se guardó, así que no se ha usado";
+"an encrypted drive without its vault can't describe a file" = "algo ha fallado dentro de la app, no en el servidor";
+"the server's reply didn't make sense" = "no se ha podido entender la respuesta del servidor";
+"the server gave no usable details for this item" = "el servidor no ha indicado qué es este elemento";
+"the server returned no details for this item" = "el servidor no ha indicado qué es este elemento";
 "this drive is read-only" = "esta unidad es de solo lectura";
 "only https and http addresses can be used" = "solo se pueden usar direcciones https y http";
 "sending a password over plain http needs your consent" = "enviar una contraseña por http sin cifrar requiere su consentimiento";
 "the server is too slow to be usable" = "el servidor es demasiado lento para poder usarlo";
 "this folder took too long to list" = "esta carpeta ha tardado demasiado en mostrar su contenido";
 "this server only offers Digest sign-in, which CloudAccess can't use" = "este servidor solo ofrece el inicio de sesión Digest, que CloudAccess no puede usar";
-"the server sent a different amount of this file than it lists" = "el servidor ha enviado una cantidad de este archivo distinta de la que indica";
+"the server sent a different amount of this file than it lists" = "el servidor ha enviado más o menos de este archivo de lo que dijo que tenía";
 "this isn't a plain file, so it can't be uploaded as one" = "esto no es un archivo normal, así que no se puede subir como tal";
-"this item is no longer in the trash" = "este ítem ya no está en la papelera";
+"this item is no longer in the trash" = "este elemento ya no está entre los archivos eliminados";
 "this drive isn't encrypted" = "esta unidad no está cifrada";
-"the drive's retention policy can't be read" = "no se puede leer la política de conservación de la unidad";
-"the drive's retention policy is missing, though this device read one earlier" = "falta la política de conservación de la unidad, aunque este dispositivo leyó una antes";
+"the drive's retention policy can't be read" = "no se puede leer cuánto tiempo conserva esta unidad los archivos eliminados";
+"the drive's retention policy is missing, though this device read one earlier" = "falta en el servidor cuánto tiempo conserva esta unidad los archivos eliminados, aunque este dispositivo lo leyó antes";
 "this deleted item's details are damaged, so it can't be restored" = "los detalles de este ítem eliminado están dañados, así que no se puede restaurar";
 "this folder has too many items to list here" = "esta carpeta tiene demasiados ítems para mostrarlos aquí";
-"only SFTP drives can work without the control folder" = "solo las unidades SFTP pueden funcionar sin la carpeta de control";
+"only SFTP drives can work without the control folder" = "solo las unidades SFTP pueden funcionar sin la carpeta oculta .cloudmount";
 "in Unsafe mode this drive keeps no deleted files" = "en el modo Inseguro esta unidad no conserva los archivos eliminados";
-"a drive in Safe mode needs its control folder" = "una unidad en el modo Seguro necesita su carpeta de control";
+"a drive in Safe mode needs its control folder" = "una unidad en el modo Seguro necesita su carpeta oculta .cloudmount";
 "another device is saving to this drive, so its folder was kept" = "otro dispositivo está guardando en esta unidad, así que se ha conservado su carpeta";
 "this name is too long to store on an encrypted drive" = "este nombre es demasiado largo para guardarlo en una unidad cifrada";
 "this item can't be decrypted" = "este ítem no se puede descifrar";
-"the encryption password is wrong, or the vault marker was changed" = "la contraseña de cifrado es incorrecta, o se ha modificado la marca de la bóveda";
-"this folder has files but no vault marker" = "esta carpeta tiene archivos pero no tiene marca de bóveda";
-"this folder has no vault yet" = "esta carpeta aún no tiene bóveda";
-"this folder holds a different vault from the one this drive used" = "esta carpeta contiene una bóveda distinta de la que usaba esta unidad";
-"the vault marker is older than the one this device last saw" = "la marca de la bóveda es más antigua que la última que vio este dispositivo";
-"this vault was retired by a password change" = "esta bóveda se retiró al cambiar la contraseña";
-"this vault needs a newer version of the app" = "esta bóveda necesita una versión más reciente de la app";
-"the vault marker can't be read" = "no se puede leer la marca de la bóveda";
+"the encryption password is wrong, or the vault marker was changed" = "la contraseña de cifrado es incorrecta, o se han modificado los datos de cifrado de la unidad en el servidor";
+"this folder has files but no vault marker" = "esta carpeta tiene archivos, pero no es una unidad cifrada";
+"this folder has no vault yet" = "esta carpeta aún no tiene una unidad cifrada";
+"this folder holds a different vault from the one this drive used" = "esta carpeta contiene una unidad cifrada distinta de la que usaba esta unidad";
+"the vault marker is older than the one this device last saw" = "el servidor tiene datos de cifrado de esta unidad más antiguos que los que vio este dispositivo la última vez";
+"this vault was retired by a password change" = "esta unidad cifrada se retiró al cambiar la contraseña";
+"this vault needs a newer version of the app" = "esta unidad cifrada necesita una versión más reciente de la app";
+"the vault marker can't be read" = "no se pueden leer los datos de cifrado de esta unidad en el servidor";
 "this folder holds an encrypted drive" = "esta carpeta contiene una unidad cifrada";
 "this server's identity hasn't been confirmed" = "la identidad de este servidor no se ha confirmado";
 "this server's identity has changed" = "la identidad de este servidor ha cambiado";
 "this server can't replace a file in one step, so saves wouldn't be safe" = "este servidor no puede reemplazar un archivo en un solo paso, así que los guardados no serían seguros";
 "the connection to the server was lost" = "se ha perdido la conexión con el servidor";
-"could not encode the result" = "no se ha podido codificar el resultado";
+"could not encode the result" = "algo ha fallado dentro de la app, no en el servidor";
 
 /* Uninstall.swift: the steps of an uninstall. Numbers with a plural word are in the strings
    dictionary. */
@@ -479,3 +479,24 @@
 "This folder can't be read: %@" = "No se puede leer esta carpeta: %@";
 "That name can't be used for a folder." = "Ese nombre no se puede usar para una carpeta.";
 "That folder couldn't be made: %@" = "No se ha podido crear esa carpeta: %@";
+
+/* EncryptionChoice.swift */
+"This folder already has files that aren't encrypted, so it can't become an encrypted drive." = "Esta carpeta ya tiene archivos sin cifrar, así que no puede ser una unidad cifrada.";
+"This folder is already an encrypted drive. Enter its encryption password to join it." = "Esta carpeta ya es una unidad cifrada. Introduzca su contraseña de cifrado para unirse a ella.";
+"CloudWanderer only joins encrypted drives made with CloudAccess, and this folder isn't one." = "CloudWanderer solo se une a unidades cifradas creadas con CloudAccess, y esta carpeta no lo es.";
+
+/* ConnectionFinding.swift: one short line under a form's field. */
+"Nothing answers at this Tailscale address" = "No responde nada en esta dirección de Tailscale";
+"Looking up this name got no answer" = "La búsqueda de este nombre no ha obtenido respuesta";
+"Nothing on this network answers to this name" = "Nada en esta red responde a este nombre";
+"This Mac has no way to this address" = "Este Mac no tiene forma de llegar a esta dirección";
+"This iPhone has no way to this address" = "Este iPhone no tiene forma de llegar a esta dirección";
+"Nothing answers at this address" = "No responde nada en esta dirección";
+"Nothing accepts connections on this port" = "Nada acepta conexiones en este puerto";
+"The server doesn't answer on this port" = "El servidor no responde en este puerto";
+"The server closed the connection straight away" = "El servidor ha cerrado la conexión al momento";
+"The server accepts connections but doesn't answer" = "El servidor acepta conexiones pero no responde";
+"The certificate is for another name" = "El certificado es para otro nombre";
+"Something other than a WebDAV server answered" = "Ha respondido algo que no es un servidor WebDAV";
+"The server answers too slowly" = "El servidor responde demasiado despacio";
+"Couldn't connect, and the check couldn't tell why" = "No se ha podido conectar, y la comprobación no ha podido saber por qué";

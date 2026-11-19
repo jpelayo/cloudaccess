@@ -106,10 +106,14 @@ final class Drives {
         case unsafeNeedsSFTP
         case insecureNotAllowed
         case uninstalling
+        /// The server at a drive's new address isn't the one it used: another key, or another vault.
+        case differentServer
 
         /// Shown to a person, so it's in the language shown. Diagnostics record the case's name.
         var errorDescription: String? {
             switch self {
+            case .differentServer:
+                return String(localized: "This address has a different server. Save again to use it instead.")
             case .uninstalling:
                 return String(localized: "CloudAccess is being uninstalled, so drives can't be added or changed.")
             case .unsafeNeedsSFTP:
@@ -126,7 +130,7 @@ final class Drives {
                 return "This test build only connects to a folder named \(Connection.testFolderName)."
             #endif
             case .noSharedFolder:
-                return String(localized: "The app's shared folder isn't available.")
+                return String(localized: "CloudAccess can't open its own data folder, so it can't keep drives. Install it again.")
             }
         }
     }
@@ -154,7 +158,7 @@ final class Drives {
             switch self {
             case .connected: nil
             case .syncing(let count): "syncing \(count)"
-            case .notMoving(let count): count == 1 ? "1 upload paused" : "\(count) uploads paused"
+            case .notMoving(let count): count == 1 ? "1 upload not moving" : "\(count) uploads not moving"
             case .needsAttention(let count):
                 count == 1 ? "1 file needs attention" : "\(count) files need attention"
             case .offline: "offline"
@@ -168,7 +172,7 @@ final class Drives {
             switch self {
             case .connected: nil
             case .syncing(let count): String(localized: "uploading \(count) files")
-            case .notMoving(let count): String(localized: "\(count) uploads paused")
+            case .notMoving(let count): String(localized: "\(count) uploads not moving")
             case .needsAttention(let count): String(localized: "\(count) files need attention")
             case .offline: String(localized: "offline")
             case .needsEnabling: String(localized: "turn on in System Settings")
@@ -187,7 +191,7 @@ final class Drives {
         var description: String {
             switch self {
             case .green: String(localized: "Mounted")
-            case .yellow: String(localized: "Problem")
+            case .yellow: String(localized: "Mounted, needs attention")
             case .red: String(localized: "Not mounted")
             }
         }
@@ -200,6 +204,18 @@ final class Drives {
     let checks = ConnectionChecks(device: .mac)
     /// Whether this Mac has a network at all, straight from the system.
     private(set) var isNetworkUp = true
+    /// Whether Tailscale, or a VPN like it, has given this Mac an address, as of the last poll.
+    private(set) var hasTailnetAddress = false
+    /// Its coming or going counts as a change of network.
+    @ObservationIgnored private var tailnetPresence = TailnetPresence()
+    /// Which drives this Mac has reached through Tailscale, kept across launches.
+    private(set) var tailnetUse = Drives.savedTailnetUse()
+    /// Drives whose way in has been noted since they last connected, so it's read once per connection.
+    @ObservationIgnored private var tailnetNoted: Set<UUID> = []
+    /// A server's new Tailscale address, for a drive saved by its old one, found by its name.
+    private(set) var movedAddresses: [UUID: String] = [:]
+    /// When each drive's name was last looked up for a new address, so it's done once a minute.
+    @ObservationIgnored private var movedLookedUp: [UUID: Date] = [:]
     /// Drives a person asked to check again, while that runs. Each drive's button turns on its own.
     private(set) var checkingAgain: Set<UUID> = []
     /// Launch at login, kept fresh, so its warning goes soon after a person allows it.
@@ -233,10 +249,8 @@ final class Drives {
     private(set) var failures: [UUID: [SyncFailure]] = [:]
     /// Places macOS named that couldn't be written down yet. It only names them once.
     private var unsavedPreserved: [DriveStore.PreservedFiles] = []
-    /// Waits here until Settings is on screen to open it.
+    /// Another page asked of a drive's window that's already open, which it picks up and clears.
     var request: DriveRequest?
-    /// The panel's + button, waiting for Settings the same way.
-    var wantsAddForm = false
     /// Why a drive can't connect, when waiting won't fix it.
     private(set) var problems: [UUID: RemoteError] = [:]
     /// Drives whose SFTP server now offers a different key, until someone reviews it.
@@ -344,7 +358,36 @@ final class Drives {
     /// What the whole app shows about connections. A drive that fails because of its own server
     /// says so only in its own places. Only a problem with this Mac is shown app-wide.
     var appWideWarning: AppWideWarning {
-        AppWideWarning.from(mounted.filter { offline.contains($0.id) }.compactMap { checks.findings[$0.id] })
+        let proved = AppWideWarning.from(mounted.filter { offline.contains($0.id) }.compactMap { checks.findings[$0.id] })
+        guard proved == .none else { return proved }
+        return tailscaleHint ?? .none
+    }
+
+    /// Tailscale is off and may be why some drives fail, though nothing proved it. A person who
+    /// just turned it off is the likeliest reason, so it's said rather than left to guesswork.
+    var tailscaleHint: AppWideWarning? {
+        AppWideWarning.tailscaleHint(
+            findings: offlineDrives.compactMap { checks.findings[$0.id] }, isTailscaleInstalled: hasTailscale,
+            hasTailnetAddress: hasTailnetAddress,
+            someDriveUsesTailnet: mounted.contains { usesTailnet($0) || Self.hasTailnetAddressOfItsOwn($0) })
+    }
+
+    /// Whether the hint covers this drive's failure.
+    func tailscaleMayHelp(_ connection: Connection) -> Bool {
+        guard tailscaleHint != nil, offline.contains(connection.id), let finding = checks.findings[connection.id] else {
+            return false
+        }
+        return AppWideWarning.tailscaleCanCause.contains(finding.kind)
+    }
+
+    /// This Mac has reached the drive through Tailscale in the last 90 days.
+    func usesTailnet(_ connection: Connection) -> Bool {
+        tailnetUse.usesTailnet(connection.id, at: Date())
+    }
+
+    private static func hasTailnetAddressOfItsOwn(_ connection: Connection) -> Bool {
+        guard let target = ConnectionCheck.Target(connection) else { return false }
+        return [.tailscaleName, .tailscaleAddress, .sharedVPNAddress].contains(ConnectionCheck.place(of: target.host))
     }
 
     /// Drives that can't connect because Tailscale is off on this Mac, which a check proved. A
@@ -355,7 +398,9 @@ final class Drives {
 
     /// Each problem with this Mac that some drives feel, for Settings, which lists them all.
     var deviceProblems: [AppWideWarning] {
-        AppWideWarning.deviceProblems(in: offlineDrives.compactMap { checks.findings[$0.id] })
+        let proved = AppWideWarning.deviceProblems(in: offlineDrives.compactMap { checks.findings[$0.id] })
+        guard !proved.contains(where: \.opensTailscale), let tailscaleHint else { return proved }
+        return [tailscaleHint] + proved
     }
 
     /// The Local Network list in Privacy & Security, where CloudAccess is allowed to reach
@@ -614,6 +659,7 @@ final class Drives {
     init() {
         store = try? DriveStore.shared()
         checks.log = { [store] line in store?.diagnostics.record(line) }
+        checks.usesTailnet = { [weak self] connection in self?.usesTailnet(connection) ?? false }
         reload()
         memory = MemoryWatcher { [weak self] level in
             self?.memoryLevelChanged(to: level)
@@ -807,8 +853,99 @@ final class Drives {
         } while pollAgain
     }
 
+    /// Reads whether this Mac has a tailnet address. Tailscale coming or going counts as a change
+    /// of network, because macOS doesn't always report a tunnel as one, and drives waiting on it
+    /// should reconnect straight away.
+    private func noteTailnetAddress() {
+        let now = DeviceNetwork(isUp: true, interfaces: DeviceNetwork.addresses()).hasTailnetAddress
+        if hasTailnetAddress != now { hasTailnetAddress = now }
+        if tailnetPresence.changed(to: now) {
+            store?.diagnostics.record(now ? "Tailscale address appeared" : "Tailscale address went away")
+            checks.settle(for: 5)
+        }
+    }
+
+    /// Notes, once per connection, whether the drive is reached through Tailscale. Its address
+    /// may not say so, and without this, turning Tailscale off later looks like the server's fault.
+    private func noteTailnetUse(of connection: Connection) {
+        guard !tailnetNoted.contains(connection.id), let target = ConnectionCheck.Target(connection) else { return }
+        tailnetNoted.insert(connection.id)
+        let network = DeviceNetwork(isUp: true, interfaces: DeviceNetwork.addresses())
+        // A drive saved by its Tailscale address also keeps its Tailscale name, which finds the
+        // server again if the tailnet gives it a new address.
+        let isTailnetAddress = [.tailscaleAddress, .sharedVPNAddress].contains(ConnectionCheck.place(of: target.host))
+        Task { [weak self] in
+            let isThrough = await ConnectionCheck.isReachedThroughTailnet(target, network: network)
+            var name: String?
+            if isTailnetAddress {
+                name = await ConnectionCheck.name(of: target.host)
+            }
+            guard let self, isThrough || name != nil else { return }
+            if isThrough {
+                tailnetUse.note(connection.id, throughTailnet: true, at: Date())
+            }
+            if let name {
+                tailnetUse.noteName(name, of: connection.id)
+            }
+            tailnetUse.keep(only: Set(connections.map(\.id)))
+            Self.saveTailnetUse(tailnetUse)
+        }
+    }
+
+    /// For each drive that can't connect and was saved by its Tailscale address, looks up its
+    /// Tailscale name, at most once a minute, in case the tailnet gave the server a new address.
+    /// Only the system's resolver is asked, and only while Tailscale is on.
+    private func lookForMovedAddresses() {
+        guard hasTailnetAddress else { return }
+        let now = Date()
+        for connection in offlineDrives {
+            guard let target = ConnectionCheck.Target(connection), let name = tailnetUse.name(of: connection.id),
+                  now.timeIntervalSince(movedLookedUp[connection.id] ?? .distantPast) >= 60
+            else { continue }
+            movedLookedUp[connection.id] = now
+            Task { [weak self] in
+                let found = await ConnectionCheck.currentAddresses(of: name)
+                guard let self else { return }
+                let moved = TailnetUse.movedAddress(saved: target.host, name: name, found: found)
+                if movedAddresses[connection.id] != moved { movedAddresses[connection.id] = moved }
+            }
+        }
+    }
+
+    /// The server's new Tailscale address, while the drive can't reach its old one.
+    func movedAddress(of connection: Connection) -> String? {
+        offline.contains(connection.id) ? movedAddresses[connection.id] : nil
+    }
+
+    /// Corrects a drive to its server's new Tailscale address, as an edit would: connecting there
+    /// with its trusted key or vault proves it's the same server, and nothing else changes.
+    func useNewAddress(of connection: Connection) async throws {
+        guard let moved = movedAddresses[connection.id] else { return }
+        var form = ConnectionForm(connection)
+        form.host = moved
+        guard let edited = form.applied(to: connection) else { return }
+        try await saveEdit(of: connection, as: edited, signIn: SignInEdit())
+        movedAddresses[connection.id] = nil
+    }
+
+    private static let tailnetUseKey = "tailnetUse"
+
+    private static func savedTailnetUse() -> TailnetUse {
+        guard let data = UserDefaults.standard.data(forKey: tailnetUseKey),
+              let use = try? JSONDecoder().decode(TailnetUse.self, from: data)
+        else { return TailnetUse() }
+        return use
+    }
+
+    private static func saveTailnetUse(_ use: TailnetUse) {
+        if let data = try? JSONEncoder().encode(use) {
+            UserDefaults.standard.set(data, forKey: tailnetUseKey)
+        }
+    }
+
     private func pollDrives(force: Bool) async {
         saveWaitingPreserved()
+        noteTailnetAddress()
         var failed = Set<UUID>()
         // Why each drive failed, for the check that explains it once the poll is done.
         var lost: [UUID: Error] = [:]
@@ -858,6 +995,8 @@ final class Drives {
                 Task { await refreshPending(of: connection) }
                 // This goes first: macOS retries as soon as its back-off is cleared.
                 await noteConnection(of: connection, isOffline: false)
+                noteTailnetUse(of: connection)
+                if movedAddresses[connection.id] != nil { movedAddresses[connection.id] = nil }
                 if offline.contains(connection.id) {
                     store?.diagnostics.record("\(connection.displayName): back online")
                     await clearThrottling(of: connection)
@@ -871,6 +1010,7 @@ final class Drives {
                 }
                 failed.insert(connection.id)
                 lost[connection.id] = error
+                tailnetNoted.remove(connection.id)
                 if let engine = open[connection.id]?.engine {
                     await pinVaultRevision(of: connection, engine: engine)
                 }
@@ -888,6 +1028,7 @@ final class Drives {
         checks.noteFailures(
             mounted.compactMap { connection in lost[connection.id].map { (connection, $0) } },
             otherServersOnline: { [weak self] in self?.connectsToAnotherServer(than: $0) ?? false })
+        lookForMovedAddresses()
         await refreshPermissions()
     }
 
@@ -1049,10 +1190,16 @@ final class Drives {
         let failedIDs = Set(failed.map(\.id))
         let allAttempts = (try? state.attempts()) ?? []
         let attempts = Dictionary(allAttempts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        var files = listed.map { item -> PendingFile in
-            let isOnServer = (try? state.item(id: item.id)) != nil
+        var nameless = 0
+        var files = listed.compactMap { item -> PendingFile? in
+            let recorded = try? state.item(id: item.id)
+            let isOnServer = recorded != nil
+            guard let name = PendingName.shown(reported: item.name, recorded: recorded?.name) else {
+                nameless += 1
+                return nil
+            }
             // macOS can call a package by either of its names, and a failure is under only one.
-            let unsent = [item.name, FlattenedPackage.twin(of: item.name)].map {
+            let unsent = [name, FlattenedPackage.twin(of: name)].map {
                 SyncFailure.unsentID(name: $0, parentID: item.parentID)
             }
             let onRecord = unsent.first { attempts[$0] != nil || failedIDs.contains($0) }
@@ -1068,7 +1215,7 @@ final class Drives {
                 fileState = .waiting
             }
             return PendingFile(
-                id: key, name: item.name, folder: try? state.path(of: item.parentID), size: item.size,
+                id: key, name: name, folder: try? state.path(of: item.parentID), size: item.size,
                 state: fileState)
         }
         // macOS's list can be empty while its files are failing, so what's on record counts too.
@@ -1100,7 +1247,7 @@ final class Drives {
         }
         noteMovement(of: id, waitingFiles: movement, state: state)
 
-        let line = "listed=\(listed.count) reported=\(reportedUploads[id] ?? 0) waiting=\(waitingCount) "
+        let line = "listed=\(listed.count) nameless=\(nameless) reported=\(reportedUploads[id] ?? 0) waiting=\(waitingCount) "
             + "failing=\(failing) failed=\(failed.count) stalled=\(stalled.contains(id))"
         if lastLogged[id] != line {
             lastLogged[id] = line
@@ -1589,7 +1736,11 @@ final class Drives {
         return credentials
     }
 
-    func saveEdit(of connection: Connection, as edited: Connection, signIn: SignInEdit) async throws {
+    /// - Parameter mayKeepAtNewAddress: False once the server at a new address proved to be another
+    ///   one: then only a move can follow, even with that server's key now trusted.
+    func saveEdit(
+        of connection: Connection, as edited: Connection, signIn: SignInEdit, mayKeepAtNewAddress: Bool = true
+    ) async throws {
         guard let store else { throw DriveError.noSharedFolder }
         guard !isUninstalling else { throw DriveError.uninstalling }
         #if DEBUG
@@ -1605,13 +1756,21 @@ final class Drives {
         guard DriveEdit.modeRefusal(for: edited) == nil else { throw DriveError.unsafeNeedsSFTP }
         let savedSignIn = try store.credentials(for: connection.id)
         let credentials = signIn.applied(to: savedSignIn)
-        let isMoved = edited.requiresNewDrive(comparedTo: connection)
+        // The same server at a new address stays the same drive: connecting there with its trusted
+        // key or vault proves it, and only the address changes. Nothing leaves Finder.
+        let isNewAddress = mayKeepAtNewAddress && edited.isOnlyNewAddress(comparedTo: connection) && edited.canProveItsServer
+        let isMoved = edited.requiresNewDrive(comparedTo: connection) && !isNewAddress
         var saved = edited
-        if isMoved || !signIn.isEmpty {
-            let engine = try await RemoteEngine(
-                connection: edited, credentials: credentials,
-                createVault: isMoved && edited.isEncrypted && !edited.isReadOnly)
-            _ = try await engine.list(.root)
+        if isMoved || isNewAddress || !signIn.isEmpty {
+            let engine: RemoteEngine
+            do {
+                engine = try await RemoteEngine(
+                    connection: edited, credentials: credentials,
+                    createVault: isMoved && edited.isEncrypted && !edited.isReadOnly)
+                _ = try await engine.list(.root)
+            } catch where isNewAddress && DriveEdit.isAnotherServer(error) {
+                throw DriveError.differentServer
+            }
             if isMoved {
                 saved.vaultID = engine.vault?.id
                 saved.vaultRevision = engine.vault?.revision
@@ -1632,9 +1791,13 @@ final class Drives {
         if isMoved || !signIn.isEmpty {
             try store.save(credentials, for: connection.id)
         }
+        // Both processes reconnect with what's saved: the extension re-reads the drive when the
+        // revision goes up, as it does for a new password.
+        let reconnects = !signIn.isEmpty || isNewAddress
         if connection.isMounted {
-            if !signIn.isEmpty {
+            if reconnects {
                 open[connection.id] = nil
+                tailnetNoted.remove(connection.id)
                 try await localState(connection).raiseSignInRevision()
                 await clearThrottling(of: connection)
             }
@@ -1642,9 +1805,10 @@ final class Drives {
                 try await NSFileProviderManager.add(domain(for: saved))
             }
         }
-        store.diagnostics.record("\(saved.displayName): connection details changed")
+        store.diagnostics.record(
+            isNewAddress ? "\(saved.displayName): same server at a new address" : "\(saved.displayName): connection details changed")
         reload()
-        if !signIn.isEmpty {
+        if reconnects {
             await pollOnce()
         }
     }
@@ -2445,7 +2609,8 @@ private enum ItemListing {
     /// - Parameter limit: The most to read. The start of a long list says enough.
     static func pending(in manager: NSFileProviderManager, limit: Int) async throws -> [Pending] {
         try await EnumeratorReader.read(manager.enumeratorForPendingItems(), into: [Pending]()) { found, item in
-            if item.itemIdentifier != .rootContainer {
+            // Neither is a file. Drives have no trash, but macOS can still keep an entry for it.
+            if item.itemIdentifier != .rootContainer, item.itemIdentifier != .trashContainer {
                 found.append(Pending(
                     id: syncID(item.itemIdentifier),
                     name: item.filename,

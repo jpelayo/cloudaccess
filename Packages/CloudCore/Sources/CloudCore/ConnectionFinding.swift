@@ -79,6 +79,8 @@ public struct ConnectionFacts: Equatable, Sendable {
     public var answer: Answer?
     /// When the server's certificate expired, for an answer that says it did.
     public var certificateExpiry: Date?
+    /// This device has reached the drive through Tailscale before, whatever its address looks like.
+    public var reachedThroughTailnet = false
 
     public init(
         network: DeviceNetwork, place: Place, isOnOwnNetwork: Bool = false, lookup: Lookup? = nil,
@@ -256,8 +258,9 @@ public struct ConnectionFinding: Equatable, Sendable {
             }
         }
         let viaTailnet = [.tailscaleName, .tailscaleAddress, .sharedVPNAddress].contains(facts.place)
-        // Proved only by this device having no tailnet address at all.
-        if viaTailnet && !network.hasTailnetAddress {
+        // Proved only by this device having no tailnet address at all, for a drive whose address is
+        // Tailscale's or that this device has reached through Tailscale.
+        if (viaTailnet || facts.reachedThroughTailnet) && !network.hasTailnetAddress {
             return .tailscaleOff
         }
 
@@ -358,7 +361,7 @@ public struct ConnectionFinding: Equatable, Sendable {
             add(network, Words.text(denied.contains(facts.network.unsatisfied) ? "Not allowed" : "Not connected"), .failed)
         }
 
-        if [.tailscaleName, .tailscaleAddress, .sharedVPNAddress].contains(facts.place) {
+        if [.tailscaleName, .tailscaleAddress, .sharedVPNAddress].contains(facts.place) || facts.reachedThroughTailnet {
             let on = facts.network.hasTailnetAddress
             add("Tailscale", Words.text(on ? "On" : "Off"), on ? .passed : .failed)
         }
@@ -547,6 +550,66 @@ public struct ConnectionFinding: Equatable, Sendable {
             true
         default:
             false
+        }
+    }
+
+    /// Which part of a form a finding is about, so its note sits under that field.
+    public enum Field: Equatable, Sendable {
+        case address
+        case port
+        case signIn
+        case folder
+        case thisDevice
+        case server
+    }
+
+    public var field: Field {
+        switch kind {
+        case .noNetwork, .mobileDataNotAllowed, .wifiNotAllowed, .tailscaleOff, .localNetworkDenied, .tailscaleBypassed:
+            .thisDevice
+        case .tailnetPeerSilent, .tailnetNameUnknown, .nameNotFound, .nameNotAnswered, .localNameSilent,
+             .privateAddressElsewhere, .noRoute, .nothingAnswersHere, .certificateWrongName:
+            .address
+        case .refused, .noAnswer, .notSFTP, .notHTTPS:
+            .port
+        case .closedAtOnce, .silentService, .certificateExpired, .certificateUntrusted, .notWebDAV, .tooSlow,
+             .couldntTell:
+            .server
+        }
+    }
+
+    /// The finding in one short line, for a form, under the field it's about. Like the title, it
+    /// names nothing a check didn't prove, and never guesses. The whole sentence stays for Details.
+    public var short: String {
+        let mac = device == .mac
+        switch kind {
+        case .noNetwork: return Words.text(mac ? "This Mac has no network" : "This iPhone has no network")
+        case .mobileDataNotAllowed: return Words.text("Mobile data isn't allowed")
+        case .wifiNotAllowed: return Words.text("Wi-Fi isn't allowed")
+        case .tailscaleOff: return Words.text("Tailscale is off")
+        case .localNetworkDenied: return Words.text("Local network permission is missing")
+        case .tailscaleBypassed: return Words.text("Another VPN is in the way")
+        case .tailnetPeerSilent: return Words.text("Nothing answers at this Tailscale address")
+        case .tailnetNameUnknown: return Words.text("Tailscale doesn't know that name")
+        case .nameNotFound: return Words.text("No server has that name")
+        case .nameNotAnswered: return Words.text("Looking up this name got no answer")
+        case .localNameSilent: return Words.text("Nothing on this network answers to this name")
+        case .privateAddressElsewhere: return Words.text("The server is on another network")
+        case .noRoute: return Words.text(mac ? "This Mac has no way to this address" : "This iPhone has no way to this address")
+        case .nothingAnswersHere: return Words.text("Nothing answers at this address")
+        case .refused: return Words.text("Nothing accepts connections on this port")
+        case .noAnswer: return Words.text("The server doesn't answer on this port")
+        case .notSFTP: return Words.text("Not an SFTP server")
+        case .closedAtOnce: return Words.text("The server closed the connection straight away")
+        case .silentService: return Words.text("The server accepts connections but doesn't answer")
+        case .certificateExpired: return Words.text("The server's certificate has expired")
+        case .certificateUntrusted:
+            return Words.text(mac ? "This Mac doesn't trust the certificate" : "This iPhone doesn't trust the certificate")
+        case .certificateWrongName: return Words.text("The certificate is for another name")
+        case .notHTTPS: return Words.text("The server doesn't use HTTPS")
+        case .notWebDAV: return Words.text("Something other than a WebDAV server answered")
+        case .tooSlow: return Words.text("The server answers too slowly")
+        case .couldntTell: return Words.text("Couldn't connect, and the check couldn't tell why")
         }
     }
 
